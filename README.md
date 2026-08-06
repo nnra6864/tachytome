@@ -23,7 +23,7 @@ git submodule add ../../nnra6864/tachytome "$env:APPDATA/mpv/scripts/tachytome"
 
 > [!NOTE]
 > `../../` in the link makes git use the same server as your root repo.
-> For example, if your dotfiles are hosted on `https://git.nnstdios.com/name/dotfiles`, double `../` will make it go up twice in the url, ending up with `https://git.nnstdios.com/`, and then appending `nnra6864/tachytome` to that, resulting in `https://git.nnstdios.com/nnra6864/tachytome`
+> For example, if your dotfiles are hosted on `https://git.nnstdios.com/name/dotfiles`, double `../` will make it go up twice in the URL, ending up with `https://git.nnstdios.com/`, and then appending `nnra6864/tachytome` to that, resulting in `https://git.nnstdios.com/nnra6864/tachytome`
 
 ### Clone
 
@@ -63,7 +63,7 @@ You can configure Tachytome with the `mpv/script-opts/tachytome.conf` file:
 
 ```ini, toml
 # Directory where all the renders will end up by default
-# Set to empty for relative to source
+# Leave empty for path relative to source
 # Also used as the starting point for the relative path
 # Examples:
 # `Repo/Funny/`   -> `~/Videos/Clips/Repo/Funny/MyClip.mkv`
@@ -83,7 +83,7 @@ preset=4
 
 # Accurate cut results in millisecond perfect cuts, and is highly recommended
 # Disabling this results in a fallback to keyframes
-# The only downside is render taking longer to start if mark in is far in the video
+# The only downside is the render taking longer to start if mark is far in the video
 # This shouldn't be a concern/issue in regular clips, but matters if you are cutting a movie
 # Can be dynamically set
 accurate_cut=yes
@@ -132,21 +132,21 @@ stats_osd_time=8
 
 ## Donations
 
-Whilst Tachytome is entirely free, both as in freedom and beer, I do highly appreciate donations as they are my only source of income.
-- [Librepay](https://liberapay.com/nnra6864/)
+Whilst Tachytome is entirely free, both as in speech and beer, I do highly appreciate donations as they are my only source of income.
+- [Liberapay](https://liberapay.com/nnra6864/)
 - [Ko-fi](https://ko-fi.com/nnra6864)
 
 ## AI
 
-AI was heavily used in making of Tachytome.<br>
+AI was heavily used in the making of Tachytome.<br>
 As I am not yet familiar with Greek, I asked AI for Greek Eastern Orthodox words that would fit my app, and then combined the 2 suggestions.<br>
 On top of that, AI wrote most of the code for me as I genuinely don't enjoy [Lua](https://www.lua.org/).<br>
 To be precise:
 1. I gave it my original [fish](https://fishshell.com/) script, [spc](https://git.nnstdios.com/nnra6864/Ricerland/src/branch/nous/.config/fish/functions/spc.fish).
-2. Wrote instructions in pseudo code style that it translated to lua.
+2. Wrote instructions in pseudocode style that it translated to Lua.
 3. Dictated the exact structure of the code.
 
-In short, whilst AI did write the code itself, logic/structure, README and the original idea came from me, not the AI.<br>
+In short, whilst AI did write the code itself, the logic/structure, README and the original idea came from me, not the AI.<br>
 If that doesn't sit well with you, this repo is [CC0](https://creativecommons.org/publicdomain/zero/1.0/) licensed, so feel free to do whatever you want with the code and the idea, it's a gift.
 
 # ☦
