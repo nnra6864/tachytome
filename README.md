@@ -22,7 +22,7 @@ git submodule add ../../nnra6864/tachytome "$env:APPDATA/mpv/scripts/tachytome"
 ```
 
 > [!NOTE]
-> `../../` in the link makes git use the same server as your root repo.
+> `../../` in the link makes git use the same server as your root repo.<br>
 > For example, if your dotfiles are hosted on `https://git.nnstdios.com/name/dotfiles`, double `../` will make it go up twice in the URL, ending up with `https://git.nnstdios.com/`, and then appending `nnra6864/tachytome` to that, resulting in `https://git.nnstdios.com/nnra6864/tachytome`
 
 ### Clone
