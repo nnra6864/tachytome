@@ -44,7 +44,7 @@ Tachytome is entirely keyboard driven, so here's a list of all the binds:
 | Ctrl + I         | Mark in              | Start of the video.                                                                         |
 | Ctrl + O         | Mark out             | End of the video.                                                                           |
 | Ctrl + Q         | Set CRF              | Quality of the video ranging from 0-63.<br>&nbsp;0 - highest.<br>63 - lowest.               |
-| Ctrl + N         | Set path             | Output path.<br>`~` &nbsp;- home.<br>`./` - source dir.<br>No prefix - config `output_dir`. |
+| Ctrl + N         | Set path             | Output path.<br>&nbsp;`~` - home.<br>`./` - source dir.<br>No prefix - config `output_dir`. |
 | Ctrl + T         | Toggle trash         | Trash the source video when done.                                                           |
 | Ctrl + L         | Toggle lossless cut  | Toggles the lossles cut option.                                                             |
 | Ctrl + A         | Toggle combine audio | Toggles the combine audio option.                                                           |
@@ -129,8 +129,8 @@ stats_osd_time=8
 ## Donations
 
 Whilst Tachytome is entirely free, both as in freedom and beer, I do highly appreciate donations as they are my only source of income.
-[Librepay](https://liberapay.com/nnra6864/)
-[Ko-fi](https://ko-fi.com/nnra6864)
+- [Librepay](https://liberapay.com/nnra6864/)
+- [Ko-fi](https://ko-fi.com/nnra6864)
 
 ## AI
 
