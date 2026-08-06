@@ -43,19 +43,19 @@ git clone https://git.nnstdios.com/nnra6864/tachytome "$env:APPDATA/mpv/scripts/
 
 Tachytome is entirely keyboard driven, so here's a list of all the binds:
 
-| Keybind          | Action               | Description                                                                                 |
-|------------------|----------------------|---------------------------------------------------------------------------------------------|
-| Ctrl + I         | Mark in              | Start of the video.                                                                         |
-| Ctrl + O         | Mark out             | End of the video.                                                                           |
-| Ctrl + Q         | Set CRF              | Quality of the video ranging from 0-63.<br>&nbsp;0 - highest.<br>63 - lowest.               |
-| Ctrl + N         | Set path             | Output path.<br>&nbsp;`~` - home.<br>`./` - source dir.<br>No prefix - config `output_dir`. |
-| Ctrl + T         | Toggle trash         | Trash the source video when done.                                                           |
-| Ctrl + L         | Toggle lossless cut  | Toggles the lossless cut option.                                                            |
-| Ctrl + A         | Toggle combine audio | Toggles the combine audio option.                                                           |
-| Ctrl + S         | Stats                | Displays Tachytome stats.                                                                   |
-| Ctrl + Del       | Trash                | Trashes the source file.                                                                    |
-| Ctrl + Enter     | Render               | Renders the output file.                                                                    |
-| Ctrl + Shift + S | Cancel render        | Cancels the current render.                                                                 |
+| Keybind          | Action               | Description                                                                            |
+|------------------|----------------------|----------------------------------------------------------------------------------------|
+| Ctrl + I         | Mark in              | Start of the video.                                                                    |
+| Ctrl + O         | Mark out             | End of the video.                                                                      |
+| Ctrl + Q         | Set CRF              | Quality of the video ranging from 0-63.<br>&nbsp;0 - highest.<br>63 - lowest.          |
+| Ctrl + N         | Set path             | Output path.<br>`~/` - home.<br>`./` - source dir.<br>No prefix - config `output_dir`. |
+| Ctrl + T         | Toggle trash         | Trash the source video when done.                                                      |
+| Ctrl + L         | Toggle lossless cut  | Toggles the lossless cut option.                                                       |
+| Ctrl + A         | Toggle combine audio | Toggles the combine audio option.                                                      |
+| Ctrl + S         | Stats                | Displays Tachytome stats.                                                              |
+| Ctrl + Del       | Trash                | Trashes the source file.                                                               |
+| Ctrl + Enter     | Render               | Renders the output file.                                                               |
+| Ctrl + Shift + S | Cancel render        | Cancels the current render.                                                            |
 
 ## Config
 
