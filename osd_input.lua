@@ -10,7 +10,6 @@ local current_callback = nil
 local hide_help = false
 
 local key_mappings = { ["SPACE"] = " " }
--- Added ~, @, #, $, %, ^, &, *, +, =, <, >, ?, ', " to support all pathing needs
 local standard_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.,:;/\\|()[]~@#$%^&*+=<>?'\""
 for i = 1, #standard_chars do
     local c = standard_chars:sub(i, i)
@@ -65,6 +64,7 @@ function M.get_user_input(prompt, callback, sub_prompt, hide_tooltip)
     hide_help = hide_tooltip or false
     buffer = ""
     
+    mp.set_osd_ass(0, 0, "")
     mp.osd_message("", 0)
     render()
 

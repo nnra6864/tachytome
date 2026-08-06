@@ -80,7 +80,6 @@ function M.process_queue()
         if progress_overlay then progress_overlay:remove() end
         os.remove(progress_file)
 
-        -- Handle Cancellation
         if active_job.cancelled then
             os.remove(active_job.output_file)
             common.notify("Render cancelled. File deleted: " .. active_job.final_name, true)

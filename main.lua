@@ -6,23 +6,18 @@ local osd_input = require 'osd_input'
 local render = require 'render'
 local stats = require 'stats'
 
--- =========================================================
--- CONFIGURATION (MPV STANDARD)
--- =========================================================
 local opts = {
     output_dir = "", 
     space_replacement = "_",
     container = "mkv",
     suffix = " Remuxed",
     overwrite_append = "_Remuxed",
-    
     accurate_cut = true,
     lossless_cut = false, 
     crf = 30,
     preset = 4,
     combine_audio = false,
     trash_original = true,
-    
     show_stats_screen = true,
     stats_osd_time = 8
 }
@@ -30,19 +25,72 @@ options.read_options(opts, "tachytome")
 
 local custom_output_name = ""
 
--- =========================================================
--- INITIALIZATION
--- =========================================================
 local platform = common.get_platform()
-local ffmpeg_ok, ffmpeg_path = common.check_ffmpeg(platform)
-if not ffmpeg_ok then common.notify("ffmpeg NOT found", true, "error") end
 local trash_ok, trash_path = common.check_trash(platform)
-if not trash_ok then common.notify("trash utility NOT found", true, "error") end
+local ffmpeg_ok, ffmpeg_path = common.check_ffmpeg(platform)
+
+if not ffmpeg_ok then 
+    if platform == "linux" then
+        common.notify("FFmpeg Missing! Please install it via your package manager.", true, "error")
+    else
+        mp.set_osd_ass(0, 0, "")
+        mp.osd_message("", 0)
+        local ov = mp.create_osd_overlay("ass-events")
+        local active = true
+
+        local function cleanup()
+            if not active then return end
+            active = false
+            ov:remove()
+            mp.remove_key_binding("inst-y")
+            mp.remove_key_binding("inst-n")
+            mp.remove_key_binding("inst-enter")
+            mp.remove_key_binding("inst-esc")
+        end
+
+        ov.data = "{\\an7}{\\c&H0000FF&}Warning: FFmpeg is missing!{\\c&HFFFFFF&}\\NWould you like to install it automatically?\\N\\N[y / Enter] Yes\\N[n / Esc] No"
+        ov:update()
+
+        local function confirm_install()
+            cleanup()
+            common.notify("Installing FFmpeg... Please wait (this may take a few minutes).", true)
+            
+            local args = {}
+            if platform == "windows" then
+                args = {"cmd", "/c", "winget install ffmpeg --accept-package-agreements --accept-source-agreements"}
+            elseif platform == "macos" then
+                args = {"sh", "-c", "brew install ffmpeg"}
+            end
+
+            mp.command_native_async({
+                name = "subprocess",
+                args = args,
+                playback_only = false
+            }, function(success, result, error)
+                if result and result.status == 0 then
+                    common.notify("FFmpeg installed successfully! Please restart MPV.", true)
+                else
+                    common.notify("Install failed. Check console and install manually.", true, "error")
+                    print(result and result.stderr or error)
+                end
+            end)
+        end
+
+        local function cancel_install()
+            cleanup()
+            common.notify("FFmpeg install skipped. Tachytome will not work.", true, "warn")
+        end
+
+        mp.add_forced_key_binding("y", "inst-y", confirm_install)
+        mp.add_forced_key_binding("ENTER", "inst-enter", confirm_install)
+        mp.add_forced_key_binding("n", "inst-n", cancel_install)
+        mp.add_forced_key_binding("ESC", "inst-esc", cancel_install)
+    end
+end
 
 local mark_in = 0
 local mark_out = mp.get_property_number("duration", 0)
 
--- This is now the ONLY place where variables are reset
 mp.register_event("file-loaded", function()
     mark_in = 0
     mark_out = mp.get_property_number("duration", 0)
@@ -53,16 +101,13 @@ local function mark(place)
     local time = mp.get_property_number("time-pos", 0)
     if place == 0 then
         mark_in = time
-        common.notify("In: " .. string.format("%.3f", time), true)
+        common.notify("In: " .. common.format_time(time), true)
     elseif place == 1 then
         mark_out = time
-        common.notify("Out: " .. string.format("%.3f", time), true)
+        common.notify("Out: " .. common.format_time(time), true)
     end
 end
 
--- =========================================================
--- KEYBINDS
--- =========================================================
 mp.add_key_binding("ESC", "clear-osd", function()
     mp.set_osd_ass(0, 0, "") 
     mp.osd_message("", 0)
@@ -128,7 +173,6 @@ mp.add_key_binding("ctrl+DEL", "trash-current", function()
 
     mp.add_forced_key_binding("y", "del-y", confirm_trash)
     mp.add_forced_key_binding("ENTER", "del-enter", confirm_trash)
-    
     mp.add_forced_key_binding("n", "del-n", cancel_trash)
     mp.add_forced_key_binding("ESC", "del-esc", cancel_trash)
 end)
@@ -192,4 +236,5 @@ mp.add_key_binding("ctrl+ENTER", "start-render", function()
         show_stats_screen = opts.show_stats_screen,
         stats_osd_time = opts.stats_osd_time
     })
+    custom_output_name = "" 
 end)

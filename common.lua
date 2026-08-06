@@ -12,7 +12,7 @@ function M.notify(msg, show_osd, type)
         mp.msg.info(msg)
     end
     if show_osd then
-        mp.set_osd_ass(0, 0, "") -- Prevents overlapping by clearing stats screens
+        mp.set_osd_ass(0, 0, "") 
         mp.osd_message(msg, 3)
     end
 end
@@ -51,12 +51,12 @@ function M.check_ffmpeg(platform)
 end
 
 function M.check_trash(platform)
-    if platform == "linux" then
-        return M.check_cmd({"sh", "-c", "command -v trash-put"})
-    elseif platform == "windows" then
-        return M.check_cmd({"powershell", "-NoProfile", "-Command", "Get-Command -Name trash -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source"})
-    elseif platform == "macos" then
-        return M.check_cmd({"sh", "-c", "command -v trash"})
+    if platform == "windows" or platform == "macos" then
+        return true, "native"
+    elseif platform == "linux" then
+        if M.check_cmd({"sh", "-c", "command -v gio"}) then return true, "gio trash" end
+        if M.check_cmd({"sh", "-c", "command -v trash-put"}) then return true, "trash-put" end
+        if M.check_cmd({"sh", "-c", "command -v trash"}) then return true, "trash" end
     end
     return false, nil
 end
@@ -80,23 +80,40 @@ function M.resolve_absolute_path(custom, opts)
     local default_ext = opts.container ~= "" and opts.container or (mp.get_property("filename"):match("^.+(%..+)$") or ".mkv")
     if default_ext:sub(1,1) ~= "." then default_ext = "." .. default_ext end
 
+    local base_output_dir = (opts.output_dir == "") and input_dir or M.expand_path(opts.output_dir)
+    if not base_output_dir:match("[/\\]$") then base_output_dir = base_output_dir .. "/" end
+
     if not custom or custom == "" then
-        local base = (opts.output_dir == "") and input_dir or M.expand_path(opts.output_dir)
-        if not base:match("[/\\]$") then base = base .. "/" end
-        return utils.join_path(base, (base_name .. opts.suffix):gsub(" ", opts.space_replacement) .. default_ext)
+        return utils.join_path(base_output_dir, (base_name .. opts.suffix):gsub(" ", opts.space_replacement) .. default_ext)
     end
 
     local custom_mod = custom
-    if custom_mod:match("^%./") then
+    local explicit_relative = false
+
+    -- If user specifies ./ or .\ it explicitly roots to the original video's folder
+    if custom_mod:match("^%./") or custom_mod:match("^%.\\") then
         custom_mod = input_dir .. custom_mod:sub(3)
+        explicit_relative = true
     end
 
     local target_dir, target_name
+    -- A trailing slash automatically makes target_name = ""
     if custom_mod:match("[/\\]") then
         target_dir, target_name = custom_mod:match("^(.*[/\\])([^/\\]*)$")
     else
-        target_dir = (opts.output_dir == "") and input_dir or M.expand_path(opts.output_dir)
+        target_dir = ""
         target_name = custom_mod
+    end
+
+    local function is_absolute(p)
+        return p:match("^/") or p:match("^%a:[/\\]") or p:match("^~")
+    end
+
+    -- If the path isn't absolute and wasn't forced with ./, root it to the config base
+    if target_dir == "" then
+        target_dir = base_output_dir
+    elseif not is_absolute(target_dir) and not explicit_relative then
+        target_dir = base_output_dir .. target_dir
     end
 
     target_dir = M.expand_path(target_dir)
@@ -163,14 +180,36 @@ function M.ffprobe_get(file, args)
 end
 
 function M.trash_file(file_path, trash_path, callback)
-    if not file_path or not trash_path then
+    if not file_path then
         if callback then callback(false) end
         return
+    end
+
+    local platform = M.get_platform()
+    local args = {}
+
+    if platform == "windows" then
+        local escaped_path = file_path:gsub("'", "''")
+        local ps_cmd = string.format("Add-Type -AssemblyName Microsoft.VisualBasic; [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteFile('%s', 'OnlyErrorDialogs', 'SendToRecycleBin')", escaped_path)
+        args = {"powershell", "-NoProfile", "-Command", ps_cmd}
+    elseif platform == "macos" then
+        local escaped_path = file_path:gsub('"', '\\"')
+        local osa_cmd = string.format('tell application "Finder" to delete POSIX file "%s"', escaped_path)
+        args = {"osascript", "-e", osa_cmd}
+    else
+        if not trash_path then
+            if callback then callback(false) end return
+        end
+        if trash_path == "gio trash" then
+            args = {"gio", "trash", file_path}
+        else
+            args = {trash_path, file_path}
+        end
     end
     
     mp.command_native_async({
         name = "subprocess",
-        args = {trash_path, file_path},
+        args = args,
         playback_only = false
     }, function(success, result, error)
         local is_success = (result and result.status == 0)
