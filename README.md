@@ -1,6 +1,6 @@
 # Tachytome
 
-Tachos (τάχος) – Speed
+Tachos (τάχος) – Speed<br>
 Tome   (τομή)  – Cut
 
 Keyboard Driven, AV1/Lossless, MPV Video Cutter.
@@ -39,19 +39,19 @@ git clone ../../nnra6864/tachytome "$env:APPDATA/mpv/scripts/tachytome"
 
 Tachytome is entirely keyboard driven, so here's a list of all the binds:
 
-| Keybind          | Action               | Description                                                                           |
-|------------------|----------------------|---------------------------------------------------------------------------------------|
-| Ctrl + I         | Mark in              | Start of the video.                                                                   |
-| Ctrl + O         | Mark out             | End of the video.                                                                     |
-| Ctrl + Q         | Set CRF              | Quality of the video ranging from 0-63.<br> 0 - highest.<br>63 lowest.                |
-| Ctrl + N         | Set path             | Output path.<br>`~` - home.<br>`./` - source dir.<br>No prefix - config `output_dir`. |
-| Ctrl + T         | Toggle trash         | Trash the source video when done.                                                     |
-| Ctrl + L         | Toggle lossless cut  | Toggles the lossles cut option.                                                       |
-| Ctrl + A         | Toggle combine audio | Toggles the combine audio option.                                                     |
-| Ctrl + S         | Stats                | Displays Tachytome stats.                                                             |
-| Ctrl + Del       | Trash                | Trashes the source file.                                                              |
-| Ctrl + Enter     | Render               | Renders the output file.                                                              |
-| Ctrl + Shift + S | Cancel render        | Cancels the current render.                                                           |
+| Keybind          | Action               | Description                                                                                 |
+|------------------|----------------------|---------------------------------------------------------------------------------------------|
+| Ctrl + I         | Mark in              | Start of the video.                                                                         |
+| Ctrl + O         | Mark out             | End of the video.                                                                           |
+| Ctrl + Q         | Set CRF              | Quality of the video ranging from 0-63.<br>&nbsp;0 - highest.<br>63 - lowest.               |
+| Ctrl + N         | Set path             | Output path.<br>`~` &nbsp;- home.<br>`./` - source dir.<br>No prefix - config `output_dir`. |
+| Ctrl + T         | Toggle trash         | Trash the source video when done.                                                           |
+| Ctrl + L         | Toggle lossless cut  | Toggles the lossles cut option.                                                             |
+| Ctrl + A         | Toggle combine audio | Toggles the combine audio option.                                                           |
+| Ctrl + S         | Stats                | Displays Tachytome stats.                                                                   |
+| Ctrl + Del       | Trash                | Trashes the source file.                                                                    |
+| Ctrl + Enter     | Render               | Renders the output file.                                                                    |
+| Ctrl + Shift + S | Cancel render        | Cancels the current render.                                                                 |
 
 ## Config
 
@@ -62,7 +62,7 @@ You can configure Tachytome with the `mpv/script-opts/tachytome.conf` file:
 # Set to empty for relative to source
 # Also used as the starting point for the relative path
 # Examples:
-# `Repo/Funny/` -> `~/Videos/Clips/Repo/Funny/MyClip.mkv`
+# `Repo/Funny/`   -> `~/Videos/Clips/Repo/Funny/MyClip.mkv`
 # `./Repo/Funny/` -> `SourcePath/Repo/Funny/MyClip.mkv`
 output_dir=~/Videos/Clips
 
@@ -134,14 +134,15 @@ Whilst Tachytome is entirely free, both as in freedom and beer, I do highly appr
 
 ## AI
 
-AI was heavily used in making of Tachytome.
-As I am not yet familiar with Greek, I asked AI for Greek Eastern Orthodox words that would fit my app, and then combined the 2 suggestions.
-On top of that, AI wrote most of the code for me as I genuinely don't enjoy [Lua](https://www.lua.org/).
+AI was heavily used in making of Tachytome.<br>
+As I am not yet familiar with Greek, I asked AI for Greek Eastern Orthodox words that would fit my app, and then combined the 2 suggestions.<br>
+On top of that, AI wrote most of the code for me as I genuinely don't enjoy [Lua](https://www.lua.org/).<br>
 To be precise:
 1. I gave it my original [fish](https://fishshell.com/) script, [spc](https://git.nnstdios.com/nnra6864/Ricerland/src/branch/nous/.config/fish/functions/spc.fish).
 2. Wrote instructions in pseudo code style that it translated to lua.
 3. Dictated the exact structure of the code.
-In short, whilst AI did write the code itself, logic/structure, README and the original idea came from me, not the AI.
+
+In short, whilst AI did write the code itself, logic/structure, README and the original idea came from me, not the AI.<br>
 If that doesn't sit well with you, this repo is [CC0](https://creativecommons.org/publicdomain/zero/1.0/) licensed, so feel free to do whatever you want with the code and the idea, it's a gift.
 
 # ☦
