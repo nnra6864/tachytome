@@ -21,18 +21,22 @@ git submodule add ../../nnra6864/tachytome ~/.config/mpv/scripts/tachytome
 git submodule add ../../nnra6864/tachytome "$env:APPDATA/mpv/scripts/tachytome"
 ```
 
+> [!NOTE]
+> `../../` in the link makes git use the same server as your root repo.
+> For example, if your dotfiles are hosted on `https://git.nnstdios.com/name/dotfiles`, double `../` will make it go up twice in the url, ending up with `https://git.nnstdios.com/`, and then appending `nnra6864/tachytome` to that, resulting in `https://git.nnstdios.com/nnra6864/tachytome`
+
 ### Clone
 
 Alternatively, you may clone the repo directly to your config:
 
 - Unix
 ```sh
-git clone ../../nnra6864/tachytome ~/.config/mpv/scripts/tachytome
+git clone https://git.nnstdios.com/nnra6864/tachytome ~/.config/mpv/scripts/tachytome
 ```
 
 - Windows (Powershell)
 ```sh
-git clone ../../nnra6864/tachytome "$env:APPDATA/mpv/scripts/tachytome"
+git clone https://git.nnstdios.com/nnra6864/tachytome "$env:APPDATA/mpv/scripts/tachytome"
 ```
 
 ## Usage
@@ -46,7 +50,7 @@ Tachytome is entirely keyboard driven, so here's a list of all the binds:
 | Ctrl + Q         | Set CRF              | Quality of the video ranging from 0-63.<br>&nbsp;0 - highest.<br>63 - lowest.               |
 | Ctrl + N         | Set path             | Output path.<br>&nbsp;`~` - home.<br>`./` - source dir.<br>No prefix - config `output_dir`. |
 | Ctrl + T         | Toggle trash         | Trash the source video when done.                                                           |
-| Ctrl + L         | Toggle lossless cut  | Toggles the lossles cut option.                                                             |
+| Ctrl + L         | Toggle lossless cut  | Toggles the lossless cut option.                                                            |
 | Ctrl + A         | Toggle combine audio | Toggles the combine audio option.                                                           |
 | Ctrl + S         | Stats                | Displays Tachytome stats.                                                                   |
 | Ctrl + Del       | Trash                | Trashes the source file.                                                                    |
