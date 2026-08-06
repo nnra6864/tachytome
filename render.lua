@@ -165,6 +165,8 @@ local function verify_and_queue(job, file_path)
 
     local ov = mp.create_osd_overlay("ass-events")
     local active = true
+    
+    local safe_conflict = job.conflict_suffix:gsub(" ", job.space_replacement)
 
     local function cleanup()
         if not active then return end
@@ -175,7 +177,7 @@ local function verify_and_queue(job, file_path)
         mp.remove_key_binding("ow-3")
     end
 
-    ov.data = string.format("{\\an7}{\\c&H0000FF&}Warning: File already exists!{\\c&HFFFFFF&}\\N%s\\N\\N[1] Append '%s'\\N[2] Overwrite\\N[3] Cancel", job.final_name, job.overwrite_append)
+    ov.data = string.format("{\\an7}{\\c&H0000FF&}Warning: File already exists!{\\c&HFFFFFF&}\\N%s\\N\\N[1] Append '%s'\\N[2] Overwrite\\N[3] Cancel", job.final_name, safe_conflict)
     ov:update()
 
     mp.add_forced_key_binding("1", "ow-1", function()
@@ -184,7 +186,7 @@ local function verify_and_queue(job, file_path)
         local n, e = fname:match("^(.*)(%..+)$")
         if not n then n = fname; e = "" end
         
-        job.final_name = n .. job.overwrite_append .. e
+        job.final_name = n .. safe_conflict .. e
         job.output_file = utils.join_path(dir, job.final_name)
         
         job.args[#job.args] = job.output_file 
@@ -305,7 +307,7 @@ function M.start(opts)
                 end
 
                 table.insert(args, "-disposition:a:0") table.insert(args, "default")
-                table.insert(args, "-metadata:s:a:0") table.insert(args, "TITLE=Combined")
+                table.insert(args, "-metadata:s:a:0") table.insert(args, string.format("TITLE=%s", opts.combined_audio_name))
             else
                 table.insert(args, "-map") table.insert(args, "0")
                 table.insert(args, "-c:a") table.insert(args, "copy")
@@ -327,7 +329,9 @@ function M.start(opts)
         final_name = final_name,
         trash_original = opts.trash_original,
         trash_path = opts.trash_path,
-        overwrite_append = opts.overwrite_append,
+        space_replacement = opts.space_replacement,
+        conflict_suffix = opts.conflict_suffix,
+        combined_audio_name = opts.combined_audio_name,
         start_time = opts.mark_in,
         end_time = opts.mark_out,
         duration = duration,

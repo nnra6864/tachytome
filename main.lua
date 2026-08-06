@@ -11,13 +11,16 @@ local opts = {
     space_replacement = "_",
     container = "mkv",
     suffix = " Remuxed",
-    overwrite_append = "_Remuxed",
+    conflict_suffix = " Remuxed",
+    
     accurate_cut = true,
     lossless_cut = false, 
     crf = 30,
     preset = 4,
     combine_audio = false,
+    combined_audio_name = "Combined",
     trash_original = true,
+    
     show_stats_screen = true,
     stats_osd_time = 8
 }
@@ -116,6 +119,11 @@ end)
 
 mp.add_key_binding("ctrl+i", "mark-in",  function() mark(0) end)
 mp.add_key_binding("ctrl+o", "mark-out", function() mark(1) end)
+
+mp.add_key_binding("ctrl+shift+a", "toggle-accurate", function()
+    opts.accurate_cut = not opts.accurate_cut
+    common.notify("Accurate Cut: " .. (opts.accurate_cut and "ON" or "OFF"), true)
+end)
 
 mp.add_key_binding("ctrl+l", "toggle-lossless", function()
     opts.lossless_cut = not opts.lossless_cut
@@ -230,9 +238,11 @@ mp.add_key_binding("ctrl+ENTER", "start-render", function()
         crf = opts.crf,
         preset = opts.preset,
         combine_audio = opts.combine_audio,
+        combined_audio_name = opts.combined_audio_name,
         trash_original = opts.trash_original,
         trash_path = trash_path,
-        overwrite_append = opts.overwrite_append,
+        space_replacement = opts.space_replacement,
+        conflict_suffix = opts.conflict_suffix,
         show_stats_screen = opts.show_stats_screen,
         stats_osd_time = opts.stats_osd_time
     })
