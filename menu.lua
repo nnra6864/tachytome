@@ -45,7 +45,7 @@ function M.close()
 end
 
 local function draw()
-    local text = "{\\an7}{\\fs18}{\\b1}Tachytome{\\b0}\\N\\N"
+    local text = "{\\an7}{\\fnmonospace}{\\fs18}{\\b1}Tachytome{\\b0}\\N\\N"
     local max_key_len = 0
     local max_label_len = 0
 

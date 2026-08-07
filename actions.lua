@@ -75,7 +75,7 @@ function M.trash_source()
         mp.remove_key_binding("del-esc")
     end
 
-    ov.data = string.format("{\\an7}{\\c&H0000FF&}Warning: Move current file to trash?{\\c&HFFFFFF&}\\N%s\\N\\N[ y / Enter ] Yes\\N[ n / Esc ]   No", current_file)
+    ov.data = string.format("{\\an7}{\\fnmonospace}{\\c&H0000FF&}Warning: Move current file to trash?{\\c&HFFFFFF&}\\N%s\\N\\N[ y / Enter ] Yes\\N[ n / Esc ]   No", current_file)
     ov:update()
 
     local function confirm_trash()

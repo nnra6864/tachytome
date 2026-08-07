@@ -31,7 +31,7 @@ local function check_dependencies()
         mp.remove_key_binding("inst-esc")
     end
 
-    ov.data = "{\\an7}{\\c&H0000FF&}Warning: FFmpeg is missing!{\\c&HFFFFFF&}\\NWould you like to install it automatically?\\N\\N[y / Enter] Yes\\N[n / Esc] No"
+    ov.data = "{\\an7}{\\fnmonospace}{\\c&H0000FF&}Warning: FFmpeg is missing!{\\c&HFFFFFF&}\\NWould you like to install it automatically?\\N\\N[y / Enter] Yes\\N[n / Esc] No"
     ov:update()
 
     local function confirm_install()

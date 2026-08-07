@@ -24,7 +24,7 @@ function M.notify(msg, show_osd, type)
         end
 
         -- \an9 anchors the text to the Top-Right of the screen
-        notify_ov.data = string.format("{\\an9}{\\fs18}{\\b1}{\\c%s}%s{\\b0}", color, msg)
+        notify_ov.data = string.format("{\\an9}{\\fnmonospace}{\\fs18}{\\b1}{\\c%s}%s{\\b0}", color, msg)
         notify_ov:update()
 
         -- Reset the timer every time a new notification pops up

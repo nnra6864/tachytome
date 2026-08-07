@@ -21,7 +21,7 @@ local function render()
     local sub_str = (current_sub_prompt ~= "") and string.format("\\N{\\fs14}{\\alpha&H88&}Current: %s", current_sub_prompt) or ""
 
     overlay.data = string.format(
-        "{\\an7}%s%s{\\alpha&HFF&}_{\\alpha&H00&}%s%s",
+        "{\\an7}{\\fnmonospace}%s%s{\\alpha&HFF&}_{\\alpha&H00&}%s%s",
         current_prompt, buffer, tooltip, sub_str
     )
     overlay:update()

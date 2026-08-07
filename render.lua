@@ -59,7 +59,7 @@ function M.show_queue_manager(on_close)
     end
 
     local function draw()
-        local text = "{\\an7}{\\fs18}{\\b1}Render Queue Manager{\\b0}\\N(Up/Down to navigate, Enter to cancel/remove, Esc to close)\\N\\N"
+        local text = "{\\an7}{\\fnmonospace}{\\fs18}{\\b1}Render Queue Manager{\\b0}\\N(Up/Down to navigate, Enter to cancel/remove, Esc to close)\\N\\N"
 
         -- Safe window capping (shows ~15 items max to prevent screen overflow)
         local start_idx = math.max(1, cursor - 7)
@@ -131,7 +131,7 @@ function M.process_queue()
         return (total_jobs > 1) and string.format("[%d/%d] ", current_job_num, total_jobs) or ""
     end
 
-    progress_overlay.data = string.format("{\\an9}{\\fs16}{\\alpha&H66&}%sRendering %s: 0%%", get_queue_str(), name_no_ext)
+    progress_overlay.data = string.format("{\\an9}{\\fnmonospace}{\\fs16}{\\alpha&H66&}%sRendering %s: 0%%", get_queue_str(), name_no_ext)
     progress_overlay:update()
 
     local progress_timer = mp.add_periodic_timer(0.5, function()
@@ -144,7 +144,7 @@ function M.process_queue()
                 local percent = math.floor((tonumber(time_us) / 1000000) / active_job.duration * 100)
                 if percent > 100 then percent = 100 end
                 if percent < 0 then percent = 0 end
-                progress_overlay.data = string.format("{\\an9}{\\fs16}{\\alpha&H66&}%sRendering %s: %d%%", get_queue_str(), name_no_ext, percent)
+                progress_overlay.data = string.format("{\\an9}{\\fnmonospace}{\\fs16}{\\alpha&H66&}%sRendering %s: %d%%", get_queue_str(), name_no_ext, percent)
                 progress_overlay:update()
             end
         end
@@ -202,7 +202,7 @@ function M.process_queue()
 
             mp.msg.info("\n" .. msg_console)
 
-            mp.set_osd_ass(0, 0, "{\\an7}" .. msg_osd)
+            mp.set_osd_ass(0, 0, "{\\an7}{\\fnmonospace}" .. msg_osd)
             mp.add_timeout(active_job.stats_osd_time, function() mp.set_osd_ass(0, 0, "") end)
 
             if #render_queue == 0 then
@@ -262,7 +262,7 @@ local function verify_and_queue(job, file_path)
         mp.remove_key_binding("ow-3")
     end
 
-    ov.data = string.format("{\\an7}{\\c&H0000FF&}Warning: File already exists!{\\c&HFFFFFF&}\\N%s\\N\\N[1] Append '%s'\\N[2] Overwrite\\N[3] Cancel", job.final_name, safe_conflict)
+    ov.data = string.format("{\\an7}{\\fnmonospace}{\\c&H0000FF&}Warning: File already exists!{\\c&HFFFFFF&}\\N%s\\N\\N[1] Append '%s'\\N[2] Overwrite\\N[3] Cancel", job.final_name, safe_conflict)
     ov:update()
 
     mp.add_forced_key_binding("1", "ow-1", function()
