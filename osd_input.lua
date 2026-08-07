@@ -40,7 +40,9 @@ end
 local function confirm()
     local res = buffer
     close()
-    if current_callback then current_callback(res) end
+    if current_callback then
+        pcall(current_callback, res)
+    end
 end
 
 local function add_char(c)

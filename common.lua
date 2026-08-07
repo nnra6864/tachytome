@@ -88,7 +88,7 @@ function M.check_ffmpeg(platform)
     if platform == "windows" then
         return M.check_cmd({"cmd", "/c", "where", "ffmpeg"})
     else
-        return M.check_cmd({"sh", "-c", "command -v ffmpeg"})
+        return M.check_cmd({"which", "ffmpeg"})
     end
 end
 
@@ -96,11 +96,23 @@ function M.check_trash(platform)
     if platform == "windows" or platform == "macos" then
         return true, "native"
     elseif platform == "linux" then
-        if M.check_cmd({"sh", "-c", "command -v gio"}) then return true, "gio trash" end
-        if M.check_cmd({"sh", "-c", "command -v trash-put"}) then return true, "trash-put" end
-        if M.check_cmd({"sh", "-c", "command -v trash"}) then return true, "trash" end
+        if M.check_cmd({"which", "gio"}) then return true, "gio trash" end
+        if M.check_cmd({"which", "trash-put"}) then return true, "trash-put" end
+        if M.check_cmd({"which", "trash"}) then return true, "trash" end
     end
     return false, nil
+end
+
+function M.ffprobe_get_json(file, args)
+    local cmd = {"ffprobe", "-v", "error"}
+    for _, v in ipairs(args) do table.insert(cmd, v) end
+    table.insert(cmd, file)
+
+    local res = utils.subprocess({args = cmd, cancellable = false})
+    if res.status == 0 and res.stdout then
+        return utils.parse_json(res.stdout)
+    end
+    return nil
 end
 
 function M.ensure_dir(path)

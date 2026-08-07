@@ -105,6 +105,7 @@ function M.start_render()
         mark_in             = state.mark_in,
         mark_out            = state.mark_out,
         full_input_duration = mp.get_property_number("duration", 0),
+        video_encoder       = state.opts.video_encoder,
         accurate_cut        = state.opts.accurate_cut,
         lossless_cut        = state.opts.lossless_cut,
         crf                 = state.opts.crf,
@@ -116,6 +117,7 @@ function M.start_render()
         space_replacement   = state.opts.space_replacement,
         conflict_suffix     = state.opts.conflict_suffix,
         show_stats_screen   = state.opts.show_stats_screen,
+        show_stats_terminal = state.opts.show_stats_terminal,
         stats_osd_time      = state.opts.stats_osd_time
     })
     state.custom_output_name = ""

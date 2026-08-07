@@ -6,6 +6,7 @@ local common  = require 'common'
 local M = {
     opts = {
         output_dir          = "",
+        video_encoder       = "software",
         space_replacement   = "_",
         container           = "mkv",
         suffix              = " Remuxed",
@@ -18,7 +19,8 @@ local M = {
         combined_audio_name = "Combined",
         trash_original      = true,
         show_stats_screen   = true,
-        stats_osd_time      = 8
+        show_stats_terminal = true,
+        stats_osd_time      = 10
     },
     custom_output_name = "",
     mark_in            = 0,
@@ -28,7 +30,7 @@ local M = {
 }
 
 local function ensure_config_exists()
-    local opts_dir = mp.command_native({"expand-path", "~~/script-opts"})
+    local opts_dir  = mp.command_native({"expand-path", "~~/script-opts"})
     local user_conf = utils.join_path(opts_dir, "tachytome.conf")
 
     local f = io.open(user_conf, "r")
