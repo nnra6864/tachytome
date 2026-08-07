@@ -25,6 +25,87 @@ function M.cancel_render()
     end
 end
 
+function M.show_queue_manager()
+    local jobs = {}
+    if is_rendering and active_job then
+        table.insert(jobs, {title = active_job.final_name, is_active = true, original_index = 0})
+    end
+    for i, job in ipairs(render_queue) do
+        table.insert(jobs, {title = job.final_name, is_active = false, original_index = i})
+    end
+
+    if #jobs == 0 then
+        return common.notify("Render queue is empty.", true, "info")
+    end
+
+    mp.set_osd_ass(0, 0, "")
+    mp.osd_message("", 0)
+
+    local ov = mp.create_osd_overlay("ass-events")
+    local active = true
+    local cursor = 1
+
+    local function cleanup()
+        if not active then return end
+        active = false
+        ov:remove()
+        mp.remove_key_binding("qm-up")
+        mp.remove_key_binding("qm-down")
+        mp.remove_key_binding("qm-enter")
+        mp.remove_key_binding("qm-esc")
+    end
+
+    local function draw()
+        local text = "{\\an7}{\\fs18}{\\b1}Render Queue Manager{\\b0}\\N(Up/Down to navigate, Enter to cancel/remove, Esc to close)\\N\\N"
+        
+        -- Safe window capping (shows ~15 items max to prevent screen overflow)
+        local start_idx = math.max(1, cursor - 7)
+        local end_idx = math.min(#jobs, start_idx + 14)
+        if end_idx - start_idx < 14 then 
+            start_idx = math.max(1, end_idx - 14) 
+        end
+
+        if start_idx > 1 then text = text .. "  ...\\N" end
+        
+        for i = start_idx, end_idx do
+            local job = jobs[i]
+            local prefix = (i == cursor) and "{\\c&H00FFFF&}➤ " or "  "
+            local status = job.is_active and "{\\c&H00FF00&}[Rendering]" or "{\\c&HAAAAAA&}[Queued]"
+            
+            local line = string.format("%s%s %s", prefix, job.title, status)
+            text = text .. line .. "{\\c&HFFFFFF&}\\N"
+        end
+        
+        if end_idx < #jobs then text = text .. "  ...\\N" end
+        
+        ov.data = text
+        ov:update()
+    end
+
+    mp.add_forced_key_binding("UP", "qm-up", function()
+        if cursor > 1 then cursor = cursor - 1; draw() end
+    end, {repeatable = true})
+
+    mp.add_forced_key_binding("DOWN", "qm-down", function()
+        if cursor < #jobs then cursor = cursor + 1; draw() end
+    end, {repeatable = true})
+
+    mp.add_forced_key_binding("ENTER", "qm-enter", function()
+        local job = jobs[cursor]
+        if job.is_active then
+            M.cancel_render()
+        else
+            table.remove(render_queue, job.original_index)
+            common.notify("Removed from queue: " .. job.title, true)
+        end
+        cleanup()
+    end)
+
+    mp.add_forced_key_binding("ESC", "qm-esc", cleanup)
+
+    draw()
+end
+
 function M.process_queue()
     if is_rendering or #render_queue == 0 then return end
 
