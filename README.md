@@ -83,7 +83,7 @@ preset=4
 
 # Accurate cut results in millisecond perfect cuts, and is highly recommended
 # Disabling this results in a fallback to keyframes
-# The only downside is the render taking longer to start if mark is far in the video
+# The only downside is the render taking longer to start if mark in is far in the video
 # This shouldn't be a concern/issue in regular clips, but matters if you are cutting a movie
 # Can be dynamically set
 accurate_cut=yes
