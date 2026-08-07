@@ -1,5 +1,8 @@
-local mp = require 'mp'
+local mp    = require 'mp'
 local utils = require 'mp.utils'
+
+local notify_ov    = mp.create_osd_overlay("ass-events")
+local notify_timer = nil
 
 local M = {}
 
@@ -11,9 +14,24 @@ function M.notify(msg, show_osd, type)
     else
         mp.msg.info(msg)
     end
+
     if show_osd then
-        mp.set_osd_ass(0, 0, "") 
-        mp.osd_message(msg, 3)
+        local color = "&HFFFFFF&"
+        if type == "warn" then
+            color = "&H00FFFF&"
+        elseif type == "error" then
+            color = "&H0000FF&"
+        end
+
+        -- \an9 anchors the text to the Top-Right of the screen
+        notify_ov.data = string.format("{\\an9}{\\fs18}{\\b1}{\\c%s}%s{\\b0}", color, msg)
+        notify_ov:update()
+
+        -- Reset the timer every time a new notification pops up
+        if notify_timer then notify_timer:kill() end
+        notify_timer = mp.add_timeout(3, function()
+            notify_ov:remove()
+        end)
     end
 end
 
@@ -23,6 +41,30 @@ function M.get_platform()
     local uname = utils.subprocess({args = {"uname", "-s"}, cancellable = false})
     if uname.status == 0 and uname.stdout:match("Darwin") then return "macos" end
     return "linux"
+end
+
+function M.get_data_dir()
+    local platform = M.get_platform()
+    local path = ""
+
+    if platform == "windows" then
+        path = os.getenv("LOCALAPPDATA") or ""
+        if path == "" then path = os.getenv("APPDATA") or "" end
+        if path == "" then path = (os.getenv("USERPROFILE") or "") .. "\\AppData\\Local" end
+        path = utils.join_path(path, "tachytome")
+    elseif platform == "macos" then
+        path = utils.join_path(os.getenv("HOME") or "~", "Library/Application Support/tachytome")
+    else
+        path = os.getenv("XDG_DATA_HOME") or ""
+        if path == "" then
+            path = utils.join_path(os.getenv("HOME") or "~", ".local/share")
+        end
+        path = utils.join_path(path, "tachytome")
+    end
+
+    path = M.expand_path(path)
+    M.ensure_dir(path)
+    return path
 end
 
 function M.expand_path(path)
@@ -73,10 +115,10 @@ end
 function M.resolve_absolute_path(custom, opts)
     local input_path = mp.get_property("path")
     if not input_path then return "" end
-    
+
     local input_dir = utils.split_path(input_path)
     local base_name = mp.get_property("filename/no-ext") or ""
-    
+
     local default_ext = opts.container ~= "" and opts.container or (mp.get_property("filename"):match("^.+(%..+)$") or ".mkv")
     if default_ext:sub(1,1) ~= "." then default_ext = "." .. default_ext end
 
@@ -92,7 +134,7 @@ function M.resolve_absolute_path(custom, opts)
 
     -- If user specifies ./ or .\ it explicitly roots to the original video's folder
     if custom_mod:match("^%./") or custom_mod:match("^%.\\") then
-        custom_mod = input_dir .. custom_mod:sub(3)
+        custom_mod        = input_dir .. custom_mod:sub(3)
         explicit_relative = true
     end
 
@@ -118,14 +160,14 @@ function M.resolve_absolute_path(custom, opts)
 
     target_dir = M.expand_path(target_dir)
     if not target_dir:match("[/\\]$") then target_dir = target_dir .. "/" end
-    
-    if target_name == "" then 
+
+    if target_name == "" then
         target_name = base_name .. opts.suffix .. default_ext
     else
         local known_exts = {
-            [".mkv"]=true, [".mp4"]=true, [".webm"]=true, [".avi"]=true,
-            [".mov"]=true, [".m4v"]=true, [".ts"]=true, [".flv"]=true,
-            [".wmv"]=true, [".mp3"]=true, [".ogg"]=true, [".aac"]=true,
+            [".mkv"]=true, [".mp4"]= true, [".webm"]=true, [".avi"]=true,
+            [".mov"]=true, [".m4v"]= true, [".ts"]=  true, [".flv"]=true,
+            [".wmv"]=true, [".mp3"]= true, [".ogg"]= true, [".aac"]=true,
             [".mka"]=true, [".opus"]=true
         }
         local user_ext = target_name:match("(%.[a-zA-Z0-9]+)$")
@@ -139,11 +181,11 @@ function M.resolve_absolute_path(custom, opts)
 end
 
 function M.format_bytes(bytes)
-    if not bytes or bytes == 0 then return "0 B" end
-    if bytes < 1024 then return bytes .. " B" end
-    if bytes < 1048576 then return string.format("%.2f KB", bytes / 1024) end
-    if bytes < 1073741824 then return string.format("%.2f MB", bytes / 1048576) end
-    return string.format("%.2f GB", bytes / 1073741824)
+    if not bytes or bytes == 0 then return "0B" end
+    if bytes < 1024 then return bytes .. "B" end
+    if bytes < 1048576 then return string.format("%.2fKB", bytes / 1024) end
+    if bytes < 1073741824 then return string.format("%.2fMB", bytes / 1048576) end
+    return string.format("%.2fGB", bytes / 1073741824)
 end
 
 function M.format_time(seconds)
@@ -206,7 +248,7 @@ function M.trash_file(file_path, trash_path, callback)
             args = {trash_path, file_path}
         end
     end
-    
+
     mp.command_native_async({
         name = "subprocess",
         args = args,

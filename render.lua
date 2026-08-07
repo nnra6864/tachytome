@@ -1,22 +1,22 @@
-local mp = require 'mp'
-local utils = require 'mp.utils'
-local common = require 'common'
+local mp        = require 'mp'
+local utils     = require 'mp.utils'
+local common    = require 'common'
 local stats_mod = require 'stats'
 
 local M = {}
 
-local render_queue = {}
-local is_rendering = false
-local total_jobs = 0
+local render_queue    = {}
+local is_rendering    = false
+local total_jobs      = 0
 local current_job_num = 0
 
-local active_job = nil
+local active_job  = nil
 local current_req = nil
 
 function M.cancel_render()
     mp.set_osd_ass(0, 0, "")
     mp.osd_message("", 0)
-    
+
     if is_rendering and active_job and current_req then
         active_job.cancelled = true
         mp.abort_async_command(current_req)
@@ -25,7 +25,7 @@ function M.cancel_render()
     end
 end
 
-function M.show_queue_manager()
+function M.show_queue_manager(on_close)
     local jobs = {}
     if is_rendering and active_job then
         table.insert(jobs, {title = active_job.final_name, is_active = true, original_index = 0})
@@ -35,6 +35,7 @@ function M.show_queue_manager()
     end
 
     if #jobs == 0 then
+        if on_close then on_close() end
         return common.notify("Render queue is empty.", true, "info")
     end
 
@@ -53,31 +54,33 @@ function M.show_queue_manager()
         mp.remove_key_binding("qm-down")
         mp.remove_key_binding("qm-enter")
         mp.remove_key_binding("qm-esc")
+
+        if on_close then on_close() end
     end
 
     local function draw()
         local text = "{\\an7}{\\fs18}{\\b1}Render Queue Manager{\\b0}\\N(Up/Down to navigate, Enter to cancel/remove, Esc to close)\\N\\N"
-        
+
         -- Safe window capping (shows ~15 items max to prevent screen overflow)
         local start_idx = math.max(1, cursor - 7)
-        local end_idx = math.min(#jobs, start_idx + 14)
-        if end_idx - start_idx < 14 then 
-            start_idx = math.max(1, end_idx - 14) 
+        local end_idx   = math.min(#jobs, start_idx + 14)
+        if end_idx - start_idx < 14 then
+            start_idx = math.max(1, end_idx - 14)
         end
 
         if start_idx > 1 then text = text .. "  ...\\N" end
-        
+
         for i = start_idx, end_idx do
-            local job = jobs[i]
+            local job    = jobs[i]
             local prefix = (i == cursor) and "{\\c&H00FFFF&}➤ " or "  "
             local status = job.is_active and "{\\c&H00FF00&}[Rendering]" or "{\\c&HAAAAAA&}[Queued]"
-            
+
             local line = string.format("%s%s %s", prefix, job.title, status)
-            text = text .. line .. "{\\c&HFFFFFF&}\\N"
+            text       = text .. line .. "{\\c&HFFFFFF&}\\N"
         end
-        
+
         if end_idx < #jobs then text = text .. "  ...\\N" end
-        
+
         ov.data = text
         ov:update()
     end
@@ -109,19 +112,19 @@ end
 function M.process_queue()
     if is_rendering or #render_queue == 0 then return end
 
-    is_rendering = true
+    is_rendering    = true
     current_job_num = current_job_num + 1
-    active_job = table.remove(render_queue, 1)
+    active_job      = table.remove(render_queue, 1)
 
     common.notify("Render started: " .. active_job.final_name, true)
 
-    local temp_dir = os.getenv("TEMP") or os.getenv("TMP") or "/tmp"
+    local temp_dir      = os.getenv("TEMP") or os.getenv("TMP") or "/tmp"
     local progress_file = utils.join_path(temp_dir, "tachytome_prog_" .. tostring(math.floor(mp.get_time() * 1000)) .. ".log")
-    
+
     table.insert(active_job.args, "-progress")
     table.insert(active_job.args, progress_file)
 
-    local name_no_ext = active_job.final_name:match("^(.*)%.[^%.]+$") or active_job.final_name
+    local name_no_ext      = active_job.final_name:match("^(.*)%.[^%.]+$") or active_job.final_name
     local progress_overlay = mp.create_osd_overlay("ass-events")
 
     local function get_queue_str()
@@ -154,7 +157,7 @@ function M.process_queue()
         args = active_job.args,
         playback_only = false,
     }, function(success, result, error)
-        
+
         local render_wall_time = mp.get_time() - render_start_time
 
         if progress_timer then progress_timer:kill() end
@@ -165,8 +168,8 @@ function M.process_queue()
             os.remove(active_job.output_file)
             common.notify("Render cancelled. File deleted: " .. active_job.final_name, true)
             is_rendering = false
-            active_job = nil
-            current_req = nil
+            active_job   = nil
+            current_req  = nil
             M.process_queue()
             return
         end
@@ -178,7 +181,7 @@ function M.process_queue()
             local msg_console = string.format("Finished: %s\nInput: %s -> Output: %s\nStart: %s | End: %s | CRF: %s",
                 active_job.final_name, common.format_bytes(active_job.input_size), common.format_bytes(output_size),
                 common.format_time(active_job.start_time), common.format_time(active_job.end_time), active_job.crf)
-            
+
             local msg_osd = msg_console:gsub("\n", "\\N")
 
             if active_job.show_stats_screen then
@@ -189,26 +192,27 @@ function M.process_queue()
                     active_job.duration,
                     render_wall_time
                 )
-                local lifetime_str_console = stats_mod.get_lifetime_stats_string(current_stats)
-                local lifetime_str_osd = lifetime_str_console:gsub("\n", "\\N")
-                
-                msg_console = msg_console .. "\n--------------------------\n" .. lifetime_str_console
-                msg_osd = msg_osd .. "\\N--------------------------\\N" .. lifetime_str_osd
+
+                -- Catch both the raw console array and the colored ASS array
+                local stats_str_console, lifetime_str_osd = stats_mod.get_formatted_stats(current_stats)
+
+                msg_console = msg_console .. "\n--------------------------\n"   .. stats_str_console
+                msg_osd     = msg_osd     .. "\\N--------------------------\\N" .. lifetime_str_osd
             end
 
-            mp.msg.info("\n" .. msg_console) 
-            
+            mp.msg.info("\n" .. msg_console)
+
             mp.set_osd_ass(0, 0, "{\\an7}" .. msg_osd)
             mp.add_timeout(active_job.stats_osd_time, function() mp.set_osd_ass(0, 0, "") end)
-            
+
             if #render_queue == 0 then
                 total_jobs = 0
                 current_job_num = 0
             end
-            
+
             is_rendering = false
-            active_job = nil
-            current_req = nil
+            active_job   = nil
+            current_req  = nil
             M.process_queue()
         end
 
@@ -225,8 +229,8 @@ function M.process_queue()
             common.notify("Render failed: " .. active_job.final_name .. ". See console.", true, "error")
             print(result and result.stderr or error)
             is_rendering = false
-            active_job = nil
-            current_req = nil
+            active_job   = nil
+            current_req  = nil
             M.process_queue()
         end
     end)
@@ -244,9 +248,9 @@ local function verify_and_queue(job, file_path)
     mp.set_osd_ass(0, 0, "")
     mp.osd_message("", 0)
 
-    local ov = mp.create_osd_overlay("ass-events")
+    local ov     = mp.create_osd_overlay("ass-events")
     local active = true
-    
+
     local safe_conflict = job.conflict_suffix:gsub(" ", job.space_replacement)
 
     local function cleanup()
@@ -264,15 +268,15 @@ local function verify_and_queue(job, file_path)
     mp.add_forced_key_binding("1", "ow-1", function()
         cleanup()
         local dir, fname = utils.split_path(file_path)
-        local n, e = fname:match("^(.*)(%..+)$")
-        if not n then n = fname; e = "" end
-        
-        job.final_name = n .. safe_conflict .. e
-        job.output_file = utils.join_path(dir, job.final_name)
-        
-        job.args[#job.args] = job.output_file 
+        local n, e       = fname:match("^(.*)(%..+)$")
+        if not n then n  = fname; e = "" end
 
-        verify_and_queue(job, job.output_file) 
+        job.final_name  = n .. safe_conflict .. e
+        job.output_file = utils.join_path(dir, job.final_name)
+
+        job.args[#job.args] = job.output_file
+
+        verify_and_queue(job, job.output_file)
     end)
 
     mp.add_forced_key_binding("2", "ow-2", function()
@@ -293,11 +297,11 @@ function M.start(opts)
     if not input_file then return common.notify("No video loaded", true, "error") end
     if opts.mark_out <= opts.mark_in then return common.notify("Invalid marks", true, "error") end
 
-    local output_file = opts.final_output_path
+    local output_file                 = opts.final_output_path
     local target_dir, target_name_ext = utils.split_path(output_file)
-    local final_name = target_name_ext
+    local final_name                  = target_name_ext
     common.ensure_dir(target_dir)
-    
+
     local duration = opts.mark_out - opts.mark_in
 
     local creation_time = common.ffprobe_get(input_file, {"-show_entries", "format_tags=creation_time", "-of", "csv=p=0"})
@@ -320,10 +324,10 @@ function M.start(opts)
 
     if opts.lossless_cut then
         local codec_args = {
-            "-c:v", "copy",
+            "-c:v",          "copy",
             "-map_metadata", "0",
-            "-metadata", "ENCODED_BY=tachytome",
-            "-metadata", "TACHYTOME_MODE=Lossless"
+            "-metadata",     "ENCODED_BY=tachytome",
+            "-metadata",     "TACHYTOME_MODE=Lossless"
         }
         for _, v in ipairs(codec_args) do table.insert(args, v) end
 
@@ -331,20 +335,20 @@ function M.start(opts)
             table.insert(args, "-metadata")
             table.insert(args, "creation_time=" .. creation_time)
         end
-        
+
         table.insert(args, "-map") table.insert(args, "0")
         table.insert(args, "-c:a") table.insert(args, "copy")
     else
         local codec_args = {
-            "-c:v", "libsvtav1",
-            "-preset", tostring(opts.preset),
-            "-crf", tostring(opts.crf),
-            "-pix_fmt", "yuv420p10le",
+            "-c:v",           "libsvtav1",
+            "-preset",        tostring(opts.preset),
+            "-crf",           tostring(opts.crf),
+            "-pix_fmt",       "yuv420p10le",
             "-svtav1-params", "tune=0:scd=1",
-            "-map_metadata", "0",
-            "-metadata", "ENCODED_BY=tachytome",
-            "-metadata", "TACHYTOME_CRF=" .. tostring(opts.crf),
-            "-metadata", "TACHYTOME_PRESET=" .. tostring(opts.preset)
+            "-map_metadata",  "0",
+            "-metadata",      "ENCODED_BY=tachytome",
+            "-metadata",      "TACHYTOME_CRF=" .. tostring(opts.crf),
+            "-metadata",      "TACHYTOME_PRESET=" .. tostring(opts.preset)
         }
         for _, v in ipairs(codec_args) do table.insert(args, v) end
 
@@ -354,20 +358,20 @@ function M.start(opts)
         end
 
         if opts.combine_audio then
-            local audio_streams_str = common.ffprobe_get(input_file, {"-select_streams", "a", "-show_entries", "stream=index", "-of", "csv=p=0"})
+            local audio_streams_str  = common.ffprobe_get(input_file, {"-select_streams", "a", "-show_entries", "stream = index", "-of", "csv = p = 0"})
             local audio_stream_count = 0
             if audio_streams_str then
                 _, audio_stream_count = audio_streams_str:gsub("[^\n]+", "")
             end
 
             if audio_stream_count > 1 then
-                local orig_codec = common.ffprobe_get(input_file, {"-select_streams", "a:0", "-show_entries", "stream=codec_name", "-of", "csv=p=0"})
-                local orig_sr = common.ffprobe_get(input_file, {"-select_streams", "a:0", "-show_entries", "stream=sample_rate", "-of", "csv=p=0"})
-                local orig_br = common.ffprobe_get(input_file, {"-select_streams", "a:0", "-show_entries", "stream=bit_rate", "-of", "csv=p=0"})
+                local orig_codec = common.ffprobe_get(input_file, {"-select_streams", "a:0", "-show_entries", "stream = codec_name", "-of", "csv  = p = 0"})
+                local orig_sr    = common.ffprobe_get(input_file, {"-select_streams", "a:0", "-show_entries", "stream = sample_rate", "-of", "csv = p = 0"})
+                local orig_br    = common.ffprobe_get(input_file, {"-select_streams", "a:0", "-show_entries", "stream = bit_rate", "-of", "csv    = p = 0"})
 
                 local encoder = orig_codec
-                if orig_codec == "opus" then encoder = "libopus"
-                elseif orig_codec == "mp3" then encoder = "libmp3lame"
+                if orig_codec     == "opus" then encoder   = "libopus"
+                elseif orig_codec == "mp3" then encoder    = "libmp3lame"
                 elseif orig_codec == "vorbis" then encoder = "libvorbis" end
 
                 local filter_inputs = ""
@@ -400,27 +404,27 @@ function M.start(opts)
     end
 
     table.insert(args, output_file)
-    
+
     local in_info = utils.file_info(input_file)
 
     local job = {
-        args = args,
-        input_file = input_file,
-        output_file = output_file,
-        final_name = final_name,
-        trash_original = opts.trash_original,
-        trash_path = opts.trash_path,
-        space_replacement = opts.space_replacement,
-        conflict_suffix = opts.conflict_suffix,
+        args                = args,
+        input_file          = input_file,
+        output_file         = output_file,
+        final_name          = final_name,
+        trash_original      = opts.trash_original,
+        trash_path          = opts.trash_path,
+        space_replacement   = opts.space_replacement,
+        conflict_suffix     = opts.conflict_suffix,
         combined_audio_name = opts.combined_audio_name,
-        start_time = opts.mark_in,
-        end_time = opts.mark_out,
-        duration = duration,
+        start_time          = opts.mark_in,
+        end_time            = opts.mark_out,
+        duration            = duration,
         full_input_duration = opts.full_input_duration or 0,
-        crf = (opts.lossless_cut and "Lossless") or tostring(opts.crf),
-        show_stats_screen = opts.show_stats_screen,
-        stats_osd_time = opts.stats_osd_time,
-        input_size = in_info and in_info.size or 0
+        crf                 = (opts.lossless_cut and "Lossless") or tostring(opts.crf),
+        show_stats_screen   = opts.show_stats_screen,
+        stats_osd_time      = opts.stats_osd_time,
+        input_size          = in_info and in_info.size or 0
     }
 
     verify_and_queue(job, output_file)

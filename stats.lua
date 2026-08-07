@@ -1,20 +1,19 @@
-local mp = require 'mp'
 local utils = require 'mp.utils'
 local common = require 'common'
 
 local M = {}
 
 local function get_stats_path()
-    return mp.command_native({"expand-path", "~~/tachytome_stats.json"})
+    return utils.join_path(common.get_data_dir(), "stats.json")
 end
 
 function M.read_stats()
     local stats = {
-        processed = 0,
-        output = 0,
-        input_duration = 0,
+        source_space    = 0,
+        output_space    = 0,
+        source_duration = 0,
         output_duration = 0,
-        render_time = 0
+        render_time     = 0
     }
     local f = io.open(get_stats_path(), "r")
     if f then
@@ -37,31 +36,76 @@ end
 
 function M.update_stats(input_bytes, output_bytes, full_input_duration, output_clip_duration, render_wall_time)
     local stats = M.read_stats()
-    stats.processed = (stats.processed or 0) + (input_bytes or 0)
-    stats.output = (stats.output or 0) + (output_bytes or 0)
-    stats.input_duration = (stats.input_duration or 0) + (full_input_duration or 0)
+    stats.source_space    = (stats.source_space or 0) + (input_bytes or 0)
+    stats.output_space    = (stats.output_space or 0) + (output_bytes or 0)
+    stats.source_duration = (stats.source_duration or 0) + (full_input_duration or 0)
     stats.output_duration = (stats.output_duration or 0) + (output_clip_duration or 0)
-    stats.render_time = (stats.render_time or 0) + (render_wall_time or 0)
+    stats.render_time     = (stats.render_time or 0) + (render_wall_time or 0)
     M.write_stats(stats)
     return stats
 end
 
-function M.get_lifetime_stats_string(stats)
-    stats = stats or M.read_stats()
-    local delta_bytes = stats.processed - stats.output
-    local cut_duration = (stats.input_duration or 0) - (stats.output_duration or 0)
+function M.get_formatted_stats(stats_data)
+    stats_data = stats_data or M.read_stats()
+
+    local s_processed = stats_data.source_space or 0
+    local s_output    = stats_data.output_space or 0
+    local s_in_dur    = stats_data.source_duration or 0
+    local s_out_dur   = stats_data.output_duration or 0
+    local s_render    = stats_data.render_time or 0
+
+    local delta_bytes  = s_processed - s_output
+    local cut_duration = s_in_dur - s_out_dur
     if cut_duration < 0 then cut_duration = 0 end
 
-    return string.format(
-        "Total Processed: %s\nTotal Output: %s\nLifetime Space Saved: %s\n--------------------------\nSource Video Time: %s\nOutput Video Time: %s\nTime Cut: %s\nTotal Encoding Time: %s",
-        common.format_bytes(stats.processed),
-        common.format_bytes(stats.output),
-        common.format_bytes(delta_bytes),
-        common.format_duration(stats.input_duration),
-        common.format_duration(stats.output_duration),
-        common.format_duration(cut_duration),
-        common.format_duration(stats.render_time)
-    )
+    local lines = {
+        { label = "Source Space", value = common.format_bytes(s_processed) },
+        { label = "Output Space", value = common.format_bytes(s_output) },
+        { label = "Saved Space",  value = common.format_bytes(delta_bytes) },
+        { separator = true },
+        { label = "Source Time",  value = common.format_duration(s_in_dur) },
+        { label = "Output Time",  value = common.format_duration(s_out_dur) },
+        { label = "Saved Time",   value = common.format_duration(cut_duration) },
+        { separator = true },
+        { label = "Render Time",  value = common.format_duration(s_render) }
+    }
+
+    local max_label_len = 0
+    local max_val_len = 0
+    for _, item in ipairs(lines) do
+        if not item.separator then
+            if #item.label > max_label_len then max_label_len = #item.label end
+            if #item.value > max_val_len then max_val_len = #item.value end
+        end
+    end
+
+    local separator_len = max_label_len + 1 + max_val_len
+    local dynamic_separator = string.rep("-", separator_len)
+
+    local console_str = ""
+    local osd_str     = ""
+    local function g(val) return string.format("{\\c&H00FF00&}%s{\\c&HFFFFFF&}", tostring(val)) end
+
+    for _, item in ipairs(lines) do
+        if item.separator then
+            console_str = console_str .. dynamic_separator .. "\n"
+            osd_str     = osd_str     .. dynamic_separator .. "\\N"
+        else
+            local pad_len     = max_label_len - #item.label
+            local console_pad = string.rep(" ", pad_len + 1)
+            local osd_pad     = string.rep("\\h", pad_len + 1)
+
+            -- Formatting preserved exactly as you had it (no colons)
+            console_str = console_str .. string.format("%s%s%s\n",  item.label, console_pad, item.value)
+            osd_str     = osd_str     .. string.format("%s%s%s\\N", item.label, osd_pad,     g(item.value))
+        end
+    end
+
+    -- Explicitly separate the gsub calls so Lua doesn't swallow multiple return parameters
+    console_str = console_str:gsub("\n$", "")
+    osd_str     = osd_str:gsub("\\N$", "")
+
+    return console_str, osd_str
 end
 
 return M
