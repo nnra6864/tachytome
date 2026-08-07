@@ -1,7 +1,7 @@
 # Tachytome
 
 Tachos (τάχος) – Speed<br>
-Tome   (τομή)  – Cut
+Tome &nbsp;&nbsp;(τομή) &nbsp;– Cut
 
 Keyboard Driven, AV1/Lossless, MPV Video Cutter.
 
