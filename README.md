@@ -3,9 +3,23 @@
 Tachos (τάχος) – Speed<br>
 Tome &nbsp;&nbsp;(τομή) &nbsp;– Cut
 
-Keyboard Driven, AV1/Lossless, MPV Video Cutter.
+Keyboard Driven, AV1/H265/Lossless, MPV Video Cutter.
 
 ## Installation
+
+### Clone
+
+You may clone the repo directly to your config:
+
+- Unix
+```sh
+git clone https://git.nnstdios.com/nnra6864/tachytome ~/.config/mpv/scripts/tachytome
+```
+
+- Windows (Powershell)
+```sh
+git clone https://git.nnstdios.com/nnra6864/tachytome "$env:APPDATA/mpv/scripts/tachytome"
+```
 
 ### Submodule
 
@@ -25,42 +39,30 @@ git submodule add ../../nnra6864/tachytome "$env:APPDATA/mpv/scripts/tachytome"
 > `../../` in the link makes git use the same server as your root repo.<br>
 > For example, if your dotfiles are hosted on `https://git.nnstdios.com/name/dotfiles`, double `../` will make it go up twice in the URL, ending up with `https://git.nnstdios.com/`, and then appending `nnra6864/tachytome` to that, resulting in `https://git.nnstdios.com/nnra6864/tachytome`
 
-### Clone
-
-Alternatively, you may clone the repo directly to your config:
-
-- Unix
-```sh
-git clone https://git.nnstdios.com/nnra6864/tachytome ~/.config/mpv/scripts/tachytome
-```
-
-- Windows (Powershell)
-```sh
-git clone https://git.nnstdios.com/nnra6864/tachytome "$env:APPDATA/mpv/scripts/tachytome"
-```
-
 ## Usage
 
 Tachytome is entirely keyboard driven.
 All its binds are isolated into a submap (Tachytome Menu) to avoid global bind conflicts.
 Here's a full list of binds:
 
-| Keybind | Action               | Description                                                                                       |
-|---------|----------------------|---------------------------------------------------------------------------------------------------|
-| t       | Tachytome Menu       | Opens the Tachytome menu.                                                                         |
-| i       | Mark In              | Marks the start of the video.                                                                     |
-| o       | Mark Out             | Marks the end of the video.                                                                       |
-| a       | Toggle Accurate Cut  | Makes cuts millisecond precise, but may cause a slight delay before rendering starts.             |
-| l       | Toggle Lossless Cut  | Toggles the lossless cut option.                                                                  |
-| c       | Toggle Combine Audio | Toggles the combine audio option.                                                                 |
-| t       | Toggle Trash Source  | Trashes the source video when done.                                                               |
-| q       | Set CRF              | Quality of the video ranging from 0-63.<br>&nbsp;0 - highest.<br>63 - lowest.                     |
-| p       | Set Path             | Output path.<br>`~/` - home.<br>`./` - source dir.<br>No prefix - config `output_dir`.            |
-| r       | Manage Render Queue  | Opens the render queue management menu where you can cancel active or remove queued renders.      |
-| Del     | Trash Source Now     | Trashes the source file.                                                                          |
-| Enter   | Start Render         | Starts the rendering of the output file.                                                          |
-| s       | Show Stats           | Displays Tachytome stats.                                                                         |
-| Esc     | Close Menu           | Closes the currently active menu.                                                                 |
+| Keybind | Action           | Description                                                                                  |
+|---------|------------------|----------------------------------------------------------------------------------------------|
+| t       | Tachytome Menu   | Opens the Tachytome menu.                                                                    |
+| i       | Mark In          | Marks the start of the video.                                                                |
+| o       | Mark Out         | Marks the end of the video.                                                                  |
+| l       | Lossless Cut     | Toggles the lossless cut option.                                                             |
+| e       | Encoder          | Sets the video encoder.                                                                      |
+| q       | Quality          | Sets the video encoder quality parameter.                                                    |
+| q       | Preset           | Sets the video encoder preset parameter.                                                     |
+| a       | Accurate Cut     | Makes cuts millisecond precise, but may cause a slight delay before rendering starts.        |
+| c       | Combine Audio    | Toggles the combine audio option.                                                            |
+| t       | Trash Source     | Trashes the source video when done.                                                          |
+| p       | Path             | Output path.<br>`~/` - home.<br>`./` - source dir.<br>No prefix - config `output_dir`.       |
+| r       | Render Queue     | Opens the render queue management menu where you can cancel active or remove queued renders. |
+| Del     | Trash Source Now | Trashes the source file.                                                                     |
+| Enter   | Render           | Starts the rendering of the output file.                                                     |
+| s       | Stats            | Displays Tachytome stats.                                                                    |
+| Esc     | Close            | Closes the currently active menu.                                                            |
 
 ## Config
 

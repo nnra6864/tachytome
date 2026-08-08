@@ -20,7 +20,7 @@ local M = {
         trash_original      = true,
         show_stats_screen   = true,
         show_stats_terminal = true,
-        stats_osd_time      = 10
+        stats_osd_time      = 8
     },
     custom_output_name = "",
     mark_in            = 0,
