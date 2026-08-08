@@ -223,20 +223,6 @@ function M.select_encoder(on_complete)
     draw()
 end
 
-function M.set_path(on_complete)
-    local display_path = state.custom_output_name ~= "" and state.custom_output_name or common.resolve_absolute_path("", state.opts)
-    osd_input.get_user_input("Output Path: ", function(input)
-        if input ~= "" then
-            state.custom_output_name = common.resolve_absolute_path(input, state.opts)
-            common.notify("Target: " .. state.custom_output_name)
-        else
-            state.custom_output_name = ""
-            common.notify("Output path reset to default")
-        end
-        if on_complete then on_complete() end
-    end, display_path, true)
-end
-
 function M.show_stats()
     local _, msg_osd_body = stats.get_formatted_stats()
     local full_osd = "{\\an7}{\\fnmonospace}{\\fs12}{\\b1}Tachytome Stats{\\b0}\\N\\N" .. msg_osd_body
@@ -289,11 +275,73 @@ function M.trash_source()
     mp.add_forced_key_binding("ESC",   "del-esc",   cancel_trash)
 end
 
-function M.start_render()
-    local final_output = state.custom_output_name ~= "" and state.custom_output_name or common.resolve_absolute_path("", state.opts)
+function M.toggle_lossless()
+    state.opts.lossless_cut = not state.opts.lossless_cut
+    if state.opts.lossless_cut then
+        state.opts.accurate_cut = false
+        state.opts.combine_audio = false
+    end
+    common.notify("Lossless Cut: '"  .. tostring(state.opts.lossless_cut)  .. "'")
+    common.notify("Accurate Cut: '"  .. tostring(state.opts.accurate_cut)  .. "'")
+    common.notify("Combine Audio: '" .. tostring(state.opts.combine_audio) .. "'")
+end
 
+function M.toggle_accurate()
+    state.opts.accurate_cut = not state.opts.accurate_cut
+    if state.opts.accurate_cut then state.opts.lossless_cut = false end
+    common.notify("Accurate Cut: '" .. tostring(state.opts.accurate_cut) .. "'")
+    common.notify("Lossless Cut: '" .. tostring(state.opts.lossless_cut) .. "'")
+end
+
+function M.toggle_combine_audio()
+    state.opts.combine_audio = not state.opts.combine_audio
+    if state.opts.combine_audio then state.opts.lossless_cut = false end
+    common.notify("Combine Audio: '" .. tostring(state.opts.combine_audio) .. "'")
+    common.notify("Lossless Cut: '"  .. tostring(state.opts.lossless_cut)  .. "'")
+end
+
+function M.toggle_trash_source()
+    state.opts.trash_source = not state.opts.trash_source
+    common.notify("Trash Source: '" .. tostring(state.opts.trash_source) .. "'")
+end
+
+function M.get_final_path()
+    return common.resolve_absolute_path(state.custom_output_name, state.opts)
+end
+
+function M.set_path(on_complete)
+    local display_path = state.custom_output_name ~= "" and state.custom_output_name or M.get_final_path()
+    osd_input.get_user_input("Output Path: ", function(input)
+        if input ~= "" then
+            state.custom_output_name = input
+            common.notify("Target: " .. M.get_final_path())
+        else
+            state.custom_output_name = ""
+            common.notify("Output path reset to default")
+        end
+        if on_complete then on_complete() end
+    end, display_path, true)
+end
+
+function M.set_space_replacement(on_complete)
+    osd_input.get_user_input("Replace spaces with: ", function(input)
+        state.opts.space_replacement = input
+        common.notify("Space replacement set to: '" .. input .. "'")
+        common.notify("Target: " .. M.get_final_path())
+        if on_complete then on_complete() end
+    end, state.opts.space_replacement, true)
+end
+
+function M.get_space_replacement_display()
+    local v = state.opts.space_replacement
+    if v == "" then return "None" end
+    if v == " " then return "Space" end
+    return v
+end
+
+function M.start_render()
     render.start({
-        final_output_path   = final_output,
+        final_output_path   = M.get_final_path(),
         mark_in             = state.mark_in,
         mark_out            = state.mark_out,
         full_input_duration = mp.get_property_number("duration", 0),
@@ -307,7 +355,6 @@ function M.start_render()
         trash_source        = state.opts.trash_source,
         trash_path          = state.trash_path,
         space_replacement   = state.opts.space_replacement,
-        conflict_suffix     = state.opts.conflict_suffix,
         show_stats_screen   = state.opts.show_stats_screen,
         show_stats_terminal = state.opts.show_stats_terminal,
         stats_osd_time      = state.opts.stats_osd_time

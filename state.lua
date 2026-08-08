@@ -10,7 +10,6 @@ local M = {
         space_replacement   = "_",
         container           = "mkv",
         suffix              = " Remuxed",
-        conflict_suffix     = " Remuxed",
         accurate_cut        = true,
         lossless_cut        = false,
         quality             = 30,

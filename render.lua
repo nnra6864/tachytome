@@ -3,6 +3,7 @@ local utils     = require 'mp.utils'
 local common    = require 'common'
 local stats_mod = require 'stats'
 local builder   = require 'ffmpeg_builder'
+local osd_input = require 'osd_input'
 
 local M = {}
 
@@ -266,8 +267,6 @@ local function verify_and_queue(job, file_path)
     local ov     = mp.create_osd_overlay("ass-events")
     local active = true
 
-    local safe_conflict = job.conflict_suffix:gsub(" ", job.space_replacement)
-
     local function cleanup()
         if not active then return end
         active = false
@@ -277,7 +276,7 @@ local function verify_and_queue(job, file_path)
         mp.remove_key_binding("ow-3")
     end
 
-    ov.data = string.format("{\\an7}{\\fnmonospace}{\\c&H0000FF&}Warning: File already exists!{\\c&HFFFFFF&}\\N%s\\N\\N[1] Append '%s'\\N[2] Overwrite\\N[3] Cancel", job.final_name, safe_conflict)
+    ov.data = string.format("{\\an7}{\\fnmonospace}{\\c&H0000FF&}Warning: File already exists!{\\c&HFFFFFF&}\\N%s\\N\\N[1] Rename\\N[2] Overwrite\\N[3] Cancel", job.final_name)
     ov:update()
 
     mp.add_forced_key_binding("1", "ow-1", function()
@@ -286,12 +285,18 @@ local function verify_and_queue(job, file_path)
         local n, e       = fname:match("^(.*)(%..+)$")
         if not n then n  = fname; e = "" end
 
-        job.final_name  = n .. safe_conflict .. e
-        job.output_file = utils.join_path(dir, job.final_name)
+        osd_input.get_user_input("Enter new name: ", function(input)
+            if input and input ~= "" then
+                local new_final = (input .. e):gsub(" ", job.space_replacement)
+                job.final_name = new_final
+                job.output_file = utils.join_path(dir, new_final)
 
-        job.args[#job.args] = job.output_file
-
-        verify_and_queue(job, job.output_file)
+                job.args[#job.args] = job.output_file
+                verify_and_queue(job, job.output_file)
+            else
+                common.notify("Render cancelled.", true)
+            end
+        end, n, true)
     end)
 
     mp.add_forced_key_binding("2", "ow-2", function()
@@ -337,7 +342,6 @@ function M.start(opts)
         trash_source        = opts.trash_source,
         trash_path          = opts.trash_path,
         space_replacement   = opts.space_replacement,
-        conflict_suffix     = opts.conflict_suffix,
         combined_audio_name = opts.combined_audio_name,
         start_time          = opts.mark_in,
         end_time            = opts.mark_out,
