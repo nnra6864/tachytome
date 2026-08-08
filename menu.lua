@@ -21,9 +21,9 @@ local menu_items = {
     { key = "P", label = "Preset",       get_val = function() return g(state.opts.preset) end,                            action = function() actions.set_preset(M.open) end,                            keep_open = false },
 
     { separator = true },
-    { key = "a", label = "Accurate Cut",  get_val = function() return state.opts.accurate_cut and g("ON") or r("OFF") end,   action = function() state.opts.accurate_cut = not state.opts.accurate_cut end,     keep_open = true },
-    { key = "c", label = "Combine Audio", get_val = function() return state.opts.combine_audio and g("ON") or r("OFF") end,  action = function() state.opts.combine_audio = not state.opts.combine_audio end,   keep_open = true },
-    { key = "t", label = "Trash Source",  get_val = function() return state.opts.trash_original and g("ON") or r("OFF") end, action = function() state.opts.trash_original = not state.opts.trash_original end, keep_open = true },
+    { key = "a", label = "Accurate Cut",  get_val = function() return state.opts.accurate_cut and g("ON") or r("OFF") end,  action = function() state.opts.accurate_cut = not state.opts.accurate_cut end,     keep_open = true },
+    { key = "c", label = "Combine Audio", get_val = function() return state.opts.combine_audio and g("ON") or r("OFF") end, action = function() state.opts.combine_audio = not state.opts.combine_audio end,   keep_open = true },
+    { key = "t", label = "Trash Source",  get_val = function() return state.opts.trash_source and g("ON") or r("OFF") end,  action = function() state.opts.trash_original = not state.opts.trash_original end, keep_open = true },
     { key = "p", label = "Path",          get_val = function()
         local display_name = state.custom_output_name ~= "" and state.custom_output_name or common.resolve_absolute_path("", state.opts)
         return g(display_name)

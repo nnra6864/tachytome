@@ -232,7 +232,7 @@ function M.process_queue()
         end
 
         if result and result.status == 0 then
-            if active_job.trash_original and active_job.trash_path then
+            if active_job.trash_source and active_job.trash_path then
                 common.trash_file(active_job.input_file, active_job.trash_path, function(t_success)
                     if not t_success then common.notify("Failed to trash original", true, "warn") end
                     finish_job()
@@ -334,7 +334,7 @@ function M.start(opts)
         input_file          = input_file,
         output_file         = output_file,
         final_name          = final_name,
-        trash_original      = opts.trash_original,
+        trash_source        = opts.trash_source,
         trash_path          = opts.trash_path,
         space_replacement   = opts.space_replacement,
         conflict_suffix     = opts.conflict_suffix,

@@ -304,7 +304,7 @@ function M.start_render()
         preset              = state.opts.preset,
         combine_audio       = state.opts.combine_audio,
         combined_audio_name = state.opts.combined_audio_name,
-        trash_original      = state.opts.trash_original,
+        trash_source        = state.opts.trash_source,
         trash_path          = state.trash_path,
         space_replacement   = state.opts.space_replacement,
         conflict_suffix     = state.opts.conflict_suffix,
