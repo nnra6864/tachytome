@@ -78,4 +78,4 @@ mp.add_key_binding("ESC", "clear-osd", function()
     mp.commandv("set", "fullscreen", "no")
 end)
 
-mp.add_key_binding("ctrl+t", "tachytome-menu", menu.open)
+mp.add_key_binding("t", "tachytome-menu", menu.open)

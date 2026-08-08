@@ -42,31 +42,37 @@ git clone https://git.nnstdios.com/nnra6864/tachytome "$env:APPDATA/mpv/scripts/
 ## Usage
 
 Tachytome is entirely keyboard driven.
-All its binds are isolated into a submap (Tachytome Dashboard) to avoid global bind conflicts.
+All its binds are isolated into a submap (Tachytome Menu) to avoid global bind conflicts.
 Here's a full list of binds:
 
-| Keybind  | Action               | Description                                                                                       |
-|----------|----------------------|---------------------------------------------------------------------------------------------------|
-| Ctrl + t | Tachytome Dashboard  | Opens the Tachytome dashboard.                                                                    |
-| i        | Mark In              | Marks the start of the video.                                                                     |
-| o        | Mark Out             | Marks the end of the video.                                                                       |
-| a        | Toggle Accurate Cut  | Makes cuts millisecond precise, but may cause a slight delay before rendering starts.             |
-| l        | Toggle Lossless Cut  | Toggles the lossless cut option.                                                                  |
-| c        | Toggle Combine Audio | Toggles the combine audio option.                                                                 |
-| t        | Toggle Trash Source  | Trashes the source video when done.                                                               |
-| q        | Set CRF              | Quality of the video ranging from 0-63.<br>&nbsp;0 - highest.<br>63 - lowest.                     |
-| p        | Set Path             | Output path.<br>`~/` - home.<br>`./` - source dir.<br>No prefix - config `output_dir`.            |
-| r        | Manage Render Queue  | Opens the render queue management dashboard where you can cancel active or remove queued renders. |
-| Del      | Trash Source Now     | Trashes the source file.                                                                          |
-| Enter    | Start Render         | Starts the rendering of the output file.                                                          |
-| s        | Show Stats           | Displays Tachytome stats.                                                                         |
-| Esc      | Close Menu           | Closes the currently active menu.                                                                 |
+| Keybind | Action               | Description                                                                                       |
+|---------|----------------------|---------------------------------------------------------------------------------------------------|
+| t       | Tachytome Menu       | Opens the Tachytome menu.                                                                         |
+| i       | Mark In              | Marks the start of the video.                                                                     |
+| o       | Mark Out             | Marks the end of the video.                                                                       |
+| a       | Toggle Accurate Cut  | Makes cuts millisecond precise, but may cause a slight delay before rendering starts.             |
+| l       | Toggle Lossless Cut  | Toggles the lossless cut option.                                                                  |
+| c       | Toggle Combine Audio | Toggles the combine audio option.                                                                 |
+| t       | Toggle Trash Source  | Trashes the source video when done.                                                               |
+| q       | Set CRF              | Quality of the video ranging from 0-63.<br>&nbsp;0 - highest.<br>63 - lowest.                     |
+| p       | Set Path             | Output path.<br>`~/` - home.<br>`./` - source dir.<br>No prefix - config `output_dir`.            |
+| r       | Manage Render Queue  | Opens the render queue management menu where you can cancel active or remove queued renders.      |
+| Del     | Trash Source Now     | Trashes the source file.                                                                          |
+| Enter   | Start Render         | Starts the rendering of the output file.                                                          |
+| s       | Show Stats           | Displays Tachytome stats.                                                                         |
+| Esc     | Close Menu           | Closes the currently active menu.                                                                 |
 
 ## Config
 
 You can configure Tachytome with the `mpv/script-opts/tachytome.conf` file.<br>
 It should get automatically generated on the first launch.<br>
 You can find that same example config [here](./tachytome.conf).
+
+To change the default Tachytome Menu bind, add the following to your `mpv/input.conf`:
+```
+t script-binding tachytome-menu
+```
+Replace `t` with the key of your choice.
 
 ## Donations
 
