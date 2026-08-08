@@ -1,9 +1,11 @@
 local mp        = require 'mp'
 local utils     = require 'mp.utils'
-local common    = require 'common'
-local stats_mod = require 'stats'
-local builder   = require 'ffmpeg_builder'
-local state     = require 'state'
+local common    = require 'src.common'
+local stats_mod = require 'src.stats'
+local builder   = require 'src.ffmpeg'
+local state     = require 'src.state'
+local notify    = require 'src.notify'
+local theme     = require 'src.theme'
 
 local M = {}
 
@@ -23,7 +25,7 @@ function M.cancel_render()
         active_job.cancelled = true
         mp.abort_async_command(current_req)
     else
-        common.notify("No active render to cancel.", true, "warn")
+        notify.show("No active render to cancel.", true, "warn")
     end
 end
 
@@ -43,7 +45,7 @@ function M.show_queue_manager(on_close)
 
     if #jobs == 0 then
         if on_close then on_close() end
-        return common.notify("Render queue is empty.", true, "info")
+        return notify.show("Render queue is empty.", true, "info")
     end
 
     mp.set_osd_ass(0, 0, "")
@@ -63,28 +65,25 @@ function M.show_queue_manager(on_close)
         mp.remove_key_binding("qm-down")
         mp.remove_key_binding("qm-enter")
         mp.remove_key_binding("qm-esc")
-
         if on_close then on_close() end
     end
 
     local function draw()
-        local text = "{\\an7}{\\fnmonospace}{\\fs18}{\\b1}Render Queue Manager{\\b0}\\N(Up/Down to navigate, Enter to cancel/remove, Esc to close)\\N\\N"
+        local text = string.format("%s%s%sRender Queue Manager%s\\N%s(Up/Down to navigate, Enter to cancel/remove, Esc to close)\\N\\N",
+            theme.align(7), theme.f(), theme.b(true), theme.b(false), theme.f(true))
 
         local start_idx = math.max(1, cursor - 7)
         local end_idx   = math.min(#jobs, start_idx + 14)
-        if end_idx - start_idx < 14 then
-            start_idx = math.max(1, end_idx - 14)
-        end
+        if end_idx - start_idx < 14 then start_idx = math.max(1, end_idx - 14) end
 
         if start_idx > 1 then text = text .. "  ...\\N" end
 
         for i = start_idx, end_idx do
             local job    = jobs[i]
-            local prefix = (i == cursor) and "{\\c&H00FFFF&}➤ " or "  "
-            local status = job.is_active and "{\\c&H00FF00&}[Rendering]" or "{\\c&HAAAAAA&}[Queued]"
+            local prefix = (i == cursor) and string.format("%s➤ ", theme.c("highlight_color")) or "  "
+            local status = job.is_active and string.format("%s[Rendering]", theme.c("on_color")) or string.format("%s[Queued]", theme.c("dim_text_color"))
 
-            local line = string.format("%s%s %s", prefix, job.title, status)
-            text       = text .. line .. "{\\c&HFFFFFF&}\\N"
+            text = text .. string.format("%s%s%s %s%s\\N", theme.c("text_color"), prefix, job.title, status, theme.reset())
         end
 
         if end_idx < #jobs then text = text .. "  ...\\N" end
@@ -136,7 +135,7 @@ function M.show_queue_manager(on_close)
         else
             table.remove(render_queue, job.original_index)
             total_jobs = total_jobs > 0 and (total_jobs - 1) or 0
-            common.notify("Removed from queue: " .. job.title, true)
+            notify.show("Removed from queue: " .. job.title, true)
 
             jobs = rebuild_jobs()
             if #jobs == 0 then
@@ -149,7 +148,6 @@ function M.show_queue_manager(on_close)
     end)
 
     mp.add_forced_key_binding("ESC", "qm-esc", cleanup)
-
     draw()
 end
 
@@ -173,10 +171,10 @@ function M.process_queue()
         return (total_jobs > 1) and string.format("[%d/%d] ", current_job_num, total_jobs) or ""
     end
 
-    progress_overlay.data = string.format("{\\an9}{\\fnmonospace}{\\fs16}{\\alpha&H66&}%sRendering %s: 0%%", get_queue_str(), name_no_ext)
+    progress_overlay.data = string.format("%s%s%s%sRendering %s: 0%%", theme.align(9), theme.f(true), theme.a("66"), get_queue_str(), name_no_ext)
     progress_overlay:update()
 
-    common.notify("Render started: " .. active_job.final_name, true)
+    notify.show("Render started: " .. active_job.final_name, true)
 
     local progress_timer = mp.add_periodic_timer(0.5, function()
         local f = io.open(progress_file, "rb")
@@ -188,15 +186,13 @@ function M.process_queue()
             f:close()
 
             local time_us = nil
-            for t in content:gmatch("out_time_us=(%d+)") do
-                time_us = t
-            end
+            for t in content:gmatch("out_time_us=(%d+)") do time_us = t end
 
             if time_us then
                 local percent = math.floor((tonumber(time_us) / 1000000) / active_job.duration * 100)
                 if percent > 100 then percent = 100 end
                 if percent < 0 then percent = 0 end
-                progress_overlay.data = string.format("{\\an9}{\\fnmonospace}{\\fs16}{\\alpha&H66&}%sRendering %s: %d%%", get_queue_str(), name_no_ext, percent)
+                progress_overlay.data = string.format("%s%s%s%sRendering %s: %d%%", theme.align(9), theme.f(true), theme.a("66"), get_queue_str(), name_no_ext, percent)
                 progress_overlay:update()
             end
         end
@@ -209,7 +205,6 @@ function M.process_queue()
         args = active_job.args,
         playback_only = false,
     }, function(success, result, error)
-
         local render_wall_time = mp.get_time() - render_start_time
 
         if progress_timer then progress_timer:kill() end
@@ -218,11 +213,8 @@ function M.process_queue()
 
         if active_job.cancelled then
             local remove_success, err = os.remove(active_job.output_file)
-            if not remove_success then
-                mp.msg.warn("Could not delete cancelled file. It may be locked: " .. tostring(err))
-            end
-            common.notify("Render cancelled. File deleted: " .. active_job.final_name, true)
-
+            if not remove_success then mp.msg.warn("Could not delete cancelled file. It may be locked: " .. tostring(err)) end
+            notify.show("Render cancelled. File deleted: " .. active_job.final_name, true)
             is_rendering = false
             active_job   = nil
             current_req  = nil
@@ -240,28 +232,14 @@ function M.process_queue()
                 common.format_duration(render_wall_time))
 
             local msg_osd = msg_console:gsub("\n", "\\N")
-
-            local current_stats = stats_mod.update_stats(
-                active_job.input_size,
-                output_size,
-                active_job.full_input_duration,
-                active_job.duration,
-                render_wall_time
-            )
-
+            local current_stats = stats_mod.update_stats(active_job.input_size, output_size, active_job.full_input_duration, active_job.duration, render_wall_time)
             local stats_str_console, lifetime_str_osd = stats_mod.get_formatted_stats(current_stats)
 
-            if active_job.show_stats_terminal then
-                msg_console = msg_console .. "\n--------------------------\n"   .. stats_str_console
-            end
-
-            if active_job.show_stats_screen then
-                msg_osd = msg_osd .. "\\N--------------------------\\N" .. lifetime_str_osd
-            end
+            if active_job.show_stats_terminal then msg_console = msg_console .. "\n--------------------------\n" .. stats_str_console end
+            if active_job.show_stats_screen then msg_osd = msg_osd .. "\\N--------------------------\\N" .. lifetime_str_osd end
 
             mp.msg.info("\n" .. msg_console)
-
-            mp.set_osd_ass(0, 0, "{\\an7}{\\fnmonospace}" .. msg_osd)
+            mp.set_osd_ass(0, 0, string.format("%s%s%s", theme.align(7), theme.f(true), msg_osd))
             mp.add_timeout(active_job.stats_osd_time, function() mp.set_osd_ass(0, 0, "") end)
 
             if #render_queue == 0 then
@@ -278,14 +256,14 @@ function M.process_queue()
         if result and result.status == 0 then
             if active_job.trash_source and active_job.trash_path then
                 common.trash_file(active_job.input_file, active_job.trash_path, function(t_success)
-                    if not t_success then common.notify("Failed to trash original", true, "warn") end
+                    if not t_success then notify.show("Failed to trash original", true, "warn") end
                     finish_job()
                 end)
             else
                 finish_job()
             end
         else
-            common.notify("Render failed: " .. active_job.final_name .. ". See console.", true, "error")
+            notify.show("Render failed: " .. active_job.final_name .. ". See console.", true, "error")
             print(result and result.stderr or error)
             is_rendering = false
             active_job   = nil
@@ -304,13 +282,14 @@ local function is_path_in_use(file_path)
     return false
 end
 
-local function verify_and_queue(job, file_path)
+local function verify_and_queue(job, file_path, on_complete)
     if not is_path_in_use(file_path) then
         table.insert(render_queue, job)
         total_jobs = total_jobs + 1
         common.save_history(state.path_history)
-        if is_rendering then common.notify(string.format("Queued: %s", job.final_name), true) end
+        if is_rendering then notify.show(string.format("Queued: %s", job.final_name), true) end
         M.process_queue()
+        if on_complete then on_complete() end
         return
     end
 
@@ -329,7 +308,8 @@ local function verify_and_queue(job, file_path)
         mp.remove_key_binding("ow-3")
     end
 
-    ov.data = string.format("{\\an7}{\\fnmonospace}{\\c&H0000FF&}Warning: File already exists!{\\c&HFFFFFF&}\\N%s\\N\\N[1] Rename\\N[2] Overwrite\\N[3] Cancel", job.final_name)
+    ov.data = string.format("%s%s%sWarning: File already exists!%s\\N%s\\N\\N[1] Rename\\N[2] Overwrite\\N[3] Cancel",
+        theme.align(7), theme.f(), theme.c("warning_color"), theme.reset(), job.final_name)
     ov:update()
 
     mp.add_forced_key_binding("1", "ow-1", function()
@@ -343,7 +323,7 @@ local function verify_and_queue(job, file_path)
                 job.output_file     = new_output
                 job.args[#job.args] = new_output
 
-                verify_and_queue(job, new_output)
+                verify_and_queue(job, new_output, on_complete)
             end)
         end
     end)
@@ -354,18 +334,28 @@ local function verify_and_queue(job, file_path)
         total_jobs = total_jobs + 1
         common.save_history(state.path_history)
         M.process_queue()
+        if on_complete then on_complete() end
     end)
 
     mp.add_forced_key_binding("3", "ow-3", function()
         cleanup()
-        common.notify("Render cancelled.", true)
+        notify.show("Render cancelled.", true)
+        if on_complete then on_complete() end
     end)
 end
 
 function M.start(opts)
     local input_file = mp.get_property("path")
-    if not input_file then return common.notify("No video loaded", true, "error") end
-    if opts.mark_out <= opts.mark_in then return common.notify("Invalid marks", true, "error") end
+    if not input_file then
+        notify.show("No video loaded", true, "error")
+        if opts.on_complete then opts.on_complete() end
+        return
+    end
+    if opts.mark_out <= opts.mark_in then
+        notify.show("Invalid marks", true, "error")
+        if opts.on_complete then opts.on_complete() end
+        return
+    end
 
     local output_file                 = opts.final_output_path
     local target_dir, target_name_ext = utils.split_path(output_file)
@@ -373,7 +363,6 @@ function M.start(opts)
     common.ensure_dir(target_dir)
 
     local duration = opts.mark_out - opts.mark_in
-
     local creation_time = common.ffprobe_get(input_file, {"-show_entries", "format_tags=creation_time", "-of", "csv=p=0"})
     if not creation_time then
         local info = utils.file_info(input_file)
@@ -381,10 +370,9 @@ function M.start(opts)
     end
 
     local args = builder.build_args(opts, input_file, output_file, creation_time)
-
     local in_info = utils.file_info(input_file)
 
-local job = {
+    local job = {
         args                = args,
         input_file          = input_file,
         output_file         = output_file,
@@ -405,7 +393,7 @@ local job = {
         rename_callback     = opts.rename_callback
     }
 
-    verify_and_queue(job, output_file)
+    verify_and_queue(job, output_file, opts.on_complete)
 end
 
 return M

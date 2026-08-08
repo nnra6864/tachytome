@@ -1,4 +1,4 @@
-local common = require 'common'
+local common = require 'src.common'
 
 local M = {}
 

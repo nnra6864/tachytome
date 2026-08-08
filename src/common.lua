@@ -1,39 +1,7 @@
 local mp    = require 'mp'
 local utils = require 'mp.utils'
 
-local notify_ov    = mp.create_osd_overlay("ass-events")
-local notify_timer = nil
-
 local M = {}
-
-function M.notify(msg, show_osd, type)
-    if type == "warn" then
-        mp.msg.warn(msg)
-    elseif type == "error" then
-        mp.msg.error(msg)
-    else
-        mp.msg.info(msg)
-    end
-
-    if show_osd then
-        local color = "&HFFFFFF&"
-        if type == "warn" then
-            color = "&H00FFFF&"
-        elseif type == "error" then
-            color = "&H0000FF&"
-        end
-
-        -- \an9 anchors the text to the Top-Right of the screen
-        notify_ov.data = string.format("{\\an9}{\\fnmonospace}{\\fs18}{\\b1}{\\c%s}%s{\\b0}", color, msg)
-        notify_ov:update()
-
-        -- Reset the timer every time a new notification pops up
-        if notify_timer then notify_timer:kill() end
-        notify_timer = mp.add_timeout(3, function()
-            notify_ov:remove()
-        end)
-    end
-end
 
 function M.get_platform()
     local is_windows = package.config:sub(1,1) == '\\'
@@ -107,7 +75,6 @@ function M.ffprobe_get_json(file, args)
     local cmd = {"ffprobe", "-v", "error"}
     for _, v in ipairs(args) do table.insert(cmd, v) end
     table.insert(cmd, file)
-
     local res = utils.subprocess({args = cmd, cancellable = false})
     if res.status == 0 and res.stdout then
         return utils.parse_json(res.stdout)
@@ -130,7 +97,6 @@ function M.resolve_absolute_path(custom, opts)
 
     local input_dir = utils.split_path(input_path)
     local base_name = mp.get_property("filename/no-ext") or ""
-
     local default_ext = opts.container ~= "" and opts.container or (mp.get_property("filename"):match("^.+(%..+)$") or ".mkv")
     if default_ext:sub(1,1) ~= "." then default_ext = "." .. default_ext end
 
@@ -144,14 +110,12 @@ function M.resolve_absolute_path(custom, opts)
     local custom_mod = custom
     local explicit_relative = false
 
-    -- If user specifies ./ or .\ it explicitly roots to the original video's folder
     if custom_mod:match("^%./") or custom_mod:match("^%.\\") then
         custom_mod        = input_dir .. custom_mod:sub(3)
         explicit_relative = true
     end
 
     local target_dir, target_name
-    -- A trailing slash automatically makes target_name = ""
     if custom_mod:match("[/\\]") then
         target_dir, target_name = custom_mod:match("^(.*[/\\])([^/\\]*)$")
     else
@@ -159,11 +123,8 @@ function M.resolve_absolute_path(custom, opts)
         target_name = custom_mod
     end
 
-    local function is_absolute(p)
-        return p:match("^/") or p:match("^%a:[/\\]") or p:match("^~")
-    end
+    local function is_absolute(p) return p:match("^/") or p:match("^%a:[/\\]") or p:match("^~") end
 
-    -- If the path isn't absolute and wasn't forced with ./, root it to the config base
     if target_dir == "" then
         target_dir = base_output_dir
     elseif not is_absolute(target_dir) and not explicit_relative then
@@ -212,13 +173,9 @@ function M.format_duration(seconds)
     local h = math.floor(seconds / 3600)
     local m = math.floor((seconds % 3600) / 60)
     local s = math.floor(seconds % 60)
-    if h > 0 then
-        return string.format("%dh %dm %ds", h, m, s)
-    elseif m > 0 then
-        return string.format("%dm %ds", m, s)
-    else
-        return string.format("%ds", s)
-    end
+    if h > 0 then return string.format("%dh %dm %ds", h, m, s)
+    elseif m > 0 then return string.format("%dm %ds", m, s)
+    else return string.format("%ds", s) end
 end
 
 function M.ffprobe_get(file, args)

@@ -1,7 +1,7 @@
 local mp      = require 'mp'
 local utils   = require 'mp.utils'
 local options = require 'mp.options'
-local common  = require 'common'
+local common  = require 'src.common'
 
 local M = {
     opts = {
@@ -19,14 +19,24 @@ local M = {
         trash_source        = true,
         show_stats_screen   = true,
         show_stats_terminal = true,
-        stats_osd_time      = 8
+        stats_osd_time      = 8,
+        font_size           = 18,
+        small_font_size     = 12,
+        text_color          = "FFFFFF",
+        dim_text_color      = "888888",
+        value_color         = "00FF00",
+        on_color            = "00FF00",
+        off_color           = "FF0000",
+        highlight_color     = "00FFFF",
+        warning_color       = "FFFF00",
+        error_color         = "FF0000"
     },
     custom_output_name = "",
     mark_in            = 0,
     mark_out           = 0,
     trash_path         = nil,
     ffmpeg_ok          = false,
-    path_history       = common.read_history()
+    path_history       = {}
 }
 
 local function ensure_config_exists()
@@ -60,5 +70,6 @@ end
 
 ensure_config_exists()
 options.read_options(M.opts, "tachytome")
+M.path_history = common.read_history()
 
 return M

@@ -1,5 +1,6 @@
-local utils = require 'mp.utils'
-local common = require 'common'
+local utils  = require 'mp.utils'
+local common = require 'src.common'
+local theme  = require 'src.theme'
 
 local M = {}
 
@@ -8,13 +9,7 @@ local function get_stats_path()
 end
 
 function M.read_stats()
-    local stats = {
-        source_space    = 0,
-        output_space    = 0,
-        source_duration = 0,
-        output_duration = 0,
-        render_time     = 0
-    }
+    local stats = { source_space = 0, output_space = 0, source_duration = 0, output_duration = 0, render_time = 0 }
     local f = io.open(get_stats_path(), "r")
     if f then
         local parsed = utils.parse_json(f:read("*all"))
@@ -84,7 +79,7 @@ function M.get_formatted_stats(stats_data)
 
     local console_str = ""
     local osd_str     = ""
-    local function g(val) return string.format("{\\c&H00FF00&}%s{\\c&HFFFFFF&}", tostring(val)) end
+    local function v(val) return string.format("%s%s%s", theme.c("value_color"), tostring(val), theme.reset()) end
 
     for _, item in ipairs(lines) do
         if item.separator then
@@ -95,13 +90,11 @@ function M.get_formatted_stats(stats_data)
             local console_pad = string.rep(" ", pad_len + 1)
             local osd_pad     = string.rep("\\h", pad_len + 1)
 
-            -- Formatting preserved exactly as you had it (no colons)
             console_str = console_str .. string.format("%s%s%s\n",  item.label, console_pad, item.value)
-            osd_str     = osd_str     .. string.format("%s%s%s\\N", item.label, osd_pad,     g(item.value))
+            osd_str     = osd_str     .. string.format("%s%s%s\\N", item.label, osd_pad,     v(item.value))
         end
     end
 
-    -- Explicitly separate the gsub calls so Lua doesn't swallow multiple return parameters
     console_str = console_str:gsub("\n$", "")
     osd_str     = osd_str:gsub("\\N$", "")
 
