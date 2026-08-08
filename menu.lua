@@ -30,9 +30,9 @@ local menu_items = {
     { key = "p", label = "Path",              get_val = function() return g(actions.get_final_path()) end,                      action = function() actions.set_path(M.open) end,              keep_open = false },
 
     { separator = true },
+    { key = "ENTER", label = "Render",           action = actions.start_render,                        keep_open = false },
     { key = "r",     label = "Render Queue",     action = function() actions.manage_queue(M.open) end, keep_open = false },
     { key = "DEL",   label = "Trash Source Now", action = actions.trash_source,                        keep_open = false },
-    { key = "ENTER", label = "Render",           action = actions.start_render,                        keep_open = false },
     { key = "s",     label = "Stats",            action = actions.show_stats,                          keep_open = false },
 
     { separator = true },
