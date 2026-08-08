@@ -18,17 +18,209 @@ function M.mark(place)
     end
 end
 
-function M.set_crf(on_complete)
-    osd_input.get_user_input("CRF (0-63): ", function(input)
+function M.set_quality(on_complete)
+    local enc     = state.opts.video_encoder:lower()
+    local min_val = 0
+    local max_val = 51
+    local label   = "CRF"
+
+    if enc == "av1" then
+        max_val = 63
+    elseif enc == "h265" then
+        max_val = 51
+    elseif enc:match("^intel_") then
+        min_val = 1
+        label   = "Global Quality"
+    elseif enc:match("^nv_") or enc:match("^amd_") then
+        label   = "CQ"
+    end
+
+    local prompt = string.format("%s (%d-%d): ", label, min_val, max_val)
+
+    osd_input.get_user_input(prompt, function(input)
         local num = tonumber(input)
-        if num and num >= 0 and num <= 63 then
-            state.opts.crf = num
-            common.notify("CRF: " .. state.opts.crf)
+        if num and num >= min_val and num <= max_val then
+            state.opts.quality = num
+            common.notify(label .. ": " .. state.opts.quality)
         else
-            common.notify("Invalid CRF, keeping: " .. state.opts.crf, true, "warn")
+            common.notify(string.format("Invalid %s, keeping: %s", label, state.opts.quality), true, "warn")
         end
         if on_complete then on_complete() end
-    end, tostring(state.opts.crf), true)
+    end, tostring(state.opts.quality), true)
+end
+
+function M.set_preset(on_complete)
+    local enc     = state.opts.video_encoder:lower()
+    local presets = {}
+
+    if enc == "av1" then
+        presets = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13"}
+    elseif enc == "h265" then
+        presets = {"ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow", "placebo"}
+    elseif enc:match("^nv_") then
+        presets = {"p1", "p2", "p3", "p4", "p5", "p6", "p7"}
+    elseif enc:match("^amd_") then
+        presets = {"speed", "balanced", "quality"}
+    elseif enc:match("^intel_") then
+        presets = {"veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow"}
+    else
+        presets = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13"}
+    end
+
+    mp.set_osd_ass(0, 0, "")
+    mp.osd_message("", 0)
+
+    local ov     = mp.create_osd_overlay("ass-events")
+    local active = true
+    local cursor = 1
+
+    local current_preset = tostring(state.opts.preset)
+    for i, p in ipairs(presets) do
+        if p == current_preset then
+            cursor = i
+            break
+        end
+    end
+
+    local function cleanup()
+        if not active then return end
+        active = false
+        ov:remove()
+        mp.remove_key_binding("pre-up")
+        mp.remove_key_binding("pre-down")
+        mp.remove_key_binding("pre-enter")
+        mp.remove_key_binding("pre-esc")
+        if on_complete then on_complete() end
+    end
+
+    local function draw()
+        local text = "{\\an7}{\\fnmonospace}{\\fs18}{\\b1}Select Preset for " .. enc .. "{\\b0}\\N(Up/Down to navigate, Enter to select, Esc to cancel)\\N\\N"
+
+        local start_idx = math.max(1, cursor - 7)
+        local end_idx   = math.min(#presets, start_idx + 14)
+        if end_idx - start_idx < 14 then
+            start_idx = math.max(1, end_idx - 14)
+        end
+
+        if start_idx > 1 then text = text .. "  ...\\N" end
+
+        for i = start_idx, end_idx do
+            local p        = presets[i]
+            local prefix   = (i == cursor) and "{\\c&H00FFFF&}➤ " or "  "
+            local selected = (p == current_preset) and "{\\c&H00FF00&}[Active]" or ""
+            text = text .. string.format("%s%s %s{\\c&HFFFFFF&}\\N", prefix, p, selected)
+        end
+
+        if end_idx < #presets then text = text .. "  ...\\N" end
+
+        ov.data = text
+        ov:update()
+    end
+
+    mp.add_forced_key_binding("UP", "pre-up", function()
+        if cursor > 1 then cursor = cursor - 1; draw() end
+    end, {repeatable = true})
+
+    mp.add_forced_key_binding("DOWN", "pre-down", function()
+        if cursor < #presets then cursor = cursor + 1; draw() end
+    end, {repeatable = true})
+
+    mp.add_forced_key_binding("ENTER", "pre-enter", function()
+        local val = presets[cursor]
+        if enc == "av1" then
+            state.opts.preset = tonumber(val)
+        else
+            state.opts.preset = val
+        end
+        common.notify("Preset set to: " .. tostring(state.opts.preset))
+        cleanup()
+    end)
+
+    mp.add_forced_key_binding("ESC", "pre-esc", cleanup)
+
+    draw()
+end
+
+function M.select_encoder(on_complete)
+    local encoders = {
+        "av1", "nv_av1", "amd_av1", "intel_av1",
+        "h265", "nv_h265", "amd_h265", "intel_h265"
+    }
+
+    mp.set_osd_ass(0, 0, "")
+    mp.osd_message("", 0)
+
+    local ov     = mp.create_osd_overlay("ass-events")
+    local active = true
+    local cursor = 1
+
+    for i, enc in ipairs(encoders) do
+        if enc == state.opts.video_encoder then
+            cursor = i
+            break
+        end
+    end
+
+    local function cleanup()
+        if not active then return end
+        active = false
+        ov:remove()
+        mp.remove_key_binding("enc-up")
+        mp.remove_key_binding("enc-down")
+        mp.remove_key_binding("enc-enter")
+        mp.remove_key_binding("enc-esc")
+        if on_complete then on_complete() end
+    end
+
+    local function draw()
+        local text = "{\\an7}{\\fnmonospace}{\\fs18}{\\b1}Select Video Encoder{\\b0}\\N(Up/Down to navigate, Enter to select, Esc to cancel)\\N\\N"
+        for i, enc in ipairs(encoders) do
+            local prefix   = (i == cursor) and "{\\c&H00FFFF&}➤ " or "  "
+            local selected = (enc == state.opts.video_encoder) and "{\\c&H00FF00&}[Active]" or ""
+            text = text .. string.format("%s%s %s{\\c&HFFFFFF&}\\N", prefix, enc, selected)
+        end
+        ov.data = text
+        ov:update()
+    end
+
+    mp.add_forced_key_binding("UP", "enc-up", function()
+        if cursor > 1 then cursor = cursor - 1; draw() end
+    end, {repeatable = true})
+
+    mp.add_forced_key_binding("DOWN", "enc-down", function()
+        if cursor < #encoders then cursor = cursor + 1; draw() end
+    end, {repeatable = true})
+
+    mp.add_forced_key_binding("ENTER", "enc-enter", function()
+        local new_enc = encoders[cursor]
+        if new_enc ~= state.opts.video_encoder then
+            state.opts.video_encoder = new_enc
+
+            -- Auto-adjust preset to an archival safe default for the new encoder
+            if new_enc == "av1" then
+                state.opts.preset = 4
+            elseif new_enc == "h265" then
+                state.opts.preset = "slow"
+            elseif new_enc:match("^nv_") then
+                state.opts.preset = "p7"
+            elseif new_enc:match("^amd_") then
+                state.opts.preset = "quality"
+            elseif new_enc:match("^intel_") then
+                state.opts.preset = "veryslow"
+            end
+
+            -- Safely fix out-of-bounds quality if switching to Intel
+            if new_enc:match("^intel_") and (tonumber(state.opts.quality) or 0) < 1 then
+                state.opts.quality = 1
+            end
+        end
+        common.notify("Encoder set to: " .. state.opts.video_encoder)
+        cleanup()
+    end)
+
+    mp.add_forced_key_binding("ESC", "enc-esc", cleanup)
+
+    draw()
 end
 
 function M.set_path(on_complete)
@@ -81,7 +273,7 @@ function M.trash_source()
     local function confirm_trash()
         cleanup_trash()
         common.trash_file(current_file, state.trash_path, function(success)
-            if success then common.notify("Trashed original video", true)
+            if success then common.notify("Trashed source video", true)
             else common.notify("Failed to trash video (File may be in use)", true, "error") end
         end)
     end
@@ -108,7 +300,7 @@ function M.start_render()
         video_encoder       = state.opts.video_encoder,
         accurate_cut        = state.opts.accurate_cut,
         lossless_cut        = state.opts.lossless_cut,
-        crf                 = state.opts.crf,
+        quality             = state.opts.quality,
         preset              = state.opts.preset,
         combine_audio       = state.opts.combine_audio,
         combined_audio_name = state.opts.combined_audio_name,
@@ -120,7 +312,6 @@ function M.start_render()
         show_stats_terminal = state.opts.show_stats_terminal,
         stats_osd_time      = state.opts.stats_osd_time
     })
-    state.custom_output_name = ""
 end
 
 function M.manage_queue(on_complete)

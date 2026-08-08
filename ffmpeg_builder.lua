@@ -51,40 +51,109 @@ function M.build_args(opts, input_file, output_file, creation_time)
         }
         for _, v in ipairs(codec_args) do table.insert(args, v) end
     else
-        -- Prepend global copy to pass-through subtitles and attachments natively
+        local enc = opts.video_encoder:lower()
+
+        local safe_quality = tonumber(opts.quality) or 30
+        if enc == "av1" then
+            safe_quality = math.min(63, math.max(0, safe_quality))
+        elseif enc:match("^intel_") then
+            safe_quality = math.min(51, math.max(1, safe_quality))
+        else
+            safe_quality = math.min(51, math.max(0, safe_quality))
+        end
+        local quality_str = tostring(safe_quality)
+
         table.insert(args, "-c") table.insert(args, "copy")
         table.insert(args, "-map_metadata") table.insert(args, "0")
         table.insert(args, "-metadata") table.insert(args, "ENCODED_BY=tachytome")
-        table.insert(args, "-metadata") table.insert(args, "TACHYTOME_CRF=" .. tostring(opts.crf))
+        table.insert(args, "-metadata") table.insert(args, "TACHYTOME_QUALITY=" .. quality_str)
 
-        -- Video Encoding Hardware Profiles
-        local enc = opts.video_encoder:lower()
-        if enc == "nvidia" then
+        if enc == "nv_av1" then
             local hw_args = {
-                "-c:v",         "av1_nvenc",
-                "-preset",      tostring(opts.preset),
-                "-tune",        "hq",
-                "-rc",          "vbr",
-                "-cq",          tostring(opts.crf),
-                "-b:v",         "0",
-                "-spatial-aq",  "1"
+                "-c:v",          "av1_nvenc",
+                "-preset",       tostring(opts.preset),
+                "-tune",         "hq",
+                "-rc",           "vbr",
+                "-cq",           quality_str,
+                "-b:v",          "0",
+                "-spatial_aq",   "1",
+                "-temporal_aq",  "1",
+                "-rc-lookahead", "32",
+                "-multipass",    "fullres",
+                "-pix_fmt",      "p010le"
             }
             for _, v in ipairs(hw_args) do table.insert(args, v) end
-        elseif enc == "amd" then
+        elseif enc == "amd_av1" then
             local hw_args = {
-                "-c:v",         "av1_amf",
-                "-usage",       "transcoding",
-                "-quality",     tostring(opts.preset),
-                "-rc",          "cqp",
-                "-qp_i",        tostring(opts.crf),
-                "-qp_p",        tostring(opts.crf)
+                "-c:v",          "av1_amf",
+                "-usage",        "transcoding",
+                "-quality",      tostring(opts.preset),
+                "-rc",           "cqp",
+                "-qp_i",         quality_str,
+                "-qp_p",         quality_str,
+                "-preanalysis",  "1",
+                "-pix_fmt",      "p010le"
             }
             for _, v in ipairs(hw_args) do table.insert(args, v) end
-        elseif enc == "intel" then
+        elseif enc == "intel_av1" then
             local hw_args = {
-                "-c:v",             "av1_qsv",
-                "-preset",          tostring(opts.preset),
-                "-global_quality",  tostring(opts.crf)
+                "-c:v",              "av1_qsv",
+                "-preset",           tostring(opts.preset),
+                "-global_quality",   quality_str,
+                "-look_ahead",       "1",
+                "-look_ahead_depth", "32",
+                "-pix_fmt",          "p010le"
+            }
+            for _, v in ipairs(hw_args) do table.insert(args, v) end
+        elseif enc == "h265" then
+            local hw_args = {
+                "-c:v",          "libx265",
+                "-preset",       tostring(opts.preset),
+                "-crf",          quality_str,
+                "-pix_fmt",      "yuv420p10le",
+                "-x265-params",  "aq-mode=3",
+                "-metadata",     "TACHYTOME_PRESET=" .. tostring(opts.preset)
+            }
+            for _, v in ipairs(hw_args) do table.insert(args, v) end
+        elseif enc == "nv_h265" then
+            local hw_args = {
+                "-c:v",          "hevc_nvenc",
+                "-preset",       tostring(opts.preset),
+                "-profile:v",    "main10",
+                "-tune",         "hq",
+                "-rc",           "vbr",
+                "-cq",           quality_str,
+                "-b:v",          "0",
+                "-spatial_aq",   "1",
+                "-temporal_aq",  "1",
+                "-b_ref_mode",   "middle",
+                "-rc-lookahead", "32",
+                "-multipass",    "fullres",
+                "-pix_fmt",      "p010le"
+            }
+            for _, v in ipairs(hw_args) do table.insert(args, v) end
+        elseif enc == "amd_h265" then
+            local hw_args = {
+                "-c:v",          "hevc_amf",
+                "-usage",        "transcoding",
+                "-quality",      tostring(opts.preset),
+                "-profile:v",    "main10",
+                "-rc",           "cqp",
+                "-qp_i",         quality_str,
+                "-qp_p",         quality_str,
+                "-preanalysis",  "1",
+                "-pix_fmt",      "p010le"
+            }
+            for _, v in ipairs(hw_args) do table.insert(args, v) end
+        elseif enc == "intel_h265" then
+            local hw_args = {
+                "-c:v",              "hevc_qsv",
+                "-preset",           tostring(opts.preset),
+                "-profile:v",        "main10",
+                "-global_quality",   quality_str,
+                "-look_ahead",       "1",
+                "-look_ahead_depth", "32",
+                "-pix_fmt",          "p010le"
             }
             for _, v in ipairs(hw_args) do table.insert(args, v) end
         else
@@ -92,7 +161,7 @@ function M.build_args(opts, input_file, output_file, creation_time)
             local hw_args = {
                 "-c:v",           "libsvtav1",
                 "-preset",        tostring(opts.preset),
-                "-crf",           tostring(opts.crf),
+                "-crf",           quality_str,
                 "-pix_fmt",       "yuv420p10le",
                 "-svtav1-params", "tune=0:scd=1",
                 "-metadata",      "TACHYTOME_PRESET=" .. tostring(opts.preset)
@@ -100,7 +169,6 @@ function M.build_args(opts, input_file, output_file, creation_time)
             for _, v in ipairs(hw_args) do table.insert(args, v) end
         end
 
-        -- Audio logic
         if opts.combine_audio then
             local audio_stream_count, orig_meta = get_audio_stream_data(input_file)
 

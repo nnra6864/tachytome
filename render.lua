@@ -62,7 +62,6 @@ function M.show_queue_manager(on_close)
     local function draw()
         local text = "{\\an7}{\\fnmonospace}{\\fs18}{\\b1}Render Queue Manager{\\b0}\\N(Up/Down to navigate, Enter to cancel/remove, Esc to close)\\N\\N"
 
-        -- Safe window capping (shows ~15 items max to prevent screen overflow)
         local start_idx = math.max(1, cursor - 7)
         local end_idx   = math.min(#jobs, start_idx + 14)
         if end_idx - start_idx < 14 then
@@ -136,18 +135,15 @@ function M.process_queue()
     common.notify("Render started: " .. active_job.final_name, true)
 
     local progress_timer = mp.add_periodic_timer(0.5, function()
-        -- Open in binary mode for seeking
         local f = io.open(progress_file, "rb")
         if f then
             local size = f:seek("end")
-            -- Only read the last 2KB, prevents memory stalls
             local read_size = math.min(size, 2048)
             f:seek("set", size - read_size)
             local content = f:read("*all")
             f:close()
 
             local time_us = nil
-            -- Iterate through all matches in the small chunk, retaining the last one
             for t in content:gmatch("out_time_us=(%d+)") do
                 time_us = t
             end
@@ -180,7 +176,8 @@ function M.process_queue()
             local remove_success, err = os.remove(active_job.output_file)
             if not remove_success then
                 mp.msg.warn("Could not delete cancelled file. It may be locked: " .. tostring(err))
-            end common.notify("Render cancelled. File deleted: " .. active_job.final_name, true)
+            end
+            common.notify("Render cancelled. File deleted: " .. active_job.final_name, true)
 
             is_rendering = false
             active_job   = nil
@@ -193,14 +190,13 @@ function M.process_queue()
             local out_info = utils.file_info(active_job.output_file)
             local output_size = out_info and out_info.size or 0
 
-            local msg_console = string.format("Finished: %s\nInput: %s -> Output: %s\nStart: %s | End: %s | CRF: %s | Time: %s",
+            local msg_console = string.format("Finished: %s\nInput: %s -> Output: %s\nStart: %s | End: %s | Quality: %s | Time: %s",
                 active_job.final_name, common.format_bytes(active_job.input_size), common.format_bytes(output_size),
-                common.format_time(active_job.start_time), common.format_time(active_job.end_time), active_job.crf,
+                common.format_time(active_job.start_time), common.format_time(active_job.end_time), active_job.quality,
                 common.format_duration(render_wall_time))
 
             local msg_osd = msg_console:gsub("\n", "\\N")
 
-            -- Always update stats in the background so lifetime tracking remains accurate
             local current_stats = stats_mod.update_stats(
                 active_job.input_size,
                 output_size,
@@ -323,14 +319,12 @@ function M.start(opts)
 
     local duration = opts.mark_out - opts.mark_in
 
-    -- Get creation time quickly
     local creation_time = common.ffprobe_get(input_file, {"-show_entries", "format_tags=creation_time", "-of", "csv=p=0"})
     if not creation_time then
         local info = utils.file_info(input_file)
         if info and info.mtime then creation_time = os.date("%Y-%m-%dT%H:%M:%S", info.mtime) end
     end
 
-    -- Utilize the new builder module
     local args = builder.build_args(opts, input_file, output_file, creation_time)
 
     local in_info = utils.file_info(input_file)
@@ -349,7 +343,7 @@ function M.start(opts)
         end_time            = opts.mark_out,
         duration            = duration,
         full_input_duration = opts.full_input_duration or 0,
-        crf                 = (opts.lossless_cut and "Lossless") or tostring(opts.crf),
+        quality             = (opts.lossless_cut and "Lossless") or tostring(opts.quality),
         show_stats_screen   = opts.show_stats_screen,
         show_stats_terminal = opts.show_stats_terminal,
         stats_osd_time      = opts.stats_osd_time,
