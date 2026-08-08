@@ -23,7 +23,7 @@ function M.set_crf(on_complete)
         local num = tonumber(input)
         if num and num >= 0 and num <= 63 then
             state.opts.crf = num
-            common.notify("CRF: " .. state.opts.crf, true)
+            common.notify("CRF: " .. state.opts.crf)
         else
             common.notify("Invalid CRF, keeping: " .. state.opts.crf, true, "warn")
         end
@@ -88,7 +88,7 @@ function M.trash_source()
 
     local function cancel_trash()
         cleanup_trash()
-        common.notify("Trashing cancelled.", true)
+        common.notify("Trashing cancelled.")
     end
 
     mp.add_forced_key_binding("y",     "del-y",     confirm_trash)

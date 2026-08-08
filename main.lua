@@ -47,7 +47,7 @@ local function check_dependencies()
             if result and result.status == 0 then
                 common.notify("FFmpeg installed successfully! Please restart MPV.", true)
             else
-                common.notify("Install failed. Check console and install manually.", true, "error")
+                common.notify("Install failed. Check logs and install manually.", true, "error")
                 print(result and result.stderr or error)
             end
         end)

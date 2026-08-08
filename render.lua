@@ -117,8 +117,6 @@ function M.process_queue()
     current_job_num = current_job_num + 1
     active_job      = table.remove(render_queue, 1)
 
-    common.notify("Render started: " .. active_job.final_name, true)
-
     local temp_dir      = os.getenv("TEMP") or os.getenv("TMP") or "/tmp"
     local progress_file = utils.join_path(temp_dir, "tachytome_prog_" .. tostring(math.floor(mp.get_time() * 1000)) .. ".log")
 
@@ -134,6 +132,8 @@ function M.process_queue()
 
     progress_overlay.data = string.format("{\\an9}{\\fnmonospace}{\\fs16}{\\alpha&H66&}%sRendering %s: 0%%", get_queue_str(), name_no_ext)
     progress_overlay:update()
+
+    common.notify("Render started: " .. active_job.final_name, true)
 
     local progress_timer = mp.add_periodic_timer(0.5, function()
         -- Open in binary mode for seeking
@@ -177,8 +177,11 @@ function M.process_queue()
         os.remove(progress_file)
 
         if active_job.cancelled then
-            os.remove(active_job.output_file)
-            common.notify("Render cancelled. File deleted: " .. active_job.final_name, true)
+            local remove_success, err = os.remove(active_job.output_file)
+            if not remove_success then
+                mp.msg.warn("Could not delete cancelled file. It may be locked: " .. tostring(err))
+            end common.notify("Render cancelled. File deleted: " .. active_job.final_name, true)
+
             is_rendering = false
             active_job   = nil
             current_req  = nil
@@ -208,7 +211,7 @@ function M.process_queue()
 
             local stats_str_console, lifetime_str_osd = stats_mod.get_formatted_stats(current_stats)
 
-            if active_job.print_stats_terminal then
+            if active_job.show_stats_terminal then
                 msg_console = msg_console .. "\n--------------------------\n"   .. stats_str_console
             end
 
