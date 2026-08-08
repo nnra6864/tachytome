@@ -305,24 +305,6 @@ function M.toggle_trash_source()
     common.notify("Trash Source: '" .. tostring(state.opts.trash_source) .. "'")
 end
 
-function M.get_final_path()
-    return common.resolve_absolute_path(state.custom_output_name, state.opts)
-end
-
-function M.set_path(on_complete)
-    local display_path = state.custom_output_name ~= "" and state.custom_output_name or M.get_final_path()
-    osd_input.get_user_input("Output Path: ", function(input)
-        if input ~= "" then
-            state.custom_output_name = input
-            common.notify("Target: " .. M.get_final_path())
-        else
-            state.custom_output_name = ""
-            common.notify("Output path reset to default")
-        end
-        if on_complete then on_complete() end
-    end, display_path, true)
-end
-
 function M.set_space_replacement(on_complete)
     osd_input.get_user_input("Replace spaces with: ", function(input)
         state.opts.space_replacement = input
@@ -337,6 +319,27 @@ function M.get_space_replacement_display()
     if v == "" then return "None" end
     if v == " " then return "Space" end
     return v
+end
+
+function M.get_final_path()
+    return common.resolve_absolute_path(state.custom_output_name, state.opts)
+end
+
+function M.set_path(on_complete)
+    local display_path = state.custom_output_name ~= "" and state.custom_output_name or M.get_final_path()
+    local binds        = "(Up/Down for history, Enter to confirm, Esc to cancel)"
+
+    osd_input.get_user_input("Output Path: ", function(input)
+        if input ~= "" then
+            state.custom_output_name = input
+            common.add_to_history(state.path_history, input)
+            common.notify("Target: " .. M.get_final_path())
+        else
+            state.custom_output_name = ""
+            common.notify("Output path reset to default")
+        end
+        if on_complete then on_complete() end
+    end, display_path, binds, state.path_history)
 end
 
 function M.start_render()
@@ -357,7 +360,8 @@ function M.start_render()
         space_replacement   = state.opts.space_replacement,
         show_stats_screen   = state.opts.show_stats_screen,
         show_stats_terminal = state.opts.show_stats_terminal,
-        stats_osd_time      = state.opts.stats_osd_time
+        stats_osd_time      = state.opts.stats_osd_time,
+        rename_callback     = M.set_path
     })
 end
 

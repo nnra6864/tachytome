@@ -25,7 +25,8 @@ local M = {
     mark_in            = 0,
     mark_out           = 0,
     trash_path         = nil,
-    ffmpeg_ok          = false
+    ffmpeg_ok          = false,
+    path_history       = common.read_history()
 }
 
 local function ensure_config_exists()

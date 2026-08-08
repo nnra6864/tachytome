@@ -271,4 +271,35 @@ function M.trash_file(file_path, trash_path, callback)
     end)
 end
 
+function M.get_history_path()
+    return utils.join_path(M.get_data_dir(), "history.json")
+end
+
+function M.read_history()
+    local f = io.open(M.get_history_path(), "r")
+    if f then
+        local content = f:read("*all")
+        f:close()
+        local parsed = utils.parse_json(content)
+        if type(parsed) == "table" then return parsed end
+    end
+    return {}
+end
+
+function M.add_to_history(history_table, input)
+    if history_table[#history_table] == input then return end
+    table.insert(history_table, input)
+    while #history_table > 100 do
+        table.remove(history_table, 1)
+    end
+end
+
+function M.save_history(history_table)
+    local f = io.open(M.get_history_path(), "w")
+    if f then
+        f:write(utils.format_json(history_table))
+        f:close()
+    end
+end
+
 return M
