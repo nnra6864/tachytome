@@ -2,27 +2,35 @@ local common = require 'src.common'
 
 local M = {}
 
-local function get_audio_stream_data(input_file)
+local function get_media_info(input_file)
     local probe_data = common.ffprobe_get_json(input_file, {
-        "-show_streams", "-select_streams", "a", "-print_format", "json"
+        "-show_streams", "-print_format", "json"
     })
 
-    if not probe_data or not probe_data.streams then return 0, nil end
-    local count = #probe_data.streams
-    if count == 0 then return 0, nil end
+    local info = { audio_count = 0, a_meta = nil, v_fps = nil }
+    if not probe_data or not probe_data.streams then return info end
 
-    local first_stream = probe_data.streams[1]
-    local meta = {
-        codec       = first_stream.codec_name,
-        sample_rate = first_stream.sample_rate,
-        bit_rate    = first_stream.bit_rate
-    }
-    return count, meta
+    for _, s in ipairs(probe_data.streams) do
+        if s.codec_type == "audio" then
+            info.audio_count = info.audio_count + 1
+            if not info.a_meta then
+                info.a_meta = { codec = s.codec_name, sample_rate = s.sample_rate, bit_rate = s.bit_rate }
+            end
+        elseif s.codec_type == "video" and not info.v_fps then
+            if s.avg_frame_rate and s.avg_frame_rate ~= "0/0" then
+                info.v_fps = s.avg_frame_rate
+            elseif s.r_frame_rate and s.r_frame_rate ~= "0/0" and s.r_frame_rate ~= "90000/1" then
+                info.v_fps = s.r_frame_rate
+            end
+        end
+    end
+    return info
 end
 
 function M.build_args(opts, input_file, output_file, creation_time)
-    local args     = { "ffmpeg", "-y", "-hide_banner" }
-    local duration = opts.mark_out - opts.mark_in
+    local args       = { "ffmpeg", "-y", "-hide_banner" }
+    local duration   = opts.mark_out - opts.mark_in
+    local media_info = get_media_info(input_file)
 
     if opts.accurate_cut then
         table.insert(args, "-i")  table.insert(args, input_file)
@@ -52,14 +60,14 @@ function M.build_args(opts, input_file, output_file, creation_time)
         local enc = opts.video_encoder:lower()
 
         local safe_quality = tonumber(opts.quality) or 30
-        if enc == "av1" then
-            safe_quality = math.min(63, math.max(0, safe_quality))
-        elseif enc:match("^intel_") then
-            safe_quality = math.min(51, math.max(1, safe_quality))
-        else
-            safe_quality = math.min(51, math.max(0, safe_quality))
-        end
+        if enc == "av1" then safe_quality = math.min(63, math.max(0, safe_quality))
+        elseif enc:match("^intel_") then safe_quality = math.min(51, math.max(1, safe_quality))
+        else safe_quality = math.min(51, math.max(0, safe_quality)) end
         local quality_str = tostring(safe_quality)
+
+        if media_info.v_fps then
+            table.insert(args, "-r") table.insert(args, media_info.v_fps)
+        end
 
         table.insert(args, "-c") table.insert(args, "copy")
         table.insert(args, "-map_metadata") table.insert(args, "0")
@@ -93,30 +101,29 @@ function M.build_args(opts, input_file, output_file, creation_time)
         end
 
         if opts.combine_audio then
-            local audio_stream_count, orig_meta = get_audio_stream_data(input_file)
-            if audio_stream_count > 1 and orig_meta then
-                local encoder = orig_meta.codec
-                if orig_meta.codec     == "opus" then encoder   = "libopus"
-                elseif orig_meta.codec == "mp3" then encoder    = "libmp3lame"
-                elseif orig_meta.codec == "vorbis" then encoder = "libvorbis" end
+            if media_info.audio_count > 1 and media_info.a_meta then
+                local encoder = media_info.a_meta.codec
+                if media_info.a_meta.codec     == "opus" then encoder   = "libopus"
+                elseif media_info.a_meta.codec == "mp3" then encoder    = "libmp3lame"
+                elseif media_info.a_meta.codec == "vorbis" then encoder = "libvorbis" end
 
                 local filter_inputs = ""
-                for i = 0, audio_stream_count - 1 do filter_inputs = filter_inputs .. string.format("[0:a:%d]", i) end
-                local filter_complex = string.format("%samix=inputs=%d:normalize=0[aout]", filter_inputs, audio_stream_count)
+                for i = 0, media_info.audio_count - 1 do filter_inputs = filter_inputs .. string.format("[0:a:%d]", i) end
+                local filter_complex = string.format("%samix=inputs=%d:normalize=0[aout]", filter_inputs, media_info.audio_count)
 
                 table.insert(args, "-filter_complex") table.insert(args, filter_complex)
                 table.insert(args, "-map") table.insert(args, "[aout]")
                 table.insert(args, "-map") table.insert(args, "0")
 
                 table.insert(args, "-c:a:0") table.insert(args, encoder)
-                if orig_meta.sample_rate and orig_meta.sample_rate ~= "N/A" then
-                    table.insert(args, "-ar:0") table.insert(args, orig_meta.sample_rate)
+                if media_info.a_meta.sample_rate and media_info.a_meta.sample_rate ~= "N/A" then
+                    table.insert(args, "-ar:0") table.insert(args, media_info.a_meta.sample_rate)
                 end
-                if orig_meta.bit_rate and orig_meta.bit_rate ~= "N/A" then
-                    table.insert(args, "-b:a:0") table.insert(args, orig_meta.bit_rate)
+                if media_info.a_meta.bit_rate and media_info.a_meta.bit_rate ~= "N/A" then
+                    table.insert(args, "-b:a:0") table.insert(args, media_info.a_meta.bit_rate)
                 end
 
-                for i = 1, audio_stream_count do
+                for i = 1, media_info.audio_count do
                     table.insert(args, string.format("-c:a:%d", i))
                     table.insert(args, "copy")
                 end
