@@ -17,10 +17,8 @@ local function get_media_info(input_file)
                 info.a_meta = { codec = s.codec_name, sample_rate = s.sample_rate, bit_rate = s.bit_rate }
             end
         elseif s.codec_type == "video" and not info.v_fps then
-            if s.avg_frame_rate and s.avg_frame_rate ~= "0/0" then
+            if s.avg_frame_rate and s.avg_frame_rate ~= "0/0" and s.avg_frame_rate ~= "N/A" then
                 info.v_fps = s.avg_frame_rate
-            elseif s.r_frame_rate and s.r_frame_rate ~= "0/0" and s.r_frame_rate ~= "90000/1" then
-                info.v_fps = s.r_frame_rate
             end
         end
     end
@@ -70,7 +68,8 @@ function M.build_args(opts, input_file, output_file, creation_time)
         local quality_str = tostring(safe_quality)
 
         if media_info.v_fps then
-            table.insert(args, "-r") table.insert(args, media_info.v_fps)
+            table.insert(args, "-vf")
+            table.insert(args, "fps=" .. media_info.v_fps)
         end
 
         table.insert(args, "-c") table.insert(args, "copy")
