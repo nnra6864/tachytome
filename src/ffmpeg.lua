@@ -32,6 +32,8 @@ function M.build_args(opts, input_file, output_file, creation_time)
     local duration   = opts.mark_out - opts.mark_in
     local media_info = get_media_info(input_file)
 
+    table.insert(args, "-fflags") table.insert(args, "+genpts")
+
     if opts.accurate_cut then
         table.insert(args, "-i")  table.insert(args, input_file)
         table.insert(args, "-ss") table.insert(args, tostring(opts.mark_in))
@@ -41,6 +43,8 @@ function M.build_args(opts, input_file, output_file, creation_time)
         table.insert(args, "-i")  table.insert(args, input_file)
         table.insert(args, "-t")  table.insert(args, tostring(duration))
     end
+
+    table.insert(args, "-avoid_negative_ts") table.insert(args, "make_zero")
 
     if creation_time then
         table.insert(args, "-metadata")
