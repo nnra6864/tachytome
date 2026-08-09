@@ -8,8 +8,13 @@ local stats      = require 'src.stats'
 local state      = require 'src.state'
 local notify     = require 'src.notify'
 local theme      = require 'src.theme'
+local ui_goto = require 'src.ui_goto'
 
 local M = {}
+
+function M.goto_prompt(on_complete)
+    ui_goto.show(on_complete)
+end
 
 function M.mark(place)
     local time = mp.get_property_number("time-pos", 0)
