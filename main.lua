@@ -30,7 +30,13 @@ local function check_dependencies()
         elseif platform == "macos" then
             args = {"sh", "-c", "brew install ffmpeg"}
         end
-        mp.command_native_async({ name = "subprocess", args = args, playback_only = false }, function(success, result, error)
+        mp.command_native_async({
+            name = "subprocess",
+            args = args,
+            playback_only = false,
+            capture_stdout = true,
+            capture_stderr = true
+        }, function(success, result, error)
             if result and result.status == 0 then
                 notify.show("FFmpeg installed successfully! Please restart MPV.", true)
             else

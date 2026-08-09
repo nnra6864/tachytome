@@ -180,21 +180,23 @@ function M.process_queue()
         local f = io.open(progress_file, "rb")
         if f then
             local size = f:seek("end")
-            local read_size = math.min(size, 2048)
-            f:seek("set", size - read_size)
-            local content = f:read("*all")
-            f:close()
+            if size and size > 0 then
+                local read_size = math.min(size, 2048)
+                f:seek("set", size - read_size)
+                local content = f:read("*all")
 
-            local time_us = nil
-            for t in content:gmatch("out_time_us=(%d+)") do time_us = t end
+                local time_us = nil
+                for t in content:gmatch("out_time_us=(%d+)") do time_us = t end
 
-            if time_us then
-                local percent = math.floor((tonumber(time_us) / 1000000) / active_job.duration * 100)
-                if percent > 100 then percent = 100 end
-                if percent < 0 then percent = 0 end
-                progress_overlay.data = string.format("%s%s%s%sRendering %s: %d%%", theme.align(9), theme.f(true), theme.a("66"), get_queue_str(), name_no_ext, percent)
-                progress_overlay:update()
+                if time_us then
+                    local percent = math.floor((tonumber(time_us) / 1000000) / active_job.duration * 100)
+                    if percent > 100 then percent = 100 end
+                    if percent < 0 then percent = 0 end
+                    progress_overlay.data = string.format("%s%s%s%sRendering %s: %d%%", theme.align(9), theme.f(true), theme.a("66"), get_queue_str(), name_no_ext, percent)
+                    progress_overlay:update()
+                end
             end
+            f:close()
         end
     end)
 
@@ -204,6 +206,8 @@ function M.process_queue()
         name = "subprocess",
         args = active_job.args,
         playback_only = false,
+        capture_stdout = true,
+        capture_stderr = true
     }, function(success, result, error)
         local render_wall_time = mp.get_time() - render_start_time
 

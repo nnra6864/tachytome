@@ -221,7 +221,9 @@ function M.trash_file(file_path, trash_path, callback)
     mp.command_native_async({
         name = "subprocess",
         args = args,
-        playback_only = false
+        playback_only = false,
+        capture_stdout = true,
+        capture_stderr = true
     }, function(success, result, error)
         local is_success = (result and result.status == 0)
         if callback then callback(is_success) end
