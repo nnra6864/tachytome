@@ -46,25 +46,25 @@ All the binds are isolated into a submap (Tachytome Menu), which you can access 
 This is done to avoid global bind conflicts.
 Here's a full list of binds:
 
-| Keybind | Action            | Description                                                                                      |
-|---------|-------------------|--------------------------------------------------------------------------------------------------|
-| i       | Mark In           | Marks the start of the video.                                                                    |
-| o       | Mark Out          | Marks the end of the video.                                                                      |
-| e       | Encoder           | Sets the video encoder.                                                                          |
-| q       | Quality           | Sets the video encoder quality parameter.                                                        |
-| q       | Preset            | Sets the video encoder preset parameter.                                                         |
-| l       | Lossless Cut      | Toggles the lossless cut option.                                                                 |
-| a       | Accurate Cut      | Makes cuts millisecond precise, but may cause a slight delay before rendering starts.            |
-| c       | Combine Audio     | Toggles the combine audio option.                                                                |
-| t       | Trash Source      | Trashes the source video when done.                                                              |
-| _       | Space Replacement | Sets the character to replace spaces with.                                                       |
-| p       | Path              | Output path.<br>`~/` - home.<br>`./` - source dir.<br>No prefix - config `output_dir`.           |
-| g       | Go To             | Go to a precise location in the video.<br>Valid values:<br>`1` - 1s, `10%`, `1:2.5` - 1m 2s 5ms. |
-| Enter   | Render            | Starts the rendering of the output file.                                                         |
-| r       | Render Queue      | Opens the render queue management menu where you can cancel active or remove queued renders.     |
-| Del     | Trash Source Now  | Trashes the source file.                                                                         |
-| s       | Stats             | Displays Tachytome stats.                                                                        |
-| Esc     | Close             | Closes the currently active menu.                                                                |
+| Keybind | Action            | Description                                                                                                |
+|---------|-------------------|------------------------------------------------------------------------------------------------------------|
+| i       | Mark In           | Marks the start of the video.                                                                              |
+| o       | Mark Out          | Marks the end of the video.                                                                                |
+| e       | Encoder           | Sets the video encoder.                                                                                    |
+| q       | Quality           | Sets the video encoder quality parameter.                                                                  |
+| q       | Preset            | Sets the video encoder preset parameter.                                                                   |
+| l       | Lossless Cut      | Toggles the lossless cut option.                                                                           |
+| a       | Accurate Cut      | Makes cuts millisecond precise, but may cause a slight delay before rendering starts.                      |
+| c       | Combine Audio     | Toggles the combine audio option.                                                                          |
+| t       | Trash Source      | Trashes the source video when done.                                                                        |
+| _       | Space Replacement | Sets the character to replace spaces with.                                                                 |
+| p       | Path              | Output path.<br>`~/` - home.<br>`./` - source dir.<br>No prefix - config `output_dir`.                     |
+| g       | Go To             | Go to a precise location in the video.<br>Valid values:<br>`1` - 1s<br>`10%` - 10%<br>`1:2.5`<br>1m 2s 5ms |
+| Enter   | Render            | Starts the rendering of the output file.                                                                   |
+| r       | Render Queue      | Opens the render queue management menu where you can cancel active or remove queued renders.               |
+| Del     | Trash Source Now  | Trashes the source file.                                                                                   |
+| s       | Stats             | Displays Tachytome stats.                                                                                  |
+| Esc     | Close             | Closes the currently active menu.                                                                          |
 
 ## Config
 
