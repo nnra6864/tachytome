@@ -59,7 +59,7 @@ Here's a full list of binds:
 | t       | Trash Source      | Trashes the source video when done.                                                                        |
 | _       | Space Replacement | Sets the character to replace spaces with.                                                                 |
 | p       | Path              | Output path.<br>`~/` - home.<br>`./` - source dir.<br>No prefix - config `output_dir`.                     |
-| g       | Go To             | Go to a precise location in the video.<br>Valid values:<br>`1` - 1s<br>`10%` - 10%<br>`1:2.5`<br>1m 2s 5ms |
+| g       | Go To             | Go to a precise location in the video.<br>Valid values:<br>`1` - 1s<br>`10%` - 10%<br>`1:2.5` - 1m 2s 5ms  |
 | Enter   | Render            | Starts the rendering of the output file.                                                                   |
 | r       | Render Queue      | Opens the render queue management menu where you can cancel active or remove queued renders.               |
 | Del     | Trash Source Now  | Trashes the source file.                                                                                   |
