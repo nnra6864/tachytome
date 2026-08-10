@@ -1,4 +1,5 @@
 local mp    = require 'mp'
+local state = require 'src.state'
 local theme = require 'src.theme'
 
 local M = {}
@@ -31,7 +32,7 @@ function M.show(title, items, current_val, on_select, on_cancel)
 
     local function draw()
         local text = string.format("%s%s%s%s%s\\N%s(Up/Down to navigate, Enter to select, Esc to cancel)\\N\\N",
-            theme.align(7), theme.f(), theme.b(true), theme.c("text_color"), title, theme.f(true))
+            theme.align(7), theme.f(), theme.b(false), theme.c("text_color"), title, theme.f(false))
 
         local start_idx = math.max(1, cursor - 7)
         local end_idx   = math.min(#items, start_idx + 14)
@@ -39,16 +40,16 @@ function M.show(title, items, current_val, on_select, on_cancel)
             start_idx = math.max(1, end_idx - 14)
         end
 
-        if start_idx > 1 then text = text .. "  ...\\N" end
+        if start_idx > 1 then text = text .. "\\h\\h...\\N" end
 
         for i = start_idx, end_idx do
             local val      = items[i]
-            local prefix   = (i == cursor) and (theme.c("highlight_color") .. "➤ ") or "  "
-            local selected = (val == current_val) and (theme.c("on_color") .. "[Active]") or ""
+            local prefix   = (i == cursor) and (theme.b(true) .. theme.c("value_color") .. "\\h> ") or theme.b(false) .. "\\h\\h"
+            local selected = (val == current_val) and (theme.b(true) .. theme.c("on_color") .. state.opts.on_text) or theme.b(false) .. ""
             text = text .. string.format("%s%s %s%s\\N", prefix, val, selected, theme.reset())
         end
 
-        if end_idx < #items then text = text .. "  ...\\N" end
+        if end_idx < #items then text = text .. "\\h\\h...\\N" end
 
         ov.data = text
         ov:update()

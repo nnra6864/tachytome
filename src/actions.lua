@@ -38,7 +38,7 @@ function M.set_quality(on_complete)
     elseif enc:match("^intel_") then min_val = 1; label = "Global Quality"
     elseif enc:match("^nv_") or enc:match("^amd_") then label = "CQ" end
 
-    local prompt = string.format("%s (%d-%d): ", label, min_val, max_val)
+    local prompt = string.format("%s (%d-%d) > ", label, min_val, max_val)
 
     ui_input.get_user_input(prompt, function(input)
         local num = tonumber(input)
@@ -185,7 +185,7 @@ function M.set_path(on_complete)
     local display_path = state.custom_output_name ~= "" and state.custom_output_name or M.get_final_path()
     local binds        = "(Up/Down for history, Enter to confirm, Esc to cancel)"
 
-    ui_input.get_user_input("Output Path: ", function(input)
+    ui_input.get_user_input("Output Path > ", function(input)
         if input ~= "" then
             state.custom_output_name = input
             common.add_to_history(state.path_history, input)

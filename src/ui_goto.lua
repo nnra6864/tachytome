@@ -16,7 +16,7 @@ for i = 1, #standard_chars do
 end
 
 local function render()
-    overlay.data = string.format("%s%s%sGo to: %s%s%s_%s%s\\N%s(Enter to seek, Esc to cancel)",
+    overlay.data = string.format("%s%s%sGo to > %s%s%s_%s%s\\N%s(Enter to seek, Esc to cancel)",
         theme.align(7), theme.f(), theme.c("text_color"),
         theme.c("value_color"), input, theme.a("FF"), theme.a("00"), theme.reset(), theme.f(true)
     )
@@ -77,7 +77,6 @@ local function parse_and_seek()
             local seconds = h * 3600 + m * 60 + s
             mp.commandv("osd-bar", "seek", seconds, "absolute")
         else
-            -- Direct evaluation for pure numbers (e.g., "1.5" or "15")
             local total = tonumber(str)
             if total then mp.commandv("osd-bar", "seek", total, "absolute") end
         end

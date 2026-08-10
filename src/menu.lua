@@ -22,10 +22,10 @@ local menu_items = {
     { key = "P", label = "Preset",  get_val = function() return v(state.opts.preset) end,        action = function() actions.set_preset(M.open) end,     keep_open = false },
 
     { separator = true },
-    { key = "l", label = "Lossless Cut",  get_val = function() return state.opts.lossless_cut and g("ON") or r("OFF") end,  action = actions.toggle_lossless,      keep_open = true },
-    { key = "a", label = "Accurate Cut",  get_val = function() return state.opts.accurate_cut and g("ON") or r("OFF") end,  action = actions.toggle_accurate,      keep_open = true },
-    { key = "c", label = "Combine Audio", get_val = function() return state.opts.combine_audio and g("ON") or r("OFF") end, action = actions.toggle_combine_audio, keep_open = true },
-    { key = "t", label = "Trash Source",  get_val = function() return state.opts.trash_source and g("ON") or r("OFF") end,  action = actions.toggle_trash_source,  keep_open = true },
+    { key = "l", label = "Lossless Cut",  get_val = function() return state.opts.lossless_cut and g(state.opts.on_text) or r(state.opts.off_text) end,  action = actions.toggle_lossless,      keep_open = true },
+    { key = "a", label = "Accurate Cut",  get_val = function() return state.opts.accurate_cut and g(state.opts.on_text) or r(state.opts.off_text) end,  action = actions.toggle_accurate,      keep_open = true },
+    { key = "c", label = "Combine Audio", get_val = function() return state.opts.combine_audio and g(state.opts.on_text) or r(state.opts.off_text) end, action = actions.toggle_combine_audio, keep_open = true },
+    { key = "t", label = "Trash Source",  get_val = function() return state.opts.trash_source and g(state.opts.on_text) or r(state.opts.off_text) end,  action = actions.toggle_trash_source,  keep_open = true },
 
     { separator = true },
     { key = "_", label = "Space Replacement", get_val = function() return v(actions.get_space_replacement_display()) end,       action = function() actions.set_space_replacement(M.open) end, keep_open = false },
@@ -52,7 +52,7 @@ function M.close()
 end
 
 local function draw()
-    local text = string.format("%s%s%s%sTachytome%s\\N\\N", theme.align(7), theme.f(), theme.b(true), theme.c("text_color"), theme.b(false))
+    local text = string.format("%s%s%s%s < Tachytome > %s\\N\\N", theme.align(7), theme.f(), theme.b(true), theme.c("text_color"), theme.b(false))
     local max_key_len = 0
     local max_label_len = 0
 
@@ -68,11 +68,11 @@ local function draw()
             text = text .. "\\N"
         else
             local key_pad = string.rep("\\h", max_key_len - #item.key)
-            local line = string.format("%s[ %s ] %s", key_pad, item.key, item.label)
+            local line = string.format("%s%s -> %s", key_pad, item.key, item.label)
 
             if item.get_val then
                 local val_pad = string.rep("\\h", max_label_len - #item.label + 1)
-                line = line .. val_pad .. item.get_val()
+                line = line .. val_pad .. "> " .. item.get_val()
             end
 
             text = text .. line .. "\\N"

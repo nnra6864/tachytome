@@ -76,17 +76,17 @@ function M.show_queue_manager(on_close)
         local end_idx   = math.min(#jobs, start_idx + 14)
         if end_idx - start_idx < 14 then start_idx = math.max(1, end_idx - 14) end
 
-        if start_idx > 1 then text = text .. "  ...\\N" end
+        if start_idx > 1 then text = text .. "\\h\\h...\\N" end
 
         for i = start_idx, end_idx do
             local job    = jobs[i]
-            local prefix = (i == cursor) and string.format("%s➤ ", theme.c("highlight_color")) or "  "
-            local status = job.is_active and string.format("%s[Rendering]", theme.c("on_color")) or string.format("%s[Queued]", theme.c("dim_text_color"))
+            local prefix = (i == cursor) and string.format("%s\\h> ", theme.c("value_color")) or "\\h\\h"
+            local status = job.is_active and string.format("%s" .. state.opts.on_text, theme.c("on_color")) or ""
 
             text = text .. string.format("%s%s%s %s%s\\N", theme.c("text_color"), prefix, job.title, status, theme.reset())
         end
 
-        if end_idx < #jobs then text = text .. "  ...\\N" end
+        if end_idx < #jobs then text = text .. "\\h\\h...\\N" end
 
         ov.data = text
         ov:update()
