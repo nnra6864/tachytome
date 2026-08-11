@@ -133,7 +133,9 @@ function M.trash_source(on_complete)
 
     ui_confirm.show("Move current file to trash?", current_file, function()
         common.trash_file(current_file, state.trash_path, function(success)
-            if success then notify.show("Trashed source video", true)
+            if success then
+                notify.show("Trashed source video", true)
+                mp.commandv("playlist-next", "weak")
             else notify.show("Failed to trash video (File may be in use)", true, "error") end
         end)
         if on_complete then on_complete() end
