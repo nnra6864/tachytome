@@ -169,13 +169,11 @@ function M.format_time(seconds)
 end
 
 function M.format_duration(seconds)
-    if not seconds or seconds == 0 then return "0s" end
+    seconds = seconds or 0
     local h = math.floor(seconds / 3600)
     local m = math.floor((seconds % 3600) / 60)
     local s = math.floor(seconds % 60)
-    if h > 0 then return string.format("%dh %dm %ds", h, m, s)
-    elseif m > 0 then return string.format("%dm %ds", m, s)
-    else return string.format("%ds", s) end
+    return string.format("%02d:%02d:%02d", h, m, s)
 end
 
 function M.ffprobe_get(file, args)

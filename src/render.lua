@@ -1,11 +1,11 @@
-local mp        = require 'mp'
-local utils     = require 'mp.utils'
-local common    = require 'src.common'
-local stats_mod = require 'src.stats'
-local builder   = require 'src.ffmpeg'
-local state     = require 'src.state'
-local notify    = require 'src.notify'
-local theme     = require 'src.theme'
+local mp      = require 'mp'
+local utils   = require 'mp.utils'
+local common  = require 'src.common'
+local stats   = require 'src.stats'
+local builder = require 'src.ffmpeg'
+local state   = require 'src.state'
+local notify  = require 'src.notify'
+local theme   = require 'src.theme'
 
 local M = {}
 
@@ -16,6 +16,8 @@ local current_job_num = 0
 
 local active_job  = nil
 local current_req = nil
+
+local stats_ov = mp.create_osd_overlay("ass-events")
 
 function M.cancel_render()
     mp.set_osd_ass(0, 0, "")
@@ -227,21 +229,31 @@ function M.process_queue()
         end
 
         local function finish_job()
-            local out_info = utils.file_info(active_job.output_file)
-            local output_size = out_info and out_info.size or 0
+            local output_info = utils.file_info(active_job.output_file)
+            local output_size = output_info and output_info.size or 0
 
-            local msg_console = string.format("Finished: %s\nSource: %s\nOutput: %s\nStart: %s\nEnd: %s\nQuality: %s\nTime: %s",
-                active_job.final_name, common.format_bytes(active_job.input_size), common.format_bytes(output_size),
-                common.format_time(active_job.start_time), common.format_time(active_job.end_time), active_job.quality,
-                common.format_duration(render_wall_time))
-            local msg_osd = msg_console:gsub("\n", "\\N")
+            stats.update_stats(active_job.input_size, output_size, active_job.input_duration, active_job.duration, render_wall_time)
+            local msg_body, msg_osd_body, msg_width = stats.get_formatted_stats({
+                source_space    = active_job.input_size,
+                output_space    = output_size,
+                source_duration = active_job.input_duration,
+                output_duration = active_job.duration,
+                render_time     = render_wall_time
+            })
 
-            if active_job.show_stats_terminal then msg_console = msg_console end
-            if active_job.show_stats_screen then msg_osd = msg_osd end
+            local msg_title = active_job.final_name
+            local pad_len   = math.max(0, msg_width - #msg_title)
+            local pad       = string.rep("\\h", pad_len)
+            local full_osd  = string.format("%s%s%s%s%s%s%s\\N\\N%s", theme.c("text_color"), theme.align(1), theme.f(false), theme.b(true), msg_title, pad, theme.b(false), msg_osd_body)
 
-            mp.msg.info("\n" .. msg_console)
-            mp.set_osd_ass(0, 0, string.format("%s%s%s", theme.align(1), theme.f(true), msg_osd))
-            mp.add_timeout(active_job.stats_osd_time, function() mp.set_osd_ass(0, 0, "") end)
+            if active_job.show_stats_terminal then
+                notify.show("\n" .. msg_title .. "\n" .. msg_body .. "\n", false)
+            end
+            if active_job.show_stats_screen then
+                stats_ov.data = full_osd
+                stats_ov:update()
+                mp.add_timeout(active_job.stats_osd_time, function() stats_ov:remove() end)
+            end
 
             if #render_queue == 0 then
                 total_jobs = 0
@@ -385,7 +397,7 @@ function M.start(opts)
         start_time          = opts.mark_in,
         end_time            = opts.mark_out,
         duration            = duration,
-        full_input_duration = opts.full_input_duration or 0,
+        input_duration      = opts.input_duration or 0,
         quality             = (opts.lossless_cut and "Lossless") or tostring(opts.quality),
         show_stats_screen   = opts.show_stats_screen,
         show_stats_terminal = opts.show_stats_terminal,

@@ -29,18 +29,21 @@ function M.write_stats(stats)
     end
 end
 
-function M.update_stats(input_bytes, output_bytes, full_input_duration, output_clip_duration, render_wall_time)
+M.on_update = nil
+
+function M.update_stats(input_bytes, output_bytes, input_duration, output_clip_duration, render_wall_time)
     local stats = M.read_stats()
     stats.source_space    = (stats.source_space or 0) + (input_bytes or 0)
     stats.output_space    = (stats.output_space or 0) + (output_bytes or 0)
-    stats.source_duration = (stats.source_duration or 0) + (full_input_duration or 0)
+    stats.source_duration = (stats.source_duration or 0) + (input_duration or 0)
     stats.output_duration = (stats.output_duration or 0) + (output_clip_duration or 0)
     stats.render_time     = (stats.render_time or 0) + (render_wall_time or 0)
     M.write_stats(stats)
+    if M.on_update then M.on_update() end
     return stats
 end
 
-function M.get_formatted_stats(stats_data)
+function M.get_formatted_stats(stats_data, align)
     stats_data = stats_data or M.read_stats()
 
     local s_processed = stats_data.source_space or 0
@@ -66,7 +69,7 @@ function M.get_formatted_stats(stats_data)
     }
 
     local max_label_len = 0
-    local max_val_len = 0
+    local max_val_len   = 0
     for _, item in ipairs(lines) do
         if not item.separator then
             if #item.label > max_label_len then max_label_len = #item.label end
@@ -87,14 +90,24 @@ function M.get_formatted_stats(stats_data)
             console_str = console_str .. dynamic_separator .. "\n"
             osd_str     = osd_str     .. dynamic_separator .. "\\N"
         else
-            local pad_len     = max_label_len - #item.label
-            local console_pad = string.rep(" ", pad_len + 1)
+            local pad_len = (max_label_len - #item.label) + (max_val_len - #item.value) + 1
+            local console_pad = string.rep(" ", pad_len)
 
-            local osd_pad_len = max_val_len - #item.value
-            local osd_pad     = string.rep("\\h", osd_pad_len)
+            local osd_pad_len_l = 0
+            local osd_pad_len_v = 0
+            local osd_pad_l     = ""
+            local osd_pad_v     = ""
+
+            if align ~= 3 and align ~= 6 and align ~= 9 then
+                osd_pad_len_l = (max_label_len - #item.label) + (max_val_len - #item.value) + 1
+                osd_pad_l     = string.rep("\\h", osd_pad_len_l)
+            elseif align ~= 1 and align ~= 4 and align ~= 7 then
+                osd_pad_len_v = (max_label_len - #item.label) + (max_val_len - #item.value) + 1
+                osd_pad_v     = string.rep("\\h", osd_pad_len_v)
+            end
 
             console_str = console_str .. string.format("%s:%s%s\n", item.label, console_pad, item.value)
-            osd_str     = osd_str .. string.format("%s: %s%s\\N", l(item.label), v(item.value), osd_pad)
+            osd_str     = osd_str .. string.format("%s:%s%s%s\\N", l(item.label), osd_pad_l, osd_pad_v, v(item.value))
         end
     end
 

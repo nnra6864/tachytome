@@ -97,26 +97,37 @@ function M.select_encoder(on_complete)
 end
 
 M.stats_visible = false
+local stats_ov = mp.create_osd_overlay("ass-events")
+
+function M.refresh_stats()
+    if not M.stats_visible then return end
+
+    local msg_title = "Tachytome Stats"
+    local msg_body, msg_osd_body, msg_width = stats.get_formatted_stats()
+    local pad_len = math.max(0, msg_width - #msg_title)
+    local pad = string.rep("\\h", pad_len)
+
+    local full_osd = string.format("%s%s%s%s%s%s%s\\N\\N%s",
+        theme.c("text_color"), theme.align(3), theme.f(false), theme.b(true),
+        msg_title, pad, theme.b(false), msg_osd_body)
+
+    notify.show("\n" .. msg_title .. "\n" .. msg_body .. "\n", false)
+    stats_ov.data = full_osd
+    stats_ov:update()
+end
 
 function M.toggle_stats()
     M.stats_visible = not M.stats_visible
 
     if not M.stats_visible then
-        mp.set_osd_ass(0, 0, "")
+        stats_ov:remove()
         return
     end
 
-    local msg_title = "Tachytome Stats"
-    local msg_body, msg_osd_body, msg_width = stats.get_formatted_stats()
-    local pad_len = msg_width - #msg_title
-    local pad = string.rep("\\h", pad_len)
-    local full_osd = string.format("%s%s%s%s%s%s%s\\N\\N%s", theme.c("text_color"), theme.align(3), theme.f(true), theme.b(true), msg_title, pad, theme.b(false), msg_osd_body)
-
-    notify.show("Tachytome Stats\n" .. msg_body, false)
-    mp.set_osd_ass(0, 0, "")
-    mp.osd_message("", 0)
-    mp.set_osd_ass(0, 0, full_osd)
+    M.refresh_stats()
 end
+
+stats.on_update = M.refresh_stats
 
 function M.trash_source(on_complete)
     local current_file = mp.get_property("path")
@@ -217,7 +228,7 @@ function M.start_render(on_complete)
         final_output_path   = M.get_final_path(),
         mark_in             = state.mark_in,
         mark_out            = state.mark_out,
-        full_input_duration = mp.get_property_number("duration", 0),
+        input_duration      = mp.get_property_number("duration", 0),
         video_encoder       = state.opts.video_encoder,
         accurate_cut        = state.opts.accurate_cut,
         lossless_cut        = state.opts.lossless_cut,
