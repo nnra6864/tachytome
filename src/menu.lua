@@ -8,8 +8,8 @@ local M            = {}
 local menu_active  = false
 local menu_overlay = mp.create_osd_overlay("ass-events")
 
-local function r(val) return string.format("%s%s%s", theme.c("off_color"),   tostring(val), theme.reset()) end
-local function g(val) return string.format("%s%s%s", theme.c("on_color"),    tostring(val), theme.reset()) end
+local function off(val) return string.format("%s%s%s", theme.c("off_color"), tostring(val), theme.reset()) end
+local function on(val) return string.format("%s%s%s", theme.c("on_color"),   tostring(val), theme.reset()) end
 local function v(val) return string.format("%s%s%s", theme.c("value_color"), tostring(val), theme.reset()) end
 
 local menu_items = {
@@ -22,21 +22,21 @@ local menu_items = {
     { key = "P", label = "Preset",  get_val = function() return v(state.opts.preset) end,        action = function() actions.set_preset(M.open) end,     keep_open = false },
 
     { separator = true },
-    { key = "l", label = "Lossless Cut",  get_val = function() return state.opts.lossless_cut and g(state.opts.on_text) or r(state.opts.off_text) end,  action = actions.toggle_lossless,      keep_open = true },
-    { key = "a", label = "Accurate Cut",  get_val = function() return state.opts.accurate_cut and g(state.opts.on_text) or r(state.opts.off_text) end,  action = actions.toggle_accurate,      keep_open = true },
-    { key = "c", label = "Combine Audio", get_val = function() return state.opts.combine_audio and g(state.opts.on_text) or r(state.opts.off_text) end, action = actions.toggle_combine_audio, keep_open = true },
-    { key = "t", label = "Trash Source",  get_val = function() return state.opts.trash_source and g(state.opts.on_text) or r(state.opts.off_text) end,  action = actions.toggle_trash_source,  keep_open = true },
+    { key = "l", label = "Lossless Cut",  get_val = function() return state.opts.lossless_cut and on(state.opts.on_text) or off(state.opts.off_text) end,  action = actions.toggle_lossless,      keep_open = true },
+    { key = "a", label = "Accurate Cut",  get_val = function() return state.opts.accurate_cut and on(state.opts.on_text) or off(state.opts.off_text) end,  action = actions.toggle_accurate,      keep_open = true },
+    { key = "c", label = "Combine Audio", get_val = function() return state.opts.combine_audio and on(state.opts.on_text) or off(state.opts.off_text) end, action = actions.toggle_combine_audio, keep_open = true },
+    { key = "t", label = "Trash Source",  get_val = function() return state.opts.trash_source and on(state.opts.on_text) or off(state.opts.off_text) end,  action = actions.toggle_trash_source,  keep_open = true },
 
     { separator = true },
-    { key = "_", label = "Space Replacement", get_val = function() return v(actions.get_space_replacement_display()) end,       action = function() actions.set_space_replacement(M.open) end, keep_open = false },
-    { key = "p", label = "Path",              get_val = function() return v(actions.get_final_path()) end,                      action = function() actions.set_path(M.open) end,              keep_open = false },
+    { key = "_", label = "Space Replacement", get_val = function() return v(actions.get_space_replacement_display()) end, action = function() actions.set_space_replacement(M.open) end, keep_open = false },
+    { key = "p", label = "Path",              get_val = function() return v(actions.get_final_path()) end,                action = function() actions.set_path(M.open) end,              keep_open = false },
 
     { separator = true },
     { key = "g",     label = "Go to",            action = function() actions.goto_prompt(M.open) end,  keep_open = false },
     { key = "ENTER", label = "Render",           action = function() actions.start_render(M.open) end, keep_open = false },
     { key = "r",     label = "Render Queue",     action = function() actions.manage_queue(M.open) end, keep_open = false },
     { key = "DEL",   label = "Trash Source Now", action = function() actions.trash_source(M.open) end, keep_open = false },
-    { key = "s",     label = "Stats",            action = actions.show_stats,                          keep_open = false },
+    { key = "s",     label = "Toggle Stats",     action = actions.toggle_stats,                        keep_open = true  },
 
     { separator = true },
     { key = "ESC", label = "Close ", action = function() end, keep_open = false }

@@ -74,11 +74,12 @@ function M.get_formatted_stats(stats_data)
         end
     end
 
-    local separator_len = max_label_len + 1 + max_val_len
+    local separator_len = max_label_len + 2 + max_val_len
     local dynamic_separator = string.rep("-", separator_len)
 
     local console_str = ""
     local osd_str     = ""
+    local function l(lab) return string.format("%s%s%s", theme.c("text_color"), lab, theme.reset()) end
     local function v(val) return string.format("%s%s%s", theme.c("value_color"), tostring(val), theme.reset()) end
 
     for _, item in ipairs(lines) do
@@ -88,17 +89,19 @@ function M.get_formatted_stats(stats_data)
         else
             local pad_len     = max_label_len - #item.label
             local console_pad = string.rep(" ", pad_len + 1)
-            local osd_pad     = string.rep("\\h", pad_len + 1)
 
-            console_str = console_str .. string.format("%s%s%s\n",  item.label, console_pad, item.value)
-            osd_str     = osd_str     .. string.format("%s%s%s\\N", item.label, osd_pad,     v(item.value))
+            local osd_pad_len = max_val_len - #item.value
+            local osd_pad     = string.rep("\\h", osd_pad_len)
+
+            console_str = console_str .. string.format("%s:%s%s\n", item.label, console_pad, item.value)
+            osd_str     = osd_str .. string.format("%s: %s%s\\N", l(item.label), v(item.value), osd_pad)
         end
     end
 
     console_str = console_str:gsub("\n$", "")
     osd_str     = osd_str:gsub("\\N$", "")
 
-    return console_str, osd_str
+    return console_str, osd_str, separator_len
 end
 
 return M

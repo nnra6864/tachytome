@@ -96,14 +96,26 @@ function M.select_encoder(on_complete)
     end, on_complete)
 end
 
-function M.show_stats()
-    local _, msg_osd_body = stats.get_formatted_stats()
-    local full_osd = string.format("%s%s%sTachytome Stats%s\\N\\N%s", theme.align(7), theme.f(true), theme.b(true), theme.b(false), msg_osd_body)
+M.stats_visible = false
 
+function M.toggle_stats()
+    M.stats_visible = not M.stats_visible
+
+    if not M.stats_visible then
+        mp.set_osd_ass(0, 0, "")
+        return
+    end
+
+    local msg_title = "Tachytome Stats"
+    local msg_body, msg_osd_body, msg_width = stats.get_formatted_stats()
+    local pad_len = msg_width - #msg_title
+    local pad = string.rep("\\h", pad_len)
+    local full_osd = string.format("%s%s%s%s%s%s%s\\N\\N%s", theme.c("text_color"), theme.align(3), theme.f(true), theme.b(true), msg_title, pad, theme.b(false), msg_osd_body)
+
+    notify.show("Tachytome Stats\n" .. msg_body, false)
     mp.set_osd_ass(0, 0, "")
     mp.osd_message("", 0)
     mp.set_osd_ass(0, 0, full_osd)
-    mp.add_timeout(state.opts.stats_osd_time, function() mp.set_osd_ass(0, 0, "") end)
 end
 
 function M.trash_source(on_complete)

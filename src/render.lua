@@ -230,20 +230,17 @@ function M.process_queue()
             local out_info = utils.file_info(active_job.output_file)
             local output_size = out_info and out_info.size or 0
 
-            local msg_console = string.format("Finished: %s\nInput: %s -> Output: %s\nStart: %s | End: %s | Quality: %s | Time: %s",
+            local msg_console = string.format("Finished: %s\nSource: %s\nOutput: %s\nStart: %s\nEnd: %s\nQuality: %s\nTime: %s",
                 active_job.final_name, common.format_bytes(active_job.input_size), common.format_bytes(output_size),
                 common.format_time(active_job.start_time), common.format_time(active_job.end_time), active_job.quality,
                 common.format_duration(render_wall_time))
-
             local msg_osd = msg_console:gsub("\n", "\\N")
-            local current_stats = stats_mod.update_stats(active_job.input_size, output_size, active_job.full_input_duration, active_job.duration, render_wall_time)
-            local stats_str_console, lifetime_str_osd = stats_mod.get_formatted_stats(current_stats)
 
-            if active_job.show_stats_terminal then msg_console = msg_console .. "\n--------------------------\n" .. stats_str_console end
-            if active_job.show_stats_screen then msg_osd = msg_osd .. "\\N--------------------------\\N" .. lifetime_str_osd end
+            if active_job.show_stats_terminal then msg_console = msg_console end
+            if active_job.show_stats_screen then msg_osd = msg_osd end
 
             mp.msg.info("\n" .. msg_console)
-            mp.set_osd_ass(0, 0, string.format("%s%s%s", theme.align(7), theme.f(true), msg_osd))
+            mp.set_osd_ass(0, 0, string.format("%s%s%s", theme.align(1), theme.f(true), msg_osd))
             mp.add_timeout(active_job.stats_osd_time, function() mp.set_osd_ass(0, 0, "") end)
 
             if #render_queue == 0 then
