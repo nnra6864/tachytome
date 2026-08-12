@@ -5,11 +5,11 @@ Tome &nbsp;&nbsp;(τομή) &nbsp;– Cut
 
 Keyboard Driven, AV1/H265/Lossless, MPV Video Cutter.
 
-<img src="https://cloud.nnstdios.com/s/5FNaiwZYPnM9PQB" controls width="100%"></img>
+<img src="https://cloud.nnstdios.com/s/download/5FNaiwZYPnM9PQB/Tachytome.png" controls width="100%"></img>
 <video src="https://cloud.nnstdios.com/s/35gCL5eCHRM8B9M/download/Tachytome.mkv" controls width="100%"></video>
 
 > [!NOTE]
-> Video can only be watched on my self hosted git instance due to github limitations.
+> Video can only be watched on my self hosted git instance due to github limitations.<br>
 > Visit https://git.nnstdios.com/nnra6864/tachytome for a better experience.
 
 ## Installation
