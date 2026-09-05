@@ -3,6 +3,8 @@ local utils = require 'mp.utils'
 
 local M = {}
 
+local keyframe_cache = {}
+
 function M.get_platform()
     local is_windows = package.config:sub(1,1) == '\\'
     if is_windows then return "windows" end
@@ -194,6 +196,44 @@ function M.ffprobe_get(file, args)
         if clean ~= "" then return clean end
     end
     return nil
+end
+
+function M.get_keyframes(file)
+    local info = utils.file_info(file)
+    if not info then return nil end
+
+    local cached = keyframe_cache[file]
+    if cached and cached.mtime == info.mtime and cached.size == info.size then
+        return cached.list
+    end
+
+    local raw = M.ffprobe_get(file, {"-select_streams", "v:0", "-show_entries", "packet=pts_time,flags", "-of", "csv=p=0"})
+    if not raw then return nil end
+
+    local list = {}
+    for line in raw:gmatch("[^\r\n]+") do
+        local pts, flags = line:match("^(.-),(.*)$")
+        if pts and flags:find("K", 1, true) then
+            local t = tonumber(pts)
+            if t then table.insert(list, t) end
+        end
+    end
+    table.sort(list)
+
+    keyframe_cache[file] = { list = list, mtime = info.mtime, size = info.size }
+    return list
+end
+
+function M.nearest_keyframe_at_or_before(file, t)
+    local list = M.get_keyframes(file)
+    if not list or #list == 0 or t < list[1] then return nil end
+
+    local lo, hi = 1, #list
+    while lo < hi do
+        local mid = math.floor((lo + hi + 1) / 2)
+        if list[mid] <= t then lo = mid else hi = mid - 1 end
+    end
+    return list[lo]
 end
 
 function M.trash_file(file_path, trash_path, callback)

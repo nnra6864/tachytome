@@ -1,5 +1,4 @@
 local mp      = require 'mp'
-local common  = require 'src.common'
 local state   = require 'src.state'
 local actions = require 'src.actions'
 local notify  = require 'src.notify'
@@ -14,8 +13,8 @@ local function on(val) return string.format("%s%s%s", theme.c("on_color"),   tos
 local function v(val) return string.format("%s%s%s", theme.c("value_color"), tostring(val), theme.reset()) end
 
 local menu_items = {
-    { key = "i", label = "Mark In",  get_val = function() return v(common.format_time(state.mark_in)) end,  action = function() actions.mark(0) end, keep_open = true },
-    { key = "o", label = "Mark Out", get_val = function() return v(common.format_time(state.mark_out)) end, action = function() actions.mark(1) end, keep_open = true },
+    { key = "i", label = "Mark In",  get_val = function() return v(actions.get_mark_in_display()) end,  action = function() actions.mark(0) end, keep_open = true },
+    { key = "o", label = "Mark Out", get_val = function() return v(actions.get_mark_out_display()) end, action = function() actions.mark(1) end, keep_open = true },
 
     { separator = true },
     { key = "e", label = "Encoder", get_val = function() return v(state.opts.video_encoder) end, action = function() actions.select_encoder(M.open) end, keep_open = false },

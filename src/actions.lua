@@ -206,6 +206,22 @@ function M.get_final_path()
     return common.resolve_absolute_path(state.custom_output_name, state.opts)
 end
 
+function M.get_mark_in_display()
+    local raw = state.mark_in
+    if not state.opts.lossless_cut then return common.format_time(raw) end
+
+    local file = mp.get_property("path")
+    if not file then return common.format_time(raw) end
+
+    local resolved = common.nearest_keyframe_at_or_before(file, raw)
+    if resolved then return common.format_time(resolved) end
+    return common.format_time(raw)
+end
+
+function M.get_mark_out_display()
+    return common.format_time(state.mark_out)
+end
+
 function M.set_path(on_complete)
     local display_path = state.custom_output_name ~= "" and state.custom_output_name or M.get_final_path()
     local binds        = "(Up/Down for history, Enter to confirm, Esc to cancel)"
