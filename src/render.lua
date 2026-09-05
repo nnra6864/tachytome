@@ -19,6 +19,76 @@ local current_req = nil
 
 local stats_ov = mp.create_osd_overlay("ass-events")
 
+local TEMP_PREFIX = ".tachytome_tmp_"
+
+local temp_seq  = 0
+local temp_seed = tostring(os.time()) .. "-" .. tostring(math.floor(mp.get_time() * 1000))
+
+local orphan_checked_dirs = {}
+
+local function next_temp_id()
+    temp_seq = temp_seq + 1
+    return temp_seed .. "-" .. tostring(temp_seq)
+end
+
+local function temp_path_for(output_file, temp_id)
+    local dir, _ = utils.split_path(output_file)
+    local ext    = output_file:match("(%.[a-zA-Z0-9]+)$") or ".mkv"
+    return utils.join_path(dir, TEMP_PREFIX .. temp_id .. ext)
+end
+
+local function temp_base_name(path)
+    local _, base = utils.split_path(path)
+    return base
+end
+
+local function delete_temp_file(path)
+    if not utils.file_info(path) then return end
+    local ok, err = os.remove(path)
+    if not ok then mp.msg.warn("Could not delete temp render file: " .. tostring(err)) end
+end
+
+local function rename_temp_to_final(temp_file, final_file)
+    local ok, err = os.rename(temp_file, final_file)
+    if not ok then
+        os.remove(final_file)
+        ok, err = os.rename(temp_file, final_file)
+    end
+    if not ok then return false, err end
+    return true
+end
+
+local function is_live_temp_name(name)
+    if active_job and active_job.temp_file and name == temp_base_name(active_job.temp_file) then return true end
+    for _, q_job in ipairs(render_queue) do
+        if q_job.temp_file and name == temp_base_name(q_job.temp_file) then return true end
+    end
+    return false
+end
+
+function M.check_orphan_temp_files(dir)
+    if not dir or dir == "" or orphan_checked_dirs[dir] then return end
+    orphan_checked_dirs[dir] = true
+
+    local entries = utils.readdir(dir)
+    if not entries then return end
+
+    local orphans = {}
+    for _, name in ipairs(entries) do
+        if name:sub(1, #TEMP_PREFIX) == TEMP_PREFIX and not is_live_temp_name(name) then
+            table.insert(orphans, name)
+        end
+    end
+
+    if #orphans == 0 then return end
+
+    local shown = {}
+    for i = 1, math.min(#orphans, 3) do table.insert(shown, orphans[i]) end
+    local extra = (#orphans > 3) and string.format(" +%d more", #orphans - 3) or ""
+    notify.show(string.format("Orphaned temp render file(s) from a previous crash in %s: %s%s",
+        dir, table.concat(shown, ", "), extra), true, "warn")
+end
+
 function M.cancel_render()
     mp.set_osd_ass(0, 0, "")
     mp.osd_message("", 0)
@@ -163,6 +233,8 @@ function M.process_queue()
     local temp_dir      = os.getenv("TEMP") or os.getenv("TMP") or "/tmp"
     local progress_file = utils.join_path(temp_dir, "tachytome_prog_" .. tostring(math.floor(mp.get_time() * 1000)) .. ".log")
 
+    active_job.args[active_job.output_arg_index] = active_job.temp_file
+
     table.insert(active_job.args, "-progress")
     table.insert(active_job.args, progress_file)
 
@@ -217,14 +289,17 @@ function M.process_queue()
         if progress_overlay then progress_overlay:remove() end
         os.remove(progress_file)
 
-        if active_job.cancelled then
-            local remove_success, err = os.remove(active_job.output_file)
-            if not remove_success then mp.msg.warn("Could not delete cancelled file. It may be locked: " .. tostring(err)) end
-            notify.show("Render cancelled. File deleted: " .. active_job.final_name, true)
+        local function reset_and_advance()
             is_rendering = false
             active_job   = nil
             current_req  = nil
             M.process_queue()
+        end
+
+        if active_job.cancelled then
+            delete_temp_file(active_job.temp_file)
+            notify.show("Render cancelled: " .. active_job.final_name, true)
+            reset_and_advance()
             return
         end
 
@@ -260,13 +335,18 @@ function M.process_queue()
                 current_job_num = 0
             end
 
-            is_rendering = false
-            active_job   = nil
-            current_req  = nil
-            M.process_queue()
+            reset_and_advance()
         end
 
         if result and result.status == 0 then
+            local renamed, rename_err = rename_temp_to_final(active_job.temp_file, active_job.output_file)
+            if not renamed then
+                notify.show("Render finished but could not be moved to: " .. active_job.output_file, true, "error")
+                mp.msg.error("Rename failed (" .. tostring(rename_err) .. "), rendered file kept at: " .. active_job.temp_file)
+                reset_and_advance()
+                return
+            end
+
             if active_job.trash_source and active_job.trash_path then
                 common.trash_file(active_job.input_file, active_job.trash_path, function(t_success)
                     if not t_success then notify.show("Failed to trash original", true, "warn") end
@@ -276,12 +356,10 @@ function M.process_queue()
                 finish_job()
             end
         else
+            delete_temp_file(active_job.temp_file)
             notify.show("Render failed: " .. active_job.final_name .. ". See console.", true, "error")
             print(result and result.stderr or error)
-            is_rendering = false
-            active_job   = nil
-            current_req  = nil
-            M.process_queue()
+            reset_and_advance()
         end
     end)
 end
@@ -332,9 +410,10 @@ local function verify_and_queue(job, file_path, on_complete)
                 local new_output = common.resolve_absolute_path(state.custom_output_name, state.opts)
                 local _, fname   = utils.split_path(new_output)
 
-                job.final_name      = fname
-                job.output_file     = new_output
-                job.args[#job.args] = new_output
+                job.final_name                 = fname
+                job.output_file                = new_output
+                job.args[job.output_arg_index] = new_output
+                job.temp_file                  = temp_path_for(new_output, job.temp_id)
 
                 verify_and_queue(job, new_output, on_complete)
             end)
@@ -384,11 +463,15 @@ function M.start(opts)
 
     local args = builder.build_args(opts, input_file, output_file, creation_time)
     local in_info = utils.file_info(input_file)
+    local temp_id = next_temp_id()
 
     local job = {
         args                = args,
+        output_arg_index    = #args,
         input_file          = input_file,
         output_file         = output_file,
+        temp_id             = temp_id,
+        temp_file           = temp_path_for(output_file, temp_id),
         final_name          = final_name,
         trash_source        = opts.trash_source,
         trash_path          = opts.trash_path,

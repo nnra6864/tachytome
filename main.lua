@@ -1,4 +1,5 @@
 local mp = require 'mp'
+local utils = require 'mp.utils'
 
 local script_dir = mp.get_script_directory()
 if script_dir then package.path = package.path .. ";" .. script_dir .. "/src/?.lua" end
@@ -8,6 +9,7 @@ local state      = require 'src.state'
 local menu       = require 'src.menu'
 local notify     = require 'src.notify'
 local ui_confirm = require 'src.ui_confirm'
+local render     = require 'src.render'
 
 local platform             = common.get_platform()
 local trash_ok, trash_path = common.check_trash(platform)
@@ -51,12 +53,26 @@ end
 
 check_dependencies()
 
+local function check_orphans()
+    if state.opts.output_dir ~= "" then
+        render.check_orphan_temp_files(common.expand_path(state.opts.output_dir))
+    end
+end
+
 mp.register_event("file-loaded", function()
     state.mark_in = 0
     state.mark_out = mp.get_property_number("duration", 0)
     state.custom_output_name = ""
+
+    local loaded_path = mp.get_property("path")
+    if loaded_path then
+        render.check_orphan_temp_files(utils.split_path(loaded_path))
+        check_orphans()
+    end
     menu.refresh()
 end)
+
+check_orphans()
 
 mp.add_key_binding("ESC", "clear-osd", function()
     mp.set_osd_ass(0, 0, "")
