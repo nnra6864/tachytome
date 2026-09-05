@@ -1,4 +1,4 @@
-local mp = require 'mp'
+local mp    = require 'mp'
 local utils = require 'mp.utils'
 
 local script_dir = mp.get_script_directory()

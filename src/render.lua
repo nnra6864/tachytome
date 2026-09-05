@@ -1,11 +1,12 @@
-local mp      = require 'mp'
-local utils   = require 'mp.utils'
-local common  = require 'src.common'
-local stats   = require 'src.stats'
-local builder = require 'src.ffmpeg'
-local state   = require 'src.state'
-local notify  = require 'src.notify'
-local theme   = require 'src.theme'
+local mp       = require 'mp'
+local utils    = require 'mp.utils'
+local common   = require 'src.common'
+local stats    = require 'src.stats'
+local builder  = require 'src.ffmpeg'
+local state    = require 'src.state'
+local notify   = require 'src.notify'
+local theme    = require 'src.theme'
+local ui_input = require 'src.ui_input'
 
 local M = {}
 
@@ -101,6 +102,49 @@ function M.cancel_render()
     end
 end
 
+local function is_path_in_use(file_path)
+    if utils.file_info(file_path) then return true end
+    if is_rendering and active_job and active_job.output_file == file_path then return true end
+    for _, q_job in ipairs(render_queue) do
+        if q_job.output_file == file_path then return true end
+    end
+    return false
+end
+
+local function show_exists_dialog(display_name, on_rename, on_overwrite, on_cancel)
+    mp.set_osd_ass(0, 0, "")
+    mp.osd_message("", 0)
+
+    local ov     = mp.create_osd_overlay("ass-events")
+    local active = true
+
+    local function cleanup()
+        if not active then return end
+        active = false
+        ov:remove()
+        mp.remove_key_binding("ow-1")
+        mp.remove_key_binding("ow-2")
+        mp.remove_key_binding("ow-3")
+    end
+
+    ov.data = string.format("%s%s%sWarning: File already exists!%s\\N%s\\N\\N[1] Rename\\N[2] Overwrite\\N[3] Cancel",
+        theme.align(7), theme.f(), theme.c("warning_color"), theme.reset(), display_name)
+    ov:update()
+
+    mp.add_forced_key_binding("1", "ow-1", function()
+        cleanup()
+        if on_rename then on_rename() end
+    end)
+    mp.add_forced_key_binding("2", "ow-2", function()
+        cleanup()
+        if on_overwrite then on_overwrite() end
+    end)
+    mp.add_forced_key_binding("3", "ow-3", function()
+        cleanup()
+        if on_cancel then on_cancel() end
+    end)
+end
+
 function M.show_queue_manager(on_close)
     local function rebuild_jobs()
         local new_jobs = {}
@@ -113,35 +157,36 @@ function M.show_queue_manager(on_close)
         return new_jobs
     end
 
-    local jobs = rebuild_jobs()
-
-    if #jobs == 0 then
-        if on_close then on_close() end
-        return notify.show("Render queue is empty.", true, "info")
-    end
-
-    mp.set_osd_ass(0, 0, "")
-    mp.osd_message("", 0)
-
-    local ov = mp.create_osd_overlay("ass-events")
-    local active = true
-    local cursor = 1
+    local ov            = mp.create_osd_overlay("ass-events")
+    local active        = false
+    local cursor        = 1
     local refresh_timer = nil
+    local jobs          = {}
 
-    local function cleanup()
-        if not active then return end
-        active = false
-        if refresh_timer then refresh_timer:kill() end
-        ov:remove()
+    local function remove_bindings()
         mp.remove_key_binding("qm-up")
         mp.remove_key_binding("qm-down")
         mp.remove_key_binding("qm-enter")
+        mp.remove_key_binding("qm-rename")
         mp.remove_key_binding("qm-esc")
+    end
+
+    local function teardown()
+        if not active then return end
+        active = false
+        if refresh_timer then refresh_timer:kill(); refresh_timer = nil end
+        ov:remove()
+        remove_bindings()
+    end
+
+    local function cleanup()
+        if not active then return end
+        teardown()
         if on_close then on_close() end
     end
 
     local function draw()
-        local text = string.format("%s%s%sRender Queue Manager%s\\N%s(Up/Down to navigate, Enter to cancel/remove, Esc to close)\\N\\N",
+        local text = string.format("%s%s%sRender Queue Manager%s\\N%s(Up/Down to navigate, Enter to cancel/remove, r to rename, Esc to close)\\N\\N",
             theme.align(7), theme.f(), theme.b(true), theme.b(false), theme.f(true))
 
         local start_idx = math.max(1, cursor - 7)
@@ -164,7 +209,7 @@ function M.show_queue_manager(on_close)
         ov:update()
     end
 
-    refresh_timer = mp.add_periodic_timer(0.2, function()
+    local function refresh()
         if not active then return end
         local new_jobs = rebuild_jobs()
         local changed = false
@@ -188,39 +233,132 @@ function M.show_queue_manager(on_close)
                 draw()
             end
         end
-    end)
+    end
 
-    mp.add_forced_key_binding("UP", "qm-up", function()
-        if cursor > 1 then cursor = cursor - 1; draw() end
-    end, {repeatable = true})
+    local open_ui
 
-    mp.add_forced_key_binding("DOWN", "qm-down", function()
-        if cursor < #jobs then cursor = cursor + 1; draw() end
-    end, {repeatable = true})
+    local function rename_selected()
+        local sel = jobs[cursor]
+        if not sel then return end
 
-    mp.add_forced_key_binding("ENTER", "qm-enter", function()
-        local job = jobs[cursor]
-        if not job then return end
+        local q_job = sel.is_active and active_job or render_queue[sel.original_index]
+        if not q_job or not q_job.output_file then return end
 
-        if job.is_active then
-            M.cancel_render()
-        else
-            table.remove(render_queue, job.original_index)
-            total_jobs = total_jobs > 0 and (total_jobs - 1) or 0
-            notify.show("Removed from queue: " .. job.title, true)
+        local current_output = q_job.output_file
 
-            jobs = rebuild_jobs()
-            if #jobs == 0 then
-                cleanup()
+        teardown()
+
+        local function apply_rename(input, new_output)
+            local target_dir, fname = utils.split_path(new_output)
+            common.ensure_dir(target_dir)
+
+            q_job.output_file = new_output
+            q_job.final_name  = fname
+
+            if active_job == q_job then
+                notify.show("Active render target: " .. fname, true)
             else
-                if cursor > #jobs then cursor = #jobs end
-                draw()
+                q_job.args[q_job.output_arg_index] = new_output
+                q_job.temp_file                    = temp_path_for(new_output, q_job.temp_id)
+                notify.show("Renamed to: " .. fname, true)
             end
-        end
-    end)
 
-    mp.add_forced_key_binding("ESC", "qm-esc", cleanup)
-    draw()
+            common.add_to_history(state.path_history, input)
+            common.save_history(state.path_history)
+        end
+
+        local function prompt_rename()
+            ui_input.get_user_input("New Output Path > ", function(input)
+                if input == "" then
+                    notify.show("Rename cancelled.", true)
+                    open_ui()
+                    return
+                end
+
+                local new_output = common.resolve_absolute_path_for(input, state.opts, q_job.input_file)
+                if new_output == "" or new_output == current_output then
+                    notify.show("Path unchanged, keeping: " .. q_job.final_name, true)
+                    open_ui()
+                    return
+                end
+
+                if not is_path_in_use(new_output) then
+                    apply_rename(input, new_output)
+                    open_ui()
+                    return
+                end
+
+                local _, new_name = utils.split_path(new_output)
+                show_exists_dialog(new_name, function()
+                    prompt_rename()
+                end, function()
+                    apply_rename(input, new_output)
+                    open_ui()
+                end, function()
+                    notify.show("Rename cancelled.", true)
+                    open_ui()
+                end)
+            end, current_output, "(Up/Down for history, Enter to confirm, Esc to cancel)", state.path_history, function()
+                open_ui()
+            end)
+        end
+
+        prompt_rename()
+    end
+
+    local function bind()
+        mp.add_forced_key_binding("UP", "qm-up", function()
+            if cursor > 1 then cursor = cursor - 1; draw() end
+        end, {repeatable = true})
+
+        mp.add_forced_key_binding("DOWN", "qm-down", function()
+            if cursor < #jobs then cursor = cursor + 1; draw() end
+        end, {repeatable = true})
+
+        mp.add_forced_key_binding("ENTER", "qm-enter", function()
+            local job = jobs[cursor]
+            if not job then return end
+
+            if job.is_active then
+                M.cancel_render()
+            else
+                table.remove(render_queue, job.original_index)
+                total_jobs = total_jobs > 0 and (total_jobs - 1) or 0
+                notify.show("Removed from queue: " .. job.title, true)
+
+                jobs = rebuild_jobs()
+                if #jobs == 0 then
+                    cleanup()
+                else
+                    if cursor > #jobs then cursor = #jobs end
+                    draw()
+                end
+            end
+        end)
+
+        mp.add_forced_key_binding("r", "qm-rename", rename_selected)
+
+        mp.add_forced_key_binding("ESC", "qm-esc", cleanup)
+    end
+
+    open_ui = function()
+        jobs = rebuild_jobs()
+        if #jobs == 0 then
+            if on_close then on_close() end
+            return notify.show("Render queue is empty.", true, "info")
+        end
+        if cursor > #jobs then cursor = #jobs end
+
+        mp.set_osd_ass(0, 0, "")
+        mp.osd_message("", 0)
+
+        active        = true
+        refresh_timer = mp.add_periodic_timer(0.2, refresh)
+        bind()
+        draw()
+    end
+
+    open_ui()
 end
 
 function M.process_queue()
@@ -364,15 +502,6 @@ function M.process_queue()
     end)
 end
 
-local function is_path_in_use(file_path)
-    if utils.file_info(file_path) then return true end
-    if is_rendering and active_job and active_job.output_file == file_path then return true end
-    for _, q_job in ipairs(render_queue) do
-        if q_job.output_file == file_path then return true end
-    end
-    return false
-end
-
 local function verify_and_queue(job, file_path, on_complete)
     if not is_path_in_use(file_path) then
         table.insert(render_queue, job)
@@ -384,27 +513,7 @@ local function verify_and_queue(job, file_path, on_complete)
         return
     end
 
-    mp.set_osd_ass(0, 0, "")
-    mp.osd_message("", 0)
-
-    local ov     = mp.create_osd_overlay("ass-events")
-    local active = true
-
-    local function cleanup()
-        if not active then return end
-        active = false
-        ov:remove()
-        mp.remove_key_binding("ow-1")
-        mp.remove_key_binding("ow-2")
-        mp.remove_key_binding("ow-3")
-    end
-
-    ov.data = string.format("%s%s%sWarning: File already exists!%s\\N%s\\N\\N[1] Rename\\N[2] Overwrite\\N[3] Cancel",
-        theme.align(7), theme.f(), theme.c("warning_color"), theme.reset(), job.final_name)
-    ov:update()
-
-    mp.add_forced_key_binding("1", "ow-1", function()
-        cleanup()
+    show_exists_dialog(job.final_name, function()
         if job.rename_callback then
             job.rename_callback(function()
                 local new_output = common.resolve_absolute_path(state.custom_output_name, state.opts)
@@ -418,19 +527,13 @@ local function verify_and_queue(job, file_path, on_complete)
                 verify_and_queue(job, new_output, on_complete)
             end)
         end
-    end)
-
-    mp.add_forced_key_binding("2", "ow-2", function()
-        cleanup()
+    end, function()
         table.insert(render_queue, job)
         total_jobs = total_jobs + 1
         common.save_history(state.path_history)
         M.process_queue()
         if on_complete then on_complete() end
-    end)
-
-    mp.add_forced_key_binding("3", "ow-3", function()
-        cleanup()
+    end, function()
         notify.show("Render cancelled.", true)
         if on_complete then on_complete() end
     end)
