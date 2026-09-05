@@ -27,6 +27,13 @@ function M.mark(place)
     end
 end
 
+function M.goto_mark(place)
+    local time  = place == 0 and M.get_resolved_mark_in() or state.mark_out
+    local label = place == 0 and "In" or "Out"
+    mp.commandv("osd-bar", "seek", time, "absolute")
+    notify.show("Go to " .. label .. ": " .. common.format_time(time))
+end
+
 function M.set_quality(on_complete)
     local enc     = state.opts.video_encoder:lower()
     local min_val = 0
@@ -206,16 +213,20 @@ function M.get_final_path()
     return common.resolve_absolute_path(state.custom_output_name, state.opts)
 end
 
-function M.get_mark_in_display()
+function M.get_resolved_mark_in()
     local raw = state.mark_in
-    if not state.opts.lossless_cut then return common.format_time(raw) end
+    if not state.opts.lossless_cut then return raw end
 
     local file = mp.get_property("path")
-    if not file then return common.format_time(raw) end
+    if not file then return raw end
 
     local resolved = common.nearest_keyframe_at_or_before(file, raw)
-    if resolved then return common.format_time(resolved) end
-    return common.format_time(raw)
+    if resolved then return resolved end
+    return raw
+end
+
+function M.get_mark_in_display()
+    return common.format_time(M.get_resolved_mark_in())
 end
 
 function M.get_mark_out_display()

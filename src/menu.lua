@@ -15,6 +15,8 @@ local function v(val) return string.format("%s%s%s", theme.c("value_color"), tos
 local menu_items = {
     { key = "i", label = "Mark In",  get_val = function() return v(actions.get_mark_in_display()) end,  action = function() actions.mark(0) end, keep_open = true },
     { key = "o", label = "Mark Out", get_val = function() return v(actions.get_mark_out_display()) end, action = function() actions.mark(1) end, keep_open = true },
+    { key = "I", label = "Go to In",  action = function() actions.goto_mark(0) end, keep_open = true },
+    { key = "O", label = "Go to Out", action = function() actions.goto_mark(1) end, keep_open = true },
 
     { separator = true },
     { key = "e", label = "Encoder", get_val = function() return v(state.opts.video_encoder) end, action = function() actions.select_encoder(M.open) end, keep_open = false },
