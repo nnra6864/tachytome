@@ -22,6 +22,16 @@ managing multiple pending/active renders.
 
 ## Technical directives
 - **API lookups:** Do not guess standard APIs. Always look up latest info.
+- **Code style:** Follow the style of the existing code — read the
+  surrounding/neighbor files first and imitate them rather than importing
+  your own conventions. Key points: 4-space indentation; `=` signs
+  aligned within each contiguous block of assignments and within table
+  constructors (pad every key in the block, including ones you add, to
+  the longest one — re-align the block when it changes); `local M = {}`
+  module pattern with `M.fn` public / `local fn` private; snake_case
+  identifiers; double-quoted strings; `require 'x'` without parentheses;
+  comments are essentially absent from the code — don't add any unless
+  asked.
 - **File editing:** Do not run Python, `sed`, or custom shell scripts to
   edit files. Use native file modification or write the updated file
   directly.
