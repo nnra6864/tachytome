@@ -407,7 +407,7 @@ function M.process_queue()
 
                 if time_us then
                     local percent = math.floor((tonumber(time_us) / 1000000) / active_job.duration * 100)
-                    if percent > 100 then percent = 100 end
+                    if percent > 99 then percent = 99 end
                     if percent < 0 then percent = 0 end
                     progress_overlay.data = string.format("%s%s%s%sRendering %s: %d%%", theme.align(9), theme.f(true), theme.a("66"), get_queue_str(), name_no_ext, percent)
                     progress_overlay:update()
