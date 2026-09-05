@@ -37,7 +37,8 @@ local M = {
     mark_out           = 0,
     trash_path         = nil,
     ffmpeg_ok          = false,
-    path_history       = {}
+    path_history       = {},
+    ui_owner           = nil
 }
 
 local function ensure_config_exists()

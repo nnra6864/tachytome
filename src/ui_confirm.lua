@@ -1,4 +1,5 @@
 local mp    = require 'mp'
+local state = require 'src.state'
 local theme = require 'src.theme'
 
 local M = {}
@@ -6,13 +7,15 @@ local M = {}
 function M.show(warning, sub_text, on_yes, on_no)
     mp.set_osd_ass(0, 0, "")
     mp.osd_message("", 0)
-    
+    state.ui_owner = "confirm"
+
     local ov     = mp.create_osd_overlay("ass-events")
     local active = true
 
     local function cleanup()
         if not active then return end
-        active = false
+        active         = false
+        state.ui_owner = nil
         ov:remove()
         mp.remove_key_binding("conf-y")
         mp.remove_key_binding("conf-n")

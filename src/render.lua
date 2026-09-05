@@ -115,12 +115,15 @@ local function show_exists_dialog(display_name, on_rename, on_overwrite, on_canc
     mp.set_osd_ass(0, 0, "")
     mp.osd_message("", 0)
 
+    state.ui_owner = "dialog"
+
     local ov     = mp.create_osd_overlay("ass-events")
     local active = true
 
     local function cleanup()
         if not active then return end
-        active = false
+        active         = false
+        state.ui_owner = nil
         ov:remove()
         mp.remove_key_binding("ow-1")
         mp.remove_key_binding("ow-2")
@@ -173,7 +176,8 @@ function M.show_queue_manager(on_close)
 
     local function teardown()
         if not active then return end
-        active = false
+        active         = false
+        state.ui_owner = nil
         if refresh_timer then refresh_timer:kill(); refresh_timer = nil end
         ov:remove()
         remove_bindings()
@@ -352,8 +356,9 @@ function M.show_queue_manager(on_close)
         mp.set_osd_ass(0, 0, "")
         mp.osd_message("", 0)
 
-        active        = true
-        refresh_timer = mp.add_periodic_timer(0.2, refresh)
+        active          = true
+        state.ui_owner  = "queue"
+        refresh_timer   = mp.add_periodic_timer(0.2, refresh)
         bind()
         draw()
     end

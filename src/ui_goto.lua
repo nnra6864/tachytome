@@ -1,4 +1,5 @@
 local mp    = require 'mp'
+local state = require 'src.state'
 local theme = require 'src.theme'
 
 local M = {}
@@ -25,7 +26,8 @@ end
 
 local function cleanup()
     if not active then return end
-    active = false
+    active         = false
+    state.ui_owner = nil
     overlay:remove()
     mp.remove_key_binding("goto-bs")
     mp.remove_key_binding("goto-enter")
@@ -100,6 +102,7 @@ end
 function M.show(on_complete)
     if active or not mp.get_property("seekable") then return end
     active           = true
+    state.ui_owner   = "goto"
     input            = ""
     current_callback = on_complete
 

@@ -1,4 +1,5 @@
 local mp    = require 'mp'
+local state = require 'src.state'
 local theme = require 'src.theme'
 
 local M = {}
@@ -53,7 +54,8 @@ end
 
 local function cancel()
     if not active then return end
-    active = false
+    active         = false
+    state.ui_owner = nil
     overlay:remove()
     cleanup_bindings()
     if current_cancel_callback then pcall(current_cancel_callback) end
@@ -61,8 +63,9 @@ end
 
 local function confirm()
     if not active then return end
-    local res = buffer
-    active = false
+    local res      = buffer
+    active         = false
+    state.ui_owner = nil
     overlay:remove()
     cleanup_bindings()
     if current_callback then pcall(current_callback, res) end
@@ -108,6 +111,7 @@ end
 function M.get_user_input(prompt, callback, sub_prompt, tooltip_override, history_list, on_cancel)
     if active then return end
     active                  = true
+    state.ui_owner          = "input"
     current_prompt          = prompt or ""
     current_sub_prompt      = sub_prompt or ""
     current_callback        = callback

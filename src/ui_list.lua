@@ -7,6 +7,7 @@ local M = {}
 function M.show(title, items, current_val, on_select, on_cancel)
     mp.set_osd_ass(0, 0, "")
     mp.osd_message("", 0)
+    state.ui_owner = "list"
 
     local ov     = mp.create_osd_overlay("ass-events")
     local active = true
@@ -21,7 +22,8 @@ function M.show(title, items, current_val, on_select, on_cancel)
 
     local function cleanup()
         if not active then return end
-        active = false
+        active         = false
+        state.ui_owner = nil
         ov:remove()
         mp.remove_key_binding("list-up")
         mp.remove_key_binding("list-down")
@@ -64,8 +66,9 @@ function M.show(title, items, current_val, on_select, on_cancel)
     end, {repeatable = true})
 
     mp.add_forced_key_binding("ENTER", "list-enter", function()
-        local val = items[cursor]
-        active = false
+        local val      = items[cursor]
+        active         = false
+        state.ui_owner = nil
         ov:remove()
         mp.remove_key_binding("list-up")
         mp.remove_key_binding("list-down")

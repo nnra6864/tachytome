@@ -2,6 +2,7 @@ local mp      = require 'mp'
 local common  = require 'src.common'
 local state   = require 'src.state'
 local actions = require 'src.actions'
+local notify  = require 'src.notify'
 local theme   = require 'src.theme'
 
 local M            = {}
@@ -44,7 +45,8 @@ local menu_items = {
 
 function M.close()
     if not menu_active then return end
-    menu_active = false
+    menu_active    = false
+    state.ui_owner = nil
     menu_overlay:remove()
     for _, item in ipairs(menu_items) do
         if not item.separator then mp.remove_key_binding("menu-" .. item.key) end
@@ -84,8 +86,12 @@ local function draw()
 end
 
 function M.open()
+    if state.ui_owner and state.ui_owner ~= "menu" then
+        return notify.show("A Tachytome menu is already open.")
+    end
     if menu_active then M.close() return end
-    menu_active = true
+    menu_active    = true
+    state.ui_owner = "menu"
     mp.set_osd_ass(0, 0, "")
     mp.osd_message("", 0)
     draw()
