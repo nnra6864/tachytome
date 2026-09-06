@@ -79,7 +79,6 @@ function M.item_from_job(job, status)
         final_name          = job.final_name,
         mark_in             = job.start_time,
         mark_out            = job.end_time,
-        resolved_in         = job.resolved_in,
         video_encoder       = job.video_encoder,
         quality             = job.quality,
         preset              = job.preset,
@@ -113,8 +112,14 @@ function M.save()
         table.insert(items, rec)
     end
 
-    if not common.write_json_file(queue_tmp, { owner_pid = utils.getpid(), items = items }) then return end
-    common.replace_file(queue_tmp, queue_path)
+    if not common.write_json_file(queue_tmp, { owner_pid = utils.getpid(), items = items }) then
+        mp.msg.warn("Could not write render queue file: " .. queue_tmp)
+        return
+    end
+    local ok, err = common.replace_file(queue_tmp, queue_path)
+    if not ok then
+        mp.msg.warn("Could not replace render queue file: " .. tostring(err))
+    end
 end
 
 function M.build_job(spec)
@@ -158,7 +163,6 @@ function M.build_job(spec)
         lossless_cut        = spec.lossless_cut,
         accurate_cut        = spec.accurate_cut,
         combine_audio       = spec.combine_audio,
-        resolved_in         = spec.resolved_in,
         show_stats_screen   = spec.show_stats_screen,
         show_stats_terminal = spec.show_stats_terminal,
         stats_osd_time      = spec.stats_osd_time,

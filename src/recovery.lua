@@ -238,7 +238,6 @@ local function adopt_orphan_queue(file)
                 trash_source        = it.trash_source,
                 trash_path          = it.trash_path,
                 space_replacement   = it.space_replacement,
-                resolved_in         = it.resolved_in,
                 show_stats_screen   = it.show_stats_screen,
                 show_stats_terminal = it.show_stats_terminal,
                 stats_osd_time      = it.stats_osd_time

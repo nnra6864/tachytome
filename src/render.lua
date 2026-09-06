@@ -315,12 +315,6 @@ function M.start(opts)
     local final_name                  = target_name_ext
     common.ensure_dir(target_dir)
 
-    local resolved_in = opts.mark_in
-    if opts.lossless_cut then
-        local kf = common.nearest_keyframe_at_or_before(input_file, opts.mark_in)
-        if kf then resolved_in = kf end
-    end
-
     local job = queue.build_job({
         input_file          = input_file,
         output_file         = output_file,
@@ -339,7 +333,6 @@ function M.start(opts)
         trash_source        = opts.trash_source,
         trash_path          = opts.trash_path,
         space_replacement   = opts.space_replacement,
-        resolved_in         = resolved_in,
         show_stats_screen   = opts.show_stats_screen,
         show_stats_terminal = opts.show_stats_terminal,
         stats_osd_time      = opts.stats_osd_time,
