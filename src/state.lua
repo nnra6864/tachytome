@@ -36,6 +36,7 @@ local M = {
         error_color         = "802626"
     },
     custom_output_name = "",
+    fps_override       = nil,
     mark_in            = 0,
     mark_out           = 0,
     trash_path         = nil,

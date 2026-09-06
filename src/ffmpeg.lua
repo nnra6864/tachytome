@@ -67,9 +67,12 @@ function M.build_args(opts, input_file, output_file, creation_time)
         else safe_quality = math.min(51, math.max(0, safe_quality)) end
         local quality_str = tostring(safe_quality)
 
-        if media_info.v_fps then
+        local quality_str = tostring(safe_quality)
+        local fps_value   = opts.fps_override or media_info.v_fps
+
+        if fps_value then
             table.insert(args, "-vf")
-            table.insert(args, "fps=" .. media_info.v_fps)
+            table.insert(args, "fps=" .. fps_value)
         end
 
         table.insert(args, "-c") table.insert(args, "copy")

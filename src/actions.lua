@@ -81,6 +81,46 @@ function M.set_preset(on_complete)
     end, on_complete)
 end
 
+local function get_source_fps()
+    return mp.get_property_number("container-fps")
+end
+
+local function format_fps(val)
+    local s = string.format("%.3f", val)
+    if s:find("%.", 1, true) then s = s:gsub("0+$", ""):gsub("%.$", "") end
+    return s
+end
+
+function M.get_fps_display()
+    if state.fps_override then return format_fps(state.fps_override) end
+    local src = get_source_fps()
+    if src and src > 0 then return format_fps(src) end
+    return "Unknown"
+end
+
+function M.set_fps(on_complete)
+    ui_input.get_user_input("FPS > ", function(input)
+        local num = tonumber(input)
+        local src = get_source_fps()
+
+        if input == "" then
+            state.fps_override = nil
+            notify.show("FPS reset to source: " .. M.get_fps_display())
+        elseif num and num > 0 and num < 1001 then
+            if src and math.abs(num - src) < 0.01 then
+                state.fps_override = nil
+                notify.show("FPS (source): " .. M.get_fps_display())
+            else
+                state.fps_override = num
+                notify.show("FPS: " .. M.get_fps_display())
+            end
+        else
+            notify.show(string.format("Invalid FPS, keeping: %s", M.get_fps_display()), true, "warn")
+        end
+        if on_complete then on_complete() end
+    end, M.get_fps_display(), true, nil, on_complete)
+end
+
 function M.select_encoder(on_complete)
     local encoders = { "av1", "nv_av1", "amd_av1", "intel_av1", "h265", "nv_h265", "amd_h265", "intel_h265" }
 
@@ -261,6 +301,7 @@ function M.start_render(on_complete)
         lossless_cut        = state.opts.lossless_cut,
         quality             = state.opts.quality,
         preset              = state.opts.preset,
+        fps_override        = state.fps_override,
         combine_audio       = state.opts.combine_audio,
         combined_audio_name = state.opts.combined_audio_name,
         trash_source        = state.opts.trash_source,
