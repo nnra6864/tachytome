@@ -278,4 +278,8 @@ function M.manage_queue(on_complete)
     render.show_queue_manager(on_complete)
 end
 
+function M.toggle_render_pause()
+    render.toggle_pause()
+end
+
 return M

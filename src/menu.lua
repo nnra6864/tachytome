@@ -2,6 +2,7 @@ local mp      = require 'mp'
 local state   = require 'src.state'
 local actions = require 'src.actions'
 local notify  = require 'src.notify'
+local render  = require 'src.render'
 local theme   = require 'src.theme'
 
 local M            = {}
@@ -36,6 +37,7 @@ local menu_items = {
 
     { separator = true },
     { key = "ENTER", label = "Render",           action = function() actions.start_render(M.open) end, keep_open = false },
+    { key = "SHIFT+ENTER", label = "Pause Render", get_val = function() return render.is_paused() and on(state.opts.on_text) or off(state.opts.off_text) end, action = function() actions.toggle_render_pause() end, keep_open = true },
     { key = "r",     label = "Render Queue",     action = function() actions.manage_queue(M.open) end, keep_open = false },
     { key = "DEL",   label = "Trash Source Now", action = function() actions.trash_source(M.open) end, keep_open = false },
     { key = "s",     label = "Toggle Stats",     action = actions.toggle_stats,                        keep_open = true  },

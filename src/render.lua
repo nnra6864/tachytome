@@ -18,6 +18,10 @@ local current_job_num = 0
 local active_job  = nil
 local current_req = nil
 
+local render_paused = false
+local queue_paused  = false
+local can_suspend   = common.get_platform() ~= "windows"
+
 local stats_ov = mp.create_osd_overlay("ass-events")
 
 local TEMP_PREFIX = ".tachytome_tmp_"
@@ -102,6 +106,75 @@ function M.cancel_render()
     end
 end
 
+local function signal_pid(pid, sig)
+    mp.command_native_async({
+        name          = "subprocess",
+        args          = {"kill", "-" .. sig, tostring(pid)},
+        playback_only = false
+    })
+end
+
+local function read_active_pid()
+    if not active_job or not active_job.pid_file then return nil end
+    local f = io.open(active_job.pid_file, "r")
+    if not f then return nil end
+    local pid = tonumber(f:read("*l"))
+    f:close()
+    return pid
+end
+
+function M.is_paused()
+    return render_paused or queue_paused
+end
+
+function M.toggle_pause()
+    if not is_rendering or not active_job then
+        queue_paused = not queue_paused
+        if queue_paused then
+            notify.show("Render queue paused.", true)
+        else
+            notify.show("Render queue resumed.", true)
+            M.process_queue()
+        end
+        return
+    end
+
+    if not can_suspend then
+        queue_paused = not queue_paused
+        if queue_paused then
+            notify.show("Pausing render queue: finishing current file, then holding.", true)
+        else
+            notify.show("Render queue resumed.", true)
+            M.process_queue()
+        end
+        return
+    end
+
+    if render_paused then
+        if active_job.paused_pid then
+            signal_pid(active_job.paused_pid, "CONT")
+            render_paused = false
+            queue_paused  = false
+            notify.show("Render resumed: " .. active_job.final_name, true)
+        else
+            notify.show("Cannot resume render.", true, "error")
+        end
+        return
+    end
+
+    local pid = read_active_pid()
+    if not pid then
+        notify.show("Render is still starting, try again shortly.", true, "warn")
+        return
+    end
+
+    signal_pid(pid, "STOP")
+    active_job.paused_pid = pid
+    render_paused = true
+    queue_paused  = true
+    notify.show("Render paused: " .. active_job.final_name, true)
+end
+
 local function is_path_in_use(file_path)
     if utils.file_info(file_path) then return true end
     if is_rendering and active_job and active_job.output_file == file_path then return true end
@@ -109,6 +182,19 @@ local function is_path_in_use(file_path)
         if q_job.output_file == file_path then return true end
     end
     return false
+end
+
+local function queue_job(job, on_complete)
+    table.insert(render_queue, job)
+    total_jobs = total_jobs + 1
+    common.save_history(state.path_history)
+    if is_rendering then
+        notify.show(string.format("Queued: %s", job.final_name), true)
+    elseif queue_paused then
+        notify.show(string.format("Queued: %s (queue paused)", job.final_name), true)
+    end
+    M.process_queue()
+    if on_complete then on_complete() end
 end
 
 local function show_exists_dialog(display_name, on_rename, on_overwrite, on_cancel)
@@ -152,7 +238,9 @@ function M.show_queue_manager(on_close)
     local function rebuild_jobs()
         local new_jobs = {}
         if is_rendering and active_job then
-            table.insert(new_jobs, {title = active_job.final_name, is_active = true, original_index = 0})
+            local active_title = active_job.final_name
+            if render_paused then active_title = active_title .. " (Paused)" end
+            table.insert(new_jobs, {title = active_title, is_active = true, original_index = 0})
         end
         for i, q_job in ipairs(render_queue) do
             table.insert(new_jobs, {title = q_job.final_name, is_active = false, original_index = i})
@@ -172,6 +260,7 @@ function M.show_queue_manager(on_close)
         mp.remove_key_binding("qm-cj")
         mp.remove_key_binding("qm-ck")
         mp.remove_key_binding("qm-enter")
+        mp.remove_key_binding("qm-pause")
         mp.remove_key_binding("qm-rename")
         mp.remove_key_binding("qm-esc")
     end
@@ -192,7 +281,7 @@ function M.show_queue_manager(on_close)
     end
 
     local function draw()
-        local text = string.format("%s%s%sRender Queue Manager%s\\N%s(Up/Down to navigate, Enter to cancel/remove, r to rename, Esc to close)\\N\\N",
+        local text = string.format("%s%s%sRender Queue Manager%s\\N%s(Up/Down to navigate, Enter to cancel/remove, r to rename, Shift+Enter to pause, Esc to close)\\N\\N",
             theme.align(7), theme.f(), theme.b(true), theme.b(false), theme.f(true))
 
         local start_idx = math.max(1, cursor - 7)
@@ -349,6 +438,12 @@ function M.show_queue_manager(on_close)
 
         mp.add_forced_key_binding("r", "qm-rename", rename_selected)
 
+        mp.add_forced_key_binding("SHIFT+ENTER", "qm-pause", function()
+            M.toggle_pause()
+            jobs = rebuild_jobs()
+            draw()
+        end)
+
         mp.add_forced_key_binding("ESC", "qm-esc", cleanup)
     end
 
@@ -374,19 +469,29 @@ function M.show_queue_manager(on_close)
 end
 
 function M.process_queue()
-    if is_rendering or #render_queue == 0 then return end
+    if is_rendering or queue_paused or #render_queue == 0 then return end
 
     is_rendering    = true
+    render_paused   = false
     current_job_num = current_job_num + 1
     active_job      = table.remove(render_queue, 1)
 
     local temp_dir      = os.getenv("TEMP") or os.getenv("TMP") or "/tmp"
-    local progress_file = utils.join_path(temp_dir, "tachytome_prog_" .. tostring(math.floor(mp.get_time() * 1000)) .. ".log")
+    local file_id       = tostring(math.floor(mp.get_time() * 1000))
+    local progress_file = utils.join_path(temp_dir, "tachytome_prog_" .. file_id .. ".log")
+    local pid_file      = utils.join_path(temp_dir, "tachytome_pid_" .. file_id .. ".log")
+    active_job.pid_file = pid_file
 
     active_job.args[active_job.output_arg_index] = active_job.temp_file
 
     table.insert(active_job.args, "-progress")
     table.insert(active_job.args, progress_file)
+
+    local launch_args = active_job.args
+    if can_suspend then
+        launch_args = {"sh", "-c", 'echo $$ > "$1"; shift; exec "$@"', "tachytome", pid_file}
+        for _, v in ipairs(active_job.args) do table.insert(launch_args, v) end
+    end
 
     local name_no_ext      = active_job.final_name:match("^(.*)%.[^%.]+$") or active_job.final_name
     local progress_overlay = mp.create_osd_overlay("ass-events")
@@ -428,7 +533,7 @@ function M.process_queue()
 
     current_req = mp.command_native_async({
         name = "subprocess",
-        args = active_job.args,
+        args = launch_args,
         playback_only = false,
         capture_stdout = true,
         capture_stderr = true
@@ -438,9 +543,11 @@ function M.process_queue()
         if progress_timer then progress_timer:kill() end
         if progress_overlay then progress_overlay:remove() end
         os.remove(progress_file)
+        os.remove(pid_file)
 
         local function reset_and_advance()
             is_rendering = false
+            render_paused = false
             active_job   = nil
             current_req  = nil
             M.process_queue()
@@ -516,12 +623,7 @@ end
 
 local function verify_and_queue(job, file_path, on_complete)
     if not is_path_in_use(file_path) then
-        table.insert(render_queue, job)
-        total_jobs = total_jobs + 1
-        common.save_history(state.path_history)
-        if is_rendering then notify.show(string.format("Queued: %s", job.final_name), true) end
-        M.process_queue()
-        if on_complete then on_complete() end
+        queue_job(job, on_complete)
         return
     end
 
@@ -540,11 +642,7 @@ local function verify_and_queue(job, file_path, on_complete)
             end)
         end
     end, function()
-        table.insert(render_queue, job)
-        total_jobs = total_jobs + 1
-        common.save_history(state.path_history)
-        M.process_queue()
-        if on_complete then on_complete() end
+        queue_job(job, on_complete)
     end, function()
         notify.show("Render cancelled.", true)
         if on_complete then on_complete() end
