@@ -20,7 +20,19 @@ local current_req = nil
 
 local render_paused = false
 local queue_paused  = false
-local can_suspend   = common.get_platform() ~= "windows"
+
+local platform    = common.get_platform()
+local can_suspend = platform ~= "windows"
+
+local failed_items = {}
+
+local own_pid           = utils.getpid()
+local data_dir          = common.get_data_dir()
+local queue_path        = utils.join_path(data_dir, "queue-" .. tostring(own_pid) .. ".json")
+local queue_tmp         = queue_path .. ".tmp"
+local legacy_queue_path = utils.join_path(data_dir, "queue.json")
+
+local has_saved = false
 
 local stats_ov = mp.create_osd_overlay("ass-events")
 
@@ -48,7 +60,7 @@ local function temp_base_name(path)
 end
 
 local function delete_temp_file(path)
-    if not utils.file_info(path) then return end
+    if not path or not utils.file_info(path) then return end
     local ok, err = os.remove(path)
     if not ok then mp.msg.warn("Could not delete temp render file: " .. tostring(err)) end
 end
@@ -68,7 +80,131 @@ local function is_live_temp_name(name)
     for _, q_job in ipairs(render_queue) do
         if q_job.temp_file and name == temp_base_name(q_job.temp_file) then return true end
     end
+    for _, rec in ipairs(failed_items) do
+        if rec.temp_file and name == temp_base_name(rec.temp_file) then return true end
+    end
     return false
+end
+
+local function scan_queue_files()
+    local files = {}
+    local entries = utils.readdir(data_dir)
+    if entries then
+        for _, name in ipairs(entries) do
+            if name:match("^queue%-%d+%.json$") then
+                table.insert(files, utils.join_path(data_dir, name))
+            end
+        end
+    end
+    if utils.file_info(legacy_queue_path) then
+        table.insert(files, legacy_queue_path)
+    end
+    table.sort(files)
+    return files
+end
+
+local function read_queue_file(path)
+    local f = io.open(path, "r")
+    if not f then return nil end
+    local content = f:read("*all")
+    f:close()
+    return utils.parse_json(content)
+end
+
+local function all_queue_referenced_temps()
+    local set = {}
+    for _, path in ipairs(scan_queue_files()) do
+        local parsed = read_queue_file(path)
+        if type(parsed) == "table" and type(parsed.items) == "table" then
+            for _, it in ipairs(parsed.items) do
+                if type(it) == "table" and type(it.temp_file) == "string" then
+                    set[temp_base_name(it.temp_file)] = true
+                end
+            end
+        end
+    end
+    return set
+end
+
+local dismissed_temps      = {}
+local pending_temp_prompts = {}
+local temp_prompt_scheduled = false
+
+local function show_temp_orphan_dialog(entry, on_done)
+    mp.set_osd_ass(0, 0, "")
+    mp.osd_message("", 0)
+
+    state.ui_owner = "dialog"
+
+    local ov     = mp.create_osd_overlay("ass-events")
+    local active = true
+
+    local function cleanup_pending()
+        if not active then return end
+        active         = false
+        state.ui_owner = nil
+        ov:remove()
+        mp.remove_key_binding("tmp-1")
+        mp.remove_key_binding("tmp-2")
+        mp.remove_key_binding("tmp-esc")
+    end
+
+    local function keep()
+        cleanup_pending()
+        for _, name in ipairs(entry.files) do dismissed_temps[name] = true end
+        notify.show("Kept leftover temp render file(s).", true)
+        if on_done then on_done() end
+    end
+
+    local shown = {}
+    for i = 1, math.min(#entry.files, 3) do table.insert(shown, entry.files[i]) end
+    local extra = (#entry.files > 3) and string.format(" +%d more", #entry.files - 3) or ""
+
+    ov.data = string.format("%s%s%sInterrupted Render Leftovers%s\\N%s%s\\N%s%s\\N\\N[1] Delete\\N[2] Keep",
+        theme.align(7), theme.f(), theme.c("warning_color"), theme.reset(),
+        theme.f(true), entry.dir, table.concat(shown, "\\N"), extra)
+    ov:update()
+
+    mp.add_forced_key_binding("1", "tmp-1", function()
+        cleanup_pending()
+        for _, name in ipairs(entry.files) do
+            delete_temp_file(utils.join_path(entry.dir, name))
+        end
+        notify.show("Deleted leftover temp render file(s).", true)
+        if on_done then on_done() end
+    end)
+    mp.add_forced_key_binding("2", "tmp-2", keep)
+    mp.add_forced_key_binding("ESC", "tmp-esc", keep)
+end
+
+local pump_temp_prompts
+
+local function queue_temp_prompt(dir, files)
+    table.insert(pending_temp_prompts, {dir = dir, files = files})
+    if not temp_prompt_scheduled then
+        temp_prompt_scheduled = true
+        mp.add_timeout(0.7, pump_temp_prompts)
+    end
+end
+
+pump_temp_prompts = function()
+    temp_prompt_scheduled = false
+
+    if state.ui_owner then
+        temp_prompt_scheduled = true
+        mp.add_timeout(0.3, pump_temp_prompts)
+        return
+    end
+
+    local entry = table.remove(pending_temp_prompts, 1)
+    if not entry then return end
+
+    show_temp_orphan_dialog(entry, function()
+        if not temp_prompt_scheduled then
+            temp_prompt_scheduled = true
+            mp.add_timeout(0.1, pump_temp_prompts)
+        end
+    end)
 end
 
 function M.check_orphan_temp_files(dir)
@@ -78,20 +214,23 @@ function M.check_orphan_temp_files(dir)
     local entries = utils.readdir(dir)
     if not entries then return end
 
+    local referenced = all_queue_referenced_temps()
+
     local orphans = {}
     for _, name in ipairs(entries) do
-        if name:sub(1, #TEMP_PREFIX) == TEMP_PREFIX and not is_live_temp_name(name) then
+        if name:sub(1, #TEMP_PREFIX) == TEMP_PREFIX
+            and not is_live_temp_name(name)
+            and not referenced[name]
+            and not dismissed_temps[name] then
             table.insert(orphans, name)
         end
     end
 
     if #orphans == 0 then return end
 
-    local shown = {}
-    for i = 1, math.min(#orphans, 3) do table.insert(shown, orphans[i]) end
-    local extra = (#orphans > 3) and string.format(" +%d more", #orphans - 3) or ""
-    notify.show(string.format("Orphaned temp render file(s) from a previous crash in %s: %s%s",
-        dir, table.concat(shown, ", "), extra), true, "warn")
+    mp.msg.warn(string.format("Found %d leftover temp render file(s) in %s with no render queue.",
+        #orphans, dir))
+    queue_temp_prompt(dir, orphans)
 end
 
 function M.cancel_render()
@@ -108,10 +247,135 @@ end
 
 local function signal_pid(pid, sig)
     mp.command_native_async({
-        name          = "subprocess",
-        args          = {"kill", "-" .. sig, tostring(pid)},
-        playback_only = false
+        name           = "subprocess",
+        args           = {"kill", "-" .. sig, tostring(pid)},
+        playback_only  = false,
+        capture_stdout = true,
+        capture_stderr = true
     })
+end
+
+local function process_comm(pid)
+    if not pid then return nil end
+    if platform == "linux" then
+        local f = io.open(string.format("/proc/%d/comm", pid), "r")
+        if not f then return nil end
+        local comm = f:read("*l")
+        f:close()
+        return comm
+    elseif platform == "macos" then
+        local res = utils.subprocess({args = {"ps", "-p", tostring(pid), "-o", "comm="}, cancellable = false})
+        if res.status == 0 and res.stdout and res.stdout ~= "" then
+            return res.stdout:gsub("[\r\n]+$", "")
+        end
+    elseif platform == "windows" then
+        local res = utils.subprocess({args = {"tasklist", "/FI", "PID eq " .. tostring(pid), "/FO", "CSV", "/NH"}, cancellable = false})
+        if res.status == 0 and res.stdout and res.stdout ~= "" and not res.stdout:find("INFO:") then
+            return res.stdout:match("^\"([^\"]+)\"")
+        end
+    end
+    return nil
+end
+
+local function mpv_alive(pid)
+    local comm = process_comm(pid)
+    return comm ~= nil and comm:lower():find("mpv", 1, true) ~= nil
+end
+
+local function process_args(pid)
+    if not pid then return nil end
+    if platform == "linux" then
+        local f = io.open(string.format("/proc/%d/cmdline", pid), "r")
+        if not f then return nil end
+        local data = f:read("*all")
+        f:close()
+        if not data or data == "" then return nil end
+        return data
+    end
+    if platform == "macos" then
+        local res = utils.subprocess({args = {"ps", "-p", tostring(pid), "-o", "command="}, cancellable = false})
+        if res.status == 0 and res.stdout and res.stdout ~= "" then
+            return res.stdout:gsub("[\r\n]+$", "")
+        end
+    end
+    return nil
+end
+
+local function kill_orphan_ffmpeg(item)
+    if not can_suspend or type(item.pid_file) ~= "string" then return end
+
+    local f = io.open(item.pid_file, "r")
+    if not f then return end
+    local pid = tonumber(f:read("*l"))
+    f:close()
+    os.remove(item.pid_file)
+
+    if not pid then return end
+    local comm = process_comm(pid)
+    if not (comm and comm:find("ffmpeg", 1, true)) then return end
+
+    local args = process_args(pid)
+    if not (args and item.temp_file and args:find(item.temp_file, 1, true)) then
+        mp.msg.warn("Not killing pid " .. tostring(pid) .. ": it is ffmpeg but not this render's process.")
+        return
+    end
+
+    signal_pid(pid, "KILL")
+    mp.msg.warn("Killed orphaned ffmpeg from crashed render: " .. tostring(item.final_name))
+end
+
+local function item_from_job(job, status)
+    return {
+        status              = status,
+        input_file          = job.input_file,
+        output_file         = job.output_file,
+        temp_file           = job.temp_file,
+        final_name          = job.final_name,
+        mark_in             = job.start_time,
+        mark_out            = job.end_time,
+        resolved_in         = job.resolved_in,
+        video_encoder       = job.video_encoder,
+        quality             = job.quality,
+        preset              = job.preset,
+        lossless_cut        = job.lossless_cut,
+        accurate_cut        = job.accurate_cut,
+        combine_audio       = job.combine_audio,
+        combined_audio_name = job.combined_audio_name,
+        trash_source        = job.trash_source,
+        trash_path          = job.trash_path,
+        space_replacement   = job.space_replacement,
+        input_duration      = job.input_duration,
+        input_size          = job.input_size,
+        show_stats_screen   = job.show_stats_screen,
+        show_stats_terminal = job.show_stats_terminal,
+        stats_osd_time      = job.stats_osd_time,
+        pid_file            = job.pid_file
+    }
+end
+
+local function save_queue()
+    has_saved = true
+    local items = {}
+    if is_rendering and active_job then
+        table.insert(items, item_from_job(active_job, render_paused and "paused" or "active"))
+    end
+    for _, q_job in ipairs(render_queue) do
+        table.insert(items, item_from_job(q_job, "queued"))
+    end
+    for _, rec in ipairs(failed_items) do
+        table.insert(items, rec)
+    end
+
+    local f = io.open(queue_tmp, "w")
+    if not f then return end
+    f:write(utils.format_json({ owner_pid = utils.getpid(), items = items }))
+    f:close()
+
+    local ok = os.rename(queue_tmp, queue_path)
+    if not ok then
+        os.remove(queue_path)
+        os.rename(queue_tmp, queue_path)
+    end
 end
 
 local function read_active_pid()
@@ -155,6 +419,7 @@ function M.toggle_pause()
             signal_pid(active_job.paused_pid, "CONT")
             render_paused = false
             queue_paused  = false
+            save_queue()
             notify.show("Render resumed: " .. active_job.final_name, true)
         else
             notify.show("Cannot resume render.", true, "error")
@@ -170,8 +435,9 @@ function M.toggle_pause()
 
     signal_pid(pid, "STOP")
     active_job.paused_pid = pid
-    render_paused = true
-    queue_paused  = true
+    render_paused         = true
+    queue_paused          = true
+    save_queue()
     notify.show("Render paused: " .. active_job.final_name, true)
 end
 
@@ -194,6 +460,7 @@ local function queue_job(job, on_complete)
         notify.show(string.format("Queued: %s (queue paused)", job.final_name), true)
     end
     M.process_queue()
+    save_queue()
     if on_complete then on_complete() end
 end
 
@@ -260,7 +527,8 @@ function M.show_queue_manager(on_close)
         mp.remove_key_binding("qm-cj")
         mp.remove_key_binding("qm-ck")
         mp.remove_key_binding("qm-enter")
-        mp.remove_key_binding("qm-pause")
+        mp.remove_key_binding("qm-del")
+        mp.remove_key_binding("qm-d")
         mp.remove_key_binding("qm-rename")
         mp.remove_key_binding("qm-esc")
     end
@@ -281,7 +549,7 @@ function M.show_queue_manager(on_close)
     end
 
     local function draw()
-        local text = string.format("%s%s%sRender Queue Manager%s\\N%s(Up/Down to navigate, Enter to cancel/remove, r to rename, Shift+Enter to pause, Esc to close)\\N\\N",
+        local text = string.format("%s%s%sRender Queue Manager%s\\N%s(Up/Down to navigate, Enter to pause/resume, Del to delete, r to rename, Esc to close)\\N\\N",
             theme.align(7), theme.f(), theme.b(true), theme.b(false), theme.f(true))
 
         local start_idx = math.max(1, cursor - 7)
@@ -360,6 +628,7 @@ function M.show_queue_manager(on_close)
 
             common.add_to_history(state.path_history, input)
             common.save_history(state.path_history)
+            save_queue()
         end
 
         local function prompt_rename()
@@ -416,6 +685,17 @@ function M.show_queue_manager(on_close)
         mp.add_forced_key_binding("ctrl+k", "qm-ck", move_up, {repeatable = true})
 
         mp.add_forced_key_binding("ENTER", "qm-enter", function()
+            M.toggle_pause()
+
+            jobs = rebuild_jobs()
+            if #jobs == 0 then
+                cleanup()
+            else
+                draw()
+            end
+        end)
+
+        local function delete_selected()
             local job = jobs[cursor]
             if not job then return end
 
@@ -425,24 +705,22 @@ function M.show_queue_manager(on_close)
                 table.remove(render_queue, job.original_index)
                 total_jobs = total_jobs > 0 and (total_jobs - 1) or 0
                 notify.show("Removed from queue: " .. job.title, true)
-
-                jobs = rebuild_jobs()
-                if #jobs == 0 then
-                    cleanup()
-                else
-                    if cursor > #jobs then cursor = #jobs end
-                    draw()
-                end
+                save_queue()
             end
-        end)
+
+            jobs = rebuild_jobs()
+            if #jobs == 0 then
+                cleanup()
+            else
+                if cursor > #jobs then cursor = #jobs end
+                draw()
+            end
+        end
+
+        mp.add_forced_key_binding("DEL", "qm-del", delete_selected)
+        mp.add_forced_key_binding("d", "qm-d", delete_selected)
 
         mp.add_forced_key_binding("r", "qm-rename", rename_selected)
-
-        mp.add_forced_key_binding("SHIFT+ENTER", "qm-pause", function()
-            M.toggle_pause()
-            jobs = rebuild_jobs()
-            draw()
-        end)
 
         mp.add_forced_key_binding("ESC", "qm-esc", cleanup)
     end
@@ -546,10 +824,11 @@ function M.process_queue()
         os.remove(pid_file)
 
         local function reset_and_advance()
-            is_rendering = false
+            is_rendering  = false
             render_paused = false
-            active_job   = nil
-            current_req  = nil
+            active_job    = nil
+            current_req   = nil
+            save_queue()
             M.process_queue()
         end
 
@@ -614,11 +893,17 @@ function M.process_queue()
             end
         else
             delete_temp_file(active_job.temp_file)
+            local failed_rec     = item_from_job(active_job, "failed")
+            failed_rec.temp_file = nil
+            failed_rec.pid_file  = nil
+            table.insert(failed_items, failed_rec)
             notify.show("Render failed: " .. active_job.final_name .. ". See console.", true, "error")
             print(result and result.stderr or error)
             reset_and_advance()
         end
     end)
+
+    save_queue()
 end
 
 local function verify_and_queue(job, file_path, on_complete)
@@ -678,6 +963,12 @@ function M.start(opts)
     local in_info = utils.file_info(input_file)
     local temp_id = next_temp_id()
 
+    local resolved_in = opts.mark_in
+    if opts.lossless_cut then
+        local kf = common.nearest_keyframe_at_or_before(input_file, opts.mark_in)
+        if kf then resolved_in = kf end
+    end
+
     local job = {
         args                = args,
         output_arg_index    = #args,
@@ -694,7 +985,13 @@ function M.start(opts)
         end_time            = opts.mark_out,
         duration            = duration,
         input_duration      = opts.input_duration or 0,
-        quality             = (opts.lossless_cut and "Lossless") or tostring(opts.quality),
+        quality             = opts.quality,
+        video_encoder       = opts.video_encoder,
+        preset              = opts.preset,
+        lossless_cut        = opts.lossless_cut,
+        accurate_cut        = opts.accurate_cut,
+        combine_audio       = opts.combine_audio,
+        resolved_in         = resolved_in,
         show_stats_screen   = opts.show_stats_screen,
         show_stats_terminal = opts.show_stats_terminal,
         stats_osd_time      = opts.stats_osd_time,
@@ -704,5 +1001,207 @@ function M.start(opts)
 
     verify_and_queue(job, output_file, opts.on_complete)
 end
+
+local function collect_orphan_queues()
+    local orphans = {}
+    for _, path in ipairs(scan_queue_files()) do
+        local parsed = read_queue_file(path)
+        if type(parsed) ~= "table" then
+            mp.msg.warn("Removing unreadable render queue file: " .. path)
+            os.remove(path)
+        else
+            local items = {}
+            if type(parsed.items) == "table" then
+                for _, it in ipairs(parsed.items) do
+                    if type(it) == "table" and it.status ~= "done" and type(it.input_file) == "string" and type(it.output_file) == "string" then
+                        table.insert(items, it)
+                    end
+                end
+            end
+
+            if #items == 0 then
+                os.remove(path)
+            else
+                local owner = tonumber(parsed.owner_pid)
+                if owner == own_pid and not has_saved then
+                    table.insert(orphans, {path = path, owner_pid = owner, items = items})
+                elseif owner and mpv_alive(owner) then
+                    mp.msg.info("Render queue is owned by a running mpv instance (pid " .. owner .. "), skipping recovery.")
+                else
+                    table.insert(orphans, {path = path, owner_pid = owner, items = items})
+                end
+            end
+        end
+    end
+    return orphans
+end
+
+local function show_recover_dialog(file, on_recover, on_discard, on_ignore)
+    mp.set_osd_ass(0, 0, "")
+    mp.osd_message("", 0)
+
+    state.ui_owner = "dialog"
+
+    local ov     = mp.create_osd_overlay("ass-events")
+    local active = true
+
+    local function cleanup()
+        if not active then return end
+        active         = false
+        state.ui_owner = nil
+        ov:remove()
+        mp.remove_key_binding("rec-1")
+        mp.remove_key_binding("rec-2")
+        mp.remove_key_binding("rec-3")
+        mp.remove_key_binding("rec-esc")
+    end
+
+    local owner_str = file.owner_pid and string.format("From a closed/crashed mpv (pid %d)", file.owner_pid) or "From a closed/crashed mpv"
+    local names     = {}
+    for i, it in ipairs(file.items) do
+        if i > 3 then
+            table.insert(names, string.format("+%d more", #file.items - 3))
+            break
+        end
+        table.insert(names, string.format("%s [%s]", tostring(it.final_name), tostring(it.status)))
+    end
+
+    ov.data = string.format("%s%s%sInterrupted Renders Found%s\\N%s%s\\N%s\\N\\N[1] Recover\\N[2] Discard\\N[3] Ignore",
+        theme.align(7), theme.f(), theme.c("warning_color"), theme.reset(),
+        theme.f(true), owner_str, table.concat(names, "\\N"))
+    ov:update()
+
+    mp.add_forced_key_binding("1", "rec-1", function()
+        cleanup()
+        if on_recover then on_recover() end
+    end)
+    mp.add_forced_key_binding("2", "rec-2", function()
+        cleanup()
+        if on_discard then on_discard() end
+    end)
+    mp.add_forced_key_binding("3", "rec-3", function()
+        cleanup()
+        if on_ignore then on_ignore() end
+    end)
+    mp.add_forced_key_binding("ESC", "rec-esc", function()
+        cleanup()
+        if on_ignore then on_ignore() end
+    end)
+end
+
+local function item_to_job(it)
+    local creation_time = common.ffprobe_get(it.input_file, {"-show_entries", "format_tags=creation_time", "-of", "csv=p=0"})
+    if not creation_time then
+        local info = utils.file_info(it.input_file)
+        if info and info.mtime then creation_time = os.date("%Y-%m-%dT%H:%M:%S", info.mtime) end
+    end
+
+    local build_opts = {
+        mark_in             = it.mark_in,
+        mark_out            = it.mark_out,
+        video_encoder       = it.video_encoder or state.opts.video_encoder,
+        quality             = it.quality,
+        preset              = it.preset,
+        accurate_cut        = it.accurate_cut,
+        lossless_cut        = it.lossless_cut,
+        combine_audio       = it.combine_audio,
+        combined_audio_name = it.combined_audio_name
+    }
+    local args    = builder.build_args(build_opts, it.input_file, it.output_file, creation_time)
+    local in_info = utils.file_info(it.input_file)
+    local temp_id = next_temp_id()
+
+    return {
+        args                = args,
+        output_arg_index    = #args,
+        input_file          = it.input_file,
+        output_file         = it.output_file,
+        temp_id             = temp_id,
+        temp_file           = temp_path_for(it.output_file, temp_id),
+        final_name          = it.final_name,
+        trash_source        = it.trash_source,
+        trash_path          = it.trash_path,
+        space_replacement   = it.space_replacement,
+        combined_audio_name = it.combined_audio_name,
+        start_time          = it.mark_in,
+        end_time            = it.mark_out,
+        duration            = (tonumber(it.mark_out) or 0) - (tonumber(it.mark_in) or 0),
+        input_duration      = it.input_duration or 0,
+        quality             = it.quality,
+        video_encoder       = it.video_encoder,
+        preset              = it.preset,
+        lossless_cut        = it.lossless_cut,
+        accurate_cut        = it.accurate_cut,
+        combine_audio       = it.combine_audio,
+        resolved_in         = it.resolved_in,
+        show_stats_screen   = it.show_stats_screen,
+        show_stats_terminal = it.show_stats_terminal,
+        stats_osd_time      = it.stats_osd_time,
+        input_size          = (in_info and in_info.size) or it.input_size or 0
+    }
+end
+
+local function adopt_orphan_queue(file)
+    local adopted = 0
+    for _, it in ipairs(file.items) do
+        if it.status == "active" or it.status == "paused" then
+            kill_orphan_ffmpeg(it)
+        end
+        delete_temp_file(it.temp_file)
+
+        if not utils.file_info(it.input_file) then
+            notify.show("Skipped recovered render (source missing): " .. tostring(it.final_name), true, "warn")
+        elseif (tonumber(it.mark_out) or 0) <= (tonumber(it.mark_in) or 0) then
+            notify.show("Skipped recovered render (invalid marks): " .. tostring(it.final_name), true, "warn")
+        else
+            table.insert(render_queue, item_to_job(it))
+            adopted = adopted + 1
+        end
+    end
+    os.remove(file.path)
+
+    if adopted > 0 then
+        total_jobs  = total_jobs + adopted
+        queue_paused = true
+        notify.show("Render queue recovered and paused.", true)
+    end
+    save_queue()
+end
+
+local function discard_orphan_queue(file)
+    for _, it in ipairs(file.items) do
+        if it.status == "active" or it.status == "paused" then
+            kill_orphan_ffmpeg(it)
+        end
+        delete_temp_file(it.temp_file)
+    end
+    os.remove(file.path)
+end
+
+local prompt_orphan_queues
+
+local function startup_recovery()
+    prompt_orphan_queues(collect_orphan_queues(), 1)
+end
+
+prompt_orphan_queues = function(orphans, idx)
+    if idx > #orphans then return end
+
+    local file = orphans[idx]
+    mp.msg.info(string.format("Found interrupted render queue%s: %d item(s)",
+        file.owner_pid and (" from mpv pid " .. tostring(file.owner_pid)) or "", #file.items))
+
+    show_recover_dialog(file, function()
+        adopt_orphan_queue(file)
+        prompt_orphan_queues(orphans, idx + 1)
+    end, function()
+        discard_orphan_queue(file)
+        prompt_orphan_queues(orphans, idx + 1)
+    end, function()
+        prompt_orphan_queues(orphans, idx + 1)
+    end)
+end
+
+mp.add_timeout(0.5, startup_recovery)
 
 return M
