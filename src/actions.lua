@@ -8,7 +8,7 @@ local stats      = require 'src.stats'
 local state      = require 'src.state'
 local notify     = require 'src.notify'
 local theme      = require 'src.theme'
-local ui_goto = require 'src.ui_goto'
+local ui_goto    = require 'src.ui_goto'
 
 local M = {}
 
