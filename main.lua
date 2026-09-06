@@ -8,8 +8,8 @@ local common     = require 'src.common'
 local state      = require 'src.state'
 local menu       = require 'src.menu'
 local notify     = require 'src.notify'
+local recovery   = require 'src.recovery'
 local ui_confirm = require 'src.ui_confirm'
-local render     = require 'src.render'
 
 local platform             = common.get_platform()
 local trash_ok, trash_path = common.check_trash(platform)
@@ -55,7 +55,7 @@ check_dependencies()
 
 local function check_orphans()
     if state.opts.output_dir ~= "" then
-        render.check_orphan_temp_files(common.expand_path(state.opts.output_dir))
+        recovery.check_orphan_temp_files(common.expand_path(state.opts.output_dir))
     end
 end
 
@@ -67,7 +67,7 @@ mp.register_event("file-loaded", function()
 
     local loaded_path = mp.get_property("path")
     if loaded_path then
-        render.check_orphan_temp_files(utils.split_path(loaded_path))
+        recovery.check_orphan_temp_files(utils.split_path(loaded_path))
         check_orphans()
     end
     menu.refresh()

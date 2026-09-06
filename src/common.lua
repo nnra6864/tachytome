@@ -3,14 +3,23 @@ local utils = require 'mp.utils'
 
 local M = {}
 
-local keyframe_cache = {}
+local keyframe_cache  = {}
+local cached_platform = nil
 
 function M.get_platform()
+    if cached_platform then return cached_platform end
     local is_windows = package.config:sub(1,1) == '\\'
-    if is_windows then return "windows" end
-    local uname = utils.subprocess({args = {"uname", "-s"}, cancellable = false})
-    if uname.status == 0 and uname.stdout:match("Darwin") then return "macos" end
-    return "linux"
+    if is_windows then
+        cached_platform = "windows"
+    else
+        local uname = utils.subprocess({args = {"uname", "-s"}, cancellable = false})
+        if uname.status == 0 and uname.stdout and uname.stdout:match("Darwin") then
+            cached_platform = "macos"
+        else
+            cached_platform = "linux"
+        end
+    end
+    return cached_platform
 end
 
 function M.get_data_dir()
@@ -71,17 +80,6 @@ function M.check_trash(platform)
         if M.check_cmd({"which", "trash"}) then return true, "trash" end
     end
     return false, nil
-end
-
-function M.ffprobe_get_json(file, args)
-    local cmd = {"ffprobe", "-v", "error"}
-    for _, v in ipairs(args) do table.insert(cmd, v) end
-    table.insert(cmd, file)
-    local res = utils.subprocess({args = cmd, cancellable = false})
-    if res.status == 0 and res.stdout then
-        return utils.parse_json(res.stdout)
-    end
-    return nil
 end
 
 function M.ensure_dir(path)
@@ -186,6 +184,31 @@ function M.format_duration(seconds)
     return string.format("%02d:%02d:%02d", h, m, s)
 end
 
+function M.replace_file(src, dst)
+    local ok, err = os.rename(src, dst)
+    if not ok then
+        os.remove(dst)
+        ok, err = os.rename(src, dst)
+    end
+    return ok, err
+end
+
+function M.read_json_file(path)
+    local f = io.open(path, "r")
+    if not f then return nil end
+    local content = f:read("*all")
+    f:close()
+    return utils.parse_json(content)
+end
+
+function M.write_json_file(path, data)
+    local f = io.open(path, "w")
+    if not f then return false end
+    f:write(utils.format_json(data))
+    f:close()
+    return true
+end
+
 function M.ffprobe_get(file, args)
     local cmd = {"ffprobe", "-v", "error"}
     for _, v in ipairs(args) do table.insert(cmd, v) end
@@ -196,6 +219,21 @@ function M.ffprobe_get(file, args)
         if clean ~= "" then return clean end
     end
     return nil
+end
+
+function M.ffprobe_get_json(file, args)
+    local raw = M.ffprobe_get(file, args)
+    if not raw then return nil end
+    return utils.parse_json(raw)
+end
+
+function M.get_creation_time(file)
+    local creation_time = M.ffprobe_get(file, {"-show_entries", "format_tags=creation_time", "-of", "csv=p=0"})
+    if not creation_time then
+        local info = utils.file_info(file)
+        if info and info.mtime then creation_time = os.date("%Y-%m-%dT%H:%M:%S", info.mtime) end
+    end
+    return creation_time
 end
 
 function M.get_keyframes(file)
@@ -281,13 +319,8 @@ function M.get_history_path()
 end
 
 function M.read_history()
-    local f = io.open(M.get_history_path(), "r")
-    if f then
-        local content = f:read("*all")
-        f:close()
-        local parsed = utils.parse_json(content)
-        if type(parsed) == "table" then return parsed end
-    end
+    local parsed = M.read_json_file(M.get_history_path())
+    if type(parsed) == "table" then return parsed end
     return {}
 end
 
@@ -300,11 +333,7 @@ function M.add_to_history(history_table, input)
 end
 
 function M.save_history(history_table)
-    local f = io.open(M.get_history_path(), "w")
-    if f then
-        f:write(utils.format_json(history_table))
-        f:close()
-    end
+    M.write_json_file(M.get_history_path(), history_table)
 end
 
 return M

@@ -10,23 +10,15 @@ end
 
 function M.read_stats()
     local stats = { source_space = 0, output_space = 0, source_duration = 0, output_duration = 0, render_time = 0 }
-    local f = io.open(get_stats_path(), "r")
-    if f then
-        local parsed = utils.parse_json(f:read("*all"))
-        if parsed then
-            for k, v in pairs(parsed) do stats[k] = v end
-        end
-        f:close()
+    local parsed = common.read_json_file(get_stats_path())
+    if parsed then
+        for k, v in pairs(parsed) do stats[k] = v end
     end
     return stats
 end
 
 function M.write_stats(stats)
-    local f = io.open(get_stats_path(), "w")
-    if f then
-        f:write(utils.format_json(stats))
-        f:close()
-    end
+    common.write_json_file(get_stats_path(), stats)
 end
 
 M.on_update = nil

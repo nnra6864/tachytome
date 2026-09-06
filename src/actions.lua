@@ -1,14 +1,15 @@
-local mp         = require 'mp'
-local common     = require 'src.common'
-local ui_input   = require 'src.ui_input'
-local ui_list    = require 'src.ui_list'
-local ui_confirm = require 'src.ui_confirm'
-local render     = require 'src.render'
-local stats      = require 'src.stats'
-local state      = require 'src.state'
-local notify     = require 'src.notify'
-local theme      = require 'src.theme'
-local ui_goto    = require 'src.ui_goto'
+local mp            = require 'mp'
+local common        = require 'src.common'
+local ui_input      = require 'src.ui_input'
+local ui_list       = require 'src.ui_list'
+local ui_confirm    = require 'src.ui_confirm'
+local queue_manager = require 'src.queue_manager'
+local render        = require 'src.render'
+local stats         = require 'src.stats'
+local state         = require 'src.state'
+local notify        = require 'src.notify'
+local theme         = require 'src.theme'
+local ui_goto       = require 'src.ui_goto'
 
 local M = {}
 
@@ -316,7 +317,7 @@ function M.start_render(on_complete)
 end
 
 function M.manage_queue(on_complete)
-    render.show_queue_manager(on_complete)
+    queue_manager.show(on_complete)
 end
 
 function M.toggle_render_pause()

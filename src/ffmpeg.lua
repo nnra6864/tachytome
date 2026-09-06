@@ -66,8 +66,6 @@ function M.build_args(opts, input_file, output_file, creation_time)
         elseif enc:match("^intel_") then safe_quality = math.min(51, math.max(1, safe_quality))
         else safe_quality = math.min(51, math.max(0, safe_quality)) end
         local quality_str = tostring(safe_quality)
-
-        local quality_str = tostring(safe_quality)
         local fps_value   = opts.fps_override or media_info.v_fps
 
         if fps_value then
