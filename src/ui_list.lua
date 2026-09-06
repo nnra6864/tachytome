@@ -27,6 +27,8 @@ function M.show(title, items, current_val, on_select, on_cancel)
         ov:remove()
         mp.remove_key_binding("list-up")
         mp.remove_key_binding("list-down")
+        mp.remove_key_binding("list-cj")
+        mp.remove_key_binding("list-ck")
         mp.remove_key_binding("list-enter")
         mp.remove_key_binding("list-esc")
         if on_cancel then on_cancel() end
@@ -57,13 +59,18 @@ function M.show(title, items, current_val, on_select, on_cancel)
         ov:update()
     end
 
-    mp.add_forced_key_binding("UP", "list-up", function()
+    local function move_up()
         if cursor > 1 then cursor = cursor - 1; draw() end
-    end, {repeatable = true})
+    end
 
-    mp.add_forced_key_binding("DOWN", "list-down", function()
+    local function move_down()
         if cursor < #items then cursor = cursor + 1; draw() end
-    end, {repeatable = true})
+    end
+
+    mp.add_forced_key_binding("UP", "list-up", move_up, {repeatable = true})
+    mp.add_forced_key_binding("DOWN", "list-down", move_down, {repeatable = true})
+    mp.add_forced_key_binding("ctrl+j", "list-cj", move_down, {repeatable = true})
+    mp.add_forced_key_binding("ctrl+k", "list-ck", move_up, {repeatable = true})
 
     mp.add_forced_key_binding("ENTER", "list-enter", function()
         local val      = items[cursor]
@@ -72,6 +79,8 @@ function M.show(title, items, current_val, on_select, on_cancel)
         ov:remove()
         mp.remove_key_binding("list-up")
         mp.remove_key_binding("list-down")
+        mp.remove_key_binding("list-cj")
+        mp.remove_key_binding("list-ck")
         mp.remove_key_binding("list-enter")
         mp.remove_key_binding("list-esc")
         if on_select then on_select(val) end

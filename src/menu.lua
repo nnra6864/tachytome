@@ -17,6 +17,7 @@ local menu_items = {
     { key = "o", label = "Mark Out", get_val = function() return v(actions.get_mark_out_display()) end, action = function() actions.mark(1) end, keep_open = true },
     { key = "I", label = "Go to In",  action = function() actions.goto_mark(0) end, keep_open = true },
     { key = "O", label = "Go to Out", action = function() actions.goto_mark(1) end, keep_open = true },
+    { key = "g",     label = "Go to",            action = function() actions.goto_prompt(M.open) end,  keep_open = false },
 
     { separator = true },
     { key = "e", label = "Encoder", get_val = function() return v(state.opts.video_encoder) end, action = function() actions.select_encoder(M.open) end, keep_open = false },
@@ -34,7 +35,6 @@ local menu_items = {
     { key = "p", label = "Path",              get_val = function() return v(actions.get_final_path()) end,                action = function() actions.set_path(M.open) end,              keep_open = false },
 
     { separator = true },
-    { key = "g",     label = "Go to",            action = function() actions.goto_prompt(M.open) end,  keep_open = false },
     { key = "ENTER", label = "Render",           action = function() actions.start_render(M.open) end, keep_open = false },
     { key = "r",     label = "Render Queue",     action = function() actions.manage_queue(M.open) end, keep_open = false },
     { key = "DEL",   label = "Trash Source Now", action = function() actions.trash_source(M.open) end, keep_open = false },

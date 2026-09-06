@@ -49,6 +49,8 @@ local function cleanup_bindings()
     mp.remove_key_binding("osd-input-esc")
     mp.remove_key_binding("osd-input-up")
     mp.remove_key_binding("osd-input-down")
+    mp.remove_key_binding("osd-input-cj")
+    mp.remove_key_binding("osd-input-ck")
     for key, _ in pairs(key_mappings) do mp.remove_key_binding("osd-input-char-" .. key) end
 end
 
@@ -132,6 +134,8 @@ function M.get_user_input(prompt, callback, sub_prompt, tooltip_override, histor
     mp.add_forced_key_binding("ESC", "osd-input-esc", cancel)
     mp.add_forced_key_binding("UP", "osd-input-up", history_up, {repeatable=true})
     mp.add_forced_key_binding("DOWN", "osd-input-down", history_down, {repeatable=true})
+    mp.add_forced_key_binding("ctrl+j", "osd-input-cj", history_down, {repeatable=true})
+    mp.add_forced_key_binding("ctrl+k", "osd-input-ck", history_up, {repeatable=true})
 
     for key, char in pairs(key_mappings) do
         mp.add_forced_key_binding(key, "osd-input-char-" .. key, function() add_char(char) end, {repeatable=true})

@@ -169,6 +169,8 @@ function M.show_queue_manager(on_close)
     local function remove_bindings()
         mp.remove_key_binding("qm-up")
         mp.remove_key_binding("qm-down")
+        mp.remove_key_binding("qm-cj")
+        mp.remove_key_binding("qm-ck")
         mp.remove_key_binding("qm-enter")
         mp.remove_key_binding("qm-rename")
         mp.remove_key_binding("qm-esc")
@@ -311,13 +313,18 @@ function M.show_queue_manager(on_close)
     end
 
     local function bind()
-        mp.add_forced_key_binding("UP", "qm-up", function()
+        local function move_up()
             if cursor > 1 then cursor = cursor - 1; draw() end
-        end, {repeatable = true})
+        end
 
-        mp.add_forced_key_binding("DOWN", "qm-down", function()
+        local function move_down()
             if cursor < #jobs then cursor = cursor + 1; draw() end
-        end, {repeatable = true})
+        end
+
+        mp.add_forced_key_binding("UP", "qm-up", move_up, {repeatable = true})
+        mp.add_forced_key_binding("DOWN", "qm-down", move_down, {repeatable = true})
+        mp.add_forced_key_binding("ctrl+j", "qm-cj", move_down, {repeatable = true})
+        mp.add_forced_key_binding("ctrl+k", "qm-ck", move_up, {repeatable = true})
 
         mp.add_forced_key_binding("ENTER", "qm-enter", function()
             local job = jobs[cursor]
