@@ -37,7 +37,6 @@ function M.show(on_close)
         mp.remove_key_binding("qm-cj")
         mp.remove_key_binding("qm-ck")
         mp.remove_key_binding("qm-enter")
-        mp.remove_key_binding("qm-del")
         mp.remove_key_binding("qm-d")
         mp.remove_key_binding("qm-rename")
         mp.remove_key_binding("qm-esc")
@@ -59,7 +58,7 @@ function M.show(on_close)
     end
 
     local function draw()
-        local text = string.format("%s%s%sRender Queue Manager%s\\N%s(Up/Down to navigate, Enter to pause/resume, Del to delete, r to rename, Esc to close)\\N\\N",
+        local text = string.format("%s%s%sRender Queue Manager%s\\N%s(Up/Down to navigate, Enter to pause/resume, d to delete, r to rename, Esc to close)\\N\\N",
             theme.align(7), theme.f(), theme.b(true), theme.b(false), theme.f(true))
 
         local start_idx = math.max(1, cursor - 7)
@@ -227,7 +226,6 @@ function M.show(on_close)
             end
         end
 
-        mp.add_forced_key_binding("DEL", "qm-del", delete_selected)
         mp.add_forced_key_binding("d", "qm-d", delete_selected)
 
         mp.add_forced_key_binding("r", "qm-rename", rename_selected)

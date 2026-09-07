@@ -38,9 +38,9 @@ local menu_items = {
 
     { separator = true },
     { key = "ENTER", label = "Render", action = function() actions.start_render(M.open) end,  keep_open = false },
-    { key = "SHIFT+ENTER", label = "Pause Render", get_val = function() return render.is_paused() and on(state.opts.on_text) or off(state.opts.off_text) end, action = function() actions.toggle_render_pause() end, keep_open = true },
+    { key = "R", label = "Pause Render", get_val = function() return render.is_paused() and on(state.opts.on_text) or off(state.opts.off_text) end, action = function() actions.toggle_render_pause() end, keep_open = true },
     { key = "r", label = "Render Queue", action = function() actions.manage_queue(M.open) end, keep_open = false },
-    { key = "DEL", alias = "d", label = "Trash Source Now", action = function() actions.trash_source(M.open) end,  keep_open = false },
+    { key = "d", label = "Trash Source Now", action = function() actions.trash_source(M.open) end, keep_open = false },
     { key = "s", label = "Toggle Stats", action = actions.toggle_stats, keep_open = true  },
 
     { separator = true },
@@ -55,7 +55,6 @@ function M.close()
     for _, item in ipairs(menu_items) do
         if not item.separator then
             mp.remove_key_binding("menu-" .. item.key)
-            if item.alias then mp.remove_key_binding("menu-" .. item.alias) end
         end
     end
 end
@@ -111,9 +110,6 @@ function M.open()
                 if item.keep_open and menu_active then draw() end
             end
             mp.add_forced_key_binding(item.key, "menu-" .. item.key, handler)
-            if item.alias then
-                mp.add_forced_key_binding(item.alias, "menu-" .. item.alias, handler)
-            end
         end
     end
 end
