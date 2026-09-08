@@ -9,6 +9,7 @@ Keyboard Driven, AV1/H265/Lossless, MPV Video Cutter.
   <img src="assets/tachytome.webp" width="100%">
 </a>
 *Click the image to view a quick showcase of Tachytome capabilities.*
+
 ## Table of Contents
 
 - [Why Tachytome](#why-tachytome)
