@@ -38,7 +38,7 @@ function M.show(on_close)
         mp.remove_key_binding("qm-ck")
         mp.remove_key_binding("qm-enter")
         mp.remove_key_binding("qm-d")
-        mp.remove_key_binding("qm-rename")
+        mp.remove_key_binding("qm-path")
         mp.remove_key_binding("qm-esc")
     end
 
@@ -58,7 +58,7 @@ function M.show(on_close)
     end
 
     local function draw()
-        local text = string.format("%s%s%sRender Queue Manager%s\\N%s(Up/Down to navigate, Enter to pause/resume, d to delete, r to rename, Esc to close)\\N\\N",
+        local text = string.format("%s%s%sRender Queue Manager%s\\N%s(Up/Down to navigate, Enter to pause/resume, d to delete, p to change path, Esc to close)\\N\\N",
             theme.align(7), theme.f(), theme.b(true), theme.b(false), theme.f(true))
 
         local start_idx = math.max(1, cursor - 7)
@@ -109,7 +109,7 @@ function M.show(on_close)
 
     local open_ui
 
-    local function rename_selected()
+    local function change_path_selected()
         local sel = jobs[cursor]
         if not sel then return end
 
@@ -120,7 +120,7 @@ function M.show(on_close)
 
         teardown()
 
-        local function apply_rename(input, new_output)
+        local function apply_change_path(input, new_output)
             local target_dir, fname = utils.split_path(new_output)
             common.ensure_dir(target_dir)
 
@@ -132,7 +132,7 @@ function M.show(on_close)
             else
                 q_job.args[q_job.output_arg_index] = new_output
                 q_job.temp_file                    = queue.temp_path_for(new_output, q_job.temp_id)
-                notify.show("Renamed to: " .. fname, true)
+                notify.show("Path changed to: " .. fname, true)
             end
 
             common.add_to_history(state.path_history, input)
@@ -140,10 +140,10 @@ function M.show(on_close)
             queue.save()
         end
 
-        local function prompt_rename()
+        local function prompt_change_path()
             ui_input.get_user_input("New Output Path > ", function(input)
                 if input == "" then
-                    notify.show("Rename cancelled.", true)
+                    notify.show("Path change cancelled.", true)
                     open_ui()
                     return
                 end
@@ -156,19 +156,19 @@ function M.show(on_close)
                 end
 
                 if not queue.is_path_in_use(new_output) then
-                    apply_rename(input, new_output)
+                    apply_change_path(input, new_output)
                     open_ui()
                     return
                 end
 
                 local _, new_name = utils.split_path(new_output)
                 ui_choice.show_exists(new_name, function()
-                    prompt_rename()
+                    prompt_change_path()
                 end, function()
-                    apply_rename(input, new_output)
+                    apply_change_path(input, new_output)
                     open_ui()
                 end, function()
-                    notify.show("Rename cancelled.", true)
+                    notify.show("Path change cancelled.", true)
                     open_ui()
                 end)
             end, current_output, "(Up/Down for history, Enter to confirm, Esc to cancel)", state.path_history, function()
@@ -176,7 +176,7 @@ function M.show(on_close)
             end)
         end
 
-        prompt_rename()
+        prompt_change_path()
     end
 
     local function bind()
@@ -228,7 +228,7 @@ function M.show(on_close)
 
         mp.add_forced_key_binding("d", "qm-d", delete_selected)
 
-        mp.add_forced_key_binding("r", "qm-rename", rename_selected)
+        mp.add_forced_key_binding("p", "qm-path", change_path_selected)
 
         mp.add_forced_key_binding("ESC", "qm-esc", cleanup)
     end
