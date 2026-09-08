@@ -93,7 +93,18 @@ local function parse_and_seek()
 
     if str:sub(-1) == '%' then
         local num = tonumber(str:sub(1, -2))
-        if num then mp.commandv("seek", num, "absolute-percent") end
+        if num then
+            if relative then
+                local duration = mp.get_property_number("duration")
+                if duration and duration > 0 then
+                    seek_to(sign * duration * num / 100, true)
+                else
+                    notify.show("Cannot jump by percent: duration unknown.", true, "warn")
+                end
+            else
+                mp.commandv("seek", num, "absolute-percent")
+            end
+        end
     elseif str:sub(-1) == 'f' then
         local num = tonumber(str:sub(1, -2))
         if num then
