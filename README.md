@@ -119,7 +119,7 @@ This is done to avoid global bind conflicts.
 | t       | Menu   | Open the Tachytome menu. |
 | g       | Go To  | Open the Go To menu.     |
 
-- Menu
+#### Menu
 
 | Keybind | Action            | Description                                                                                                   |
 |---------|-------------------|---------------------------------------------------------------------------------------------------------------|
@@ -128,44 +128,44 @@ This is done to avoid global bind conflicts.
 | I       | Go To In          | Go to Mark In.                                                                                                |
 | O       | Go To Out         | Go to Mark Out.                                                                                               |
 | g       | Go To             | Go to a precise location in the video.<br>Learn more about [Go To](#go-to).                                   |
-|---------|-------------------|---------------------------------------------------------------------------------------------------------------|
+| <hr>    | <hr>              | <hr>                                                                                                          |
 | e       | Encoder           | Set the video encoder.                                                                                        |
 | q       | Quality           | Set the video encoder quality parameter.                                                                      |
 | P       | Preset            | Set the video encoder preset parameter.                                                                       |
 | F       | FPS               | Set the FPS of the video.                                                                                     |
-|---------|-------------------|---------------------------------------------------------------------------------------------------------------|
+| <hr>    | <hr>              | <hr>                                                                                                          |
 | l       | Lossless Cut      | Toggle the lossless cut option.                                                                               |
 | a       | Accurate Cut      | Toggle accurate cut.<br>Makes cuts millisecond precise, but may cause a slight delay before rendering starts. |
 | c       | Combine Audio     | Toggle the combine audio option.                                                                              |
 | t       | Trash Source      | Toggle trashing of the source file.                                                                           |
-|---------|-------------------|---------------------------------------------------------------------------------------------------------------|
+| <hr>    | <hr>              | <hr>                                                                                                          |
 | _       | Space Replacement | Set the character to replace spaces with.                                                                     |
 | p       | Path              | Set Output path.<br>Learn more about [Path](#path).                                                           |
-|         |                   |                                                                                                               |
+| <hr>    | <hr>              | <hr>                                                                                                          |
 | Enter   | Render            | Start the render of the output file.                                                                          |
 | R       | Pause Render      | Pause the current render and render queue.<br>Can only pause the render queue on Windows.                     |
 | r       | Render Queue      | Open the render queue menu.                                                                                   |
 | d       | Trash Source Now  | Trash the source file.                                                                                        |
 | s       | Stats             | Display Tachytome stats.                                                                                      |
-|---------|-------------------|---------------------------------------------------------------------------------------------------------------|
+| <hr>    | <hr>              | <hr>                                                                                                          |
 | Esc     | Close             | Close the currently active menu.                                                                              |
 
-- Render Queue
+#### Render Queue
 
-| Keybind     | Action        | Description                                                                                |
-|-------------|---------------|--------------------------------------------------------------------------------------------|
-| Enter       | Pause Render  | Pauses the current render and render queue.<br>Can only pause the render queue on Windows. |
-| p           | Change Path   | Change output path.                                                                        |
-| d           | Delete        | Deletes the item from the render queue.                                                    |
+| Keybind | Action        | Description                                                                                |
+|---------|---------------|--------------------------------------------------------------------------------------------|
+| Enter   | Pause Render  | Pauses the current render and render queue.<br>Can only pause the render queue on Windows. |
+| p       | Change Path   | Change output path.                                                                        |
+| d       | Delete        | Deletes the item from the render queue.                                                    |
 
-- Path
+#### Path
 
 | Keybind     | Action   | Description                      |
 |-------------|----------|----------------------------------|
 | Up/ctrl+k   | Previous | Select previous item in history. |
 | Down/ctrl+j | Next     | Select next item in history.     |
 
-- Lists (Render Queue, Preset etc.)
+#### Lists (Render Queue, Preset etc.)
 
 | Keybind     | Action        | Description              |
 |-------------|---------------|--------------------------|
@@ -198,15 +198,15 @@ It then asks you whether you want to recover, discard or ignore the queue.
 Tachytome includes a really powerful Go To implementation.<br>
 On top of many input types, it also supports relative jumps.
 
-- Prefix
+#### Prefix
 
 You can prefix `+` or `-` to make go to relative to the current time.
 
-- HH:MM:SS.MS
+#### HH:MM:SS.MS
 
 This is arguably the most versatile format as you can do `30` to go to 30 seconds, but also `1:2.50` to go to 1 minute 2 seconds 500 milliseconds.
 
-- Suffix
+#### Suffix
 
 This is a convenient format to jump across minutes, hours etc.<br>
 Instead of having to type `1:0`, you simply type `1m` to go to 1 minute.
@@ -221,7 +221,7 @@ Instead of having to type `1:0`, you simply type `1m` to go to 1 minute.
 | f      | frame       |
 | %      | percent     |
 
-- Examples
+#### Examples
 
 | Input  | Goes To             |
 |--------|---------------------|
@@ -238,7 +238,7 @@ Instead of having to type `1:0`, you simply type `1m` to go to 1 minute.
 Tachytome offers powerful path resolution.<br>
 Config includes the `output_dir` option which you can set to the path you most commonly use, by default `~/Videos/Tachytome`.
 
-- Prefixes
+#### Prefixes
 
 | Prefix | Resolves To                                    |
 |--------|------------------------------------------------|
@@ -248,7 +248,7 @@ Config includes the `output_dir` option which you can set to the path you most c
 | ./     | Directory where the source file is.            |
 | ../    | Parent directory of the configured output_dir. |
 
-- Examples
+#### Examples
 
 | Input      | Resolves To                    |
 |------------|--------------------------------|
