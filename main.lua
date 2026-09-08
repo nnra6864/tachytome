@@ -6,6 +6,7 @@ if script_dir then package.path = package.path .. ";" .. script_dir .. "/src/?.l
 
 local common     = require 'src.common'
 local state      = require 'src.state'
+local actions    = require 'src.actions'
 local menu       = require 'src.menu'
 local notify     = require 'src.notify'
 local recovery   = require 'src.recovery'
@@ -82,3 +83,4 @@ mp.add_key_binding("ESC", "clear-osd", function()
 end)
 
 mp.add_key_binding("t", "tachytome-menu", menu.open)
+mp.add_key_binding("g", "tachytome-goto", function() actions.goto_prompt() end)
