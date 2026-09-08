@@ -1,6 +1,7 @@
-local mp    = require 'mp'
-local state = require 'src.state'
-local theme = require 'src.theme'
+local mp     = require 'mp'
+local notify = require 'src.notify'
+local state  = require 'src.state'
+local theme  = require 'src.theme'
 
 local M = {}
 
@@ -10,7 +11,7 @@ local input            = ""
 local current_callback = nil
 
 local key_mappings   = { ["SPACE"] = " " }
-local standard_chars = "0123456789:.dhmsf%"
+local standard_chars = "0123456789:.dhmsf%+-"
 for i = 1, #standard_chars do
     local c = standard_chars:sub(i, i)
     key_mappings[c] = c
@@ -36,8 +37,58 @@ local function cleanup()
     if current_callback then pcall(current_callback) end
 end
 
+local function seek_to(seconds, relative, exact)
+    if not seconds then return end
+    local mode = relative and "relative" or "absolute"
+    if exact then mode = mode .. "+exact" end
+    mp.commandv("osd-bar", "seek", seconds, mode)
+end
+
+local function parse_duration(str)
+    if str == "" then return nil end
+
+    if str:sub(-2) == 'ms' then return tonumber(str:sub(1, -3)) / 1000 end
+    if str:sub(-1) == 's'  then return tonumber(str:sub(1, -2)) end
+    if str:sub(-1) == 'm'  then return tonumber(str:sub(1, -2)) * 60 end
+    if str:sub(-1) == 'h'  then return tonumber(str:sub(1, -2)) * 3600 end
+    if str:sub(-1) == 'd'  then return tonumber(str:sub(1, -2)) * 86400 end
+    if str:sub(-1) == 'f'  then return nil end
+
+    if str:find(":") then
+        local parts = {}
+        for part in str:gmatch("([%d%.]+)") do
+            table.insert(parts, tonumber(part) or 0)
+        end
+        if #parts == 0 then return nil end
+
+        local h, m, s = 0, 0, 0
+        if #parts == 1 then
+            s = parts[1]
+        elseif #parts == 2 then
+            m, s = parts[1], parts[2]
+        else
+            h, m, s = parts[1], parts[2], parts[3]
+        end
+        return h * 3600 + m * 60 + s
+    end
+
+    return tonumber(str)
+end
+
 local function parse_and_seek()
     local str = input:lower():gsub("%s+", "")
+    if str == "" then cleanup(); return end
+
+    local relative = false
+    local sign     = 1
+    if str:sub(1, 1) == '+' then
+        relative = true
+        str      = str:sub(2)
+    elseif str:sub(1, 1) == '-' then
+        relative = true
+        sign     = -1
+        str      = str:sub(2)
+    end
     if str == "" then cleanup(); return end
 
     if str:sub(-1) == '%' then
@@ -45,43 +96,17 @@ local function parse_and_seek()
         if num then mp.commandv("seek", num, "absolute-percent") end
     elseif str:sub(-1) == 'f' then
         local num = tonumber(str:sub(1, -2))
-        if num then mp.commandv("frame-step"); for _ = 2, num do mp.commandv("frame-step") end end
-    elseif str:sub(-2) == 'ms' then
-        local num = tonumber(str:sub(1, -3))
-        if num then mp.commandv("osd-bar", "seek", num / 1000, "absolute") end
-    elseif str:sub(-1) == 's' then
-        local num = tonumber(str:sub(1, -2))
-        if num then mp.commandv("osd-bar", "seek", num, "absolute") end
-    elseif str:sub(-1) == 'm' then
-        local num = tonumber(str:sub(1, -2))
-        if num then mp.commandv("osd-bar", "seek", num * 60, "absolute") end
-    elseif str:sub(-1) == 'h' then
-        local num = tonumber(str:sub(1, -2))
-        if num then mp.commandv("osd-bar", "seek", num * 3600, "absolute") end
-    elseif str:sub(-1) == 'd' then
-        local num = tonumber(str:sub(1, -2))
-        if num then mp.commandv("osd-bar", "seek", num * 86400, "absolute") end
-    else
-        if str:find(":") then
-            local h, m, s = 0, 0, 0
-            local parts = {}
-            for part in str:gmatch("([%d%.]+)") do
-                table.insert(parts, tonumber(part) or 0)
+        if num then
+            local fps = mp.get_property_number("container-fps") or mp.get_property_number("container-fps-approx")
+            if fps and fps > 0 then
+                seek_to(sign * num / fps, relative, true)
+            else
+                notify.show("Cannot jump frames: FPS unknown.", true, "warn")
             end
-
-            if #parts == 1 then
-                s = parts[1]
-            elseif #parts == 2 then
-                m, s = parts[1], parts[2]
-            elseif #parts >= 3 then
-                h, m, s = parts[1], parts[2], parts[3]
-            end
-            local seconds = h * 3600 + m * 60 + s
-            mp.commandv("osd-bar", "seek", seconds, "absolute")
-        else
-            local total = tonumber(str)
-            if total then mp.commandv("osd-bar", "seek", total, "absolute") end
         end
+    else
+        local seconds = parse_duration(str)
+        if seconds then seek_to(sign * seconds, relative) end
     end
 
     cleanup()
