@@ -13,7 +13,7 @@ Keyboard Driven, AV1/H265/Lossless, MPV Video Cutter.
 
 ## Table of Contents
 
-- [Why Tachytome](#why-tachytome)
+- [Why Tachytome?](#why-tachytome)
 - [Installation](#installation)
   - [Dependencies](#dependencies)
   - [Clone](#clone)
