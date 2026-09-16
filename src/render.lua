@@ -155,11 +155,25 @@ function M.process_queue()
                 f:seek("set", size - read_size)
                 local content = f:read("*all")
 
-                local time_us = nil
-                for t in content:gmatch("out_time_us=(%d+)") do time_us = t end
+                local percent = nil
 
-                if time_us then
-                    local percent = math.floor((tonumber(time_us) / 1000000) / active_job.duration * 100)
+                -- out_time_us is the max dts over not-yet-finished muxer
+                -- streams: the stream-copied audio (source timestamps) races
+                -- ahead of the encoded video (zeroed timestamps), so it spikes
+                -- and then collapses once the audio finishes. frame= (muxed
+                -- video packets) is monotonic and time-base-independent, but
+                -- needs the output fps; out_time_us remains the fallback.
+                if active_job.total_frames then
+                    local frame = nil
+                    for fr in content:gmatch("frame=(%d+)") do frame = fr end
+                    if frame then percent = math.floor(tonumber(frame) / active_job.total_frames * 100) end
+                else
+                    local time_us = nil
+                    for t in content:gmatch("out_time_us=(%d+)") do time_us = t end
+                    if time_us then percent = math.floor((tonumber(time_us) / 1000000) / active_job.duration * 100) end
+                end
+
+                if percent then
                     if percent > 99 then percent = 99 end
                     if percent < 0 then percent = 0 end
                     progress_overlay.data = string.format("%s%s%s%sRendering %s: %d%%", theme.align(9), theme.f(true), theme.a("66"), get_queue_str(), name_no_ext, percent)

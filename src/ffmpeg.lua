@@ -25,10 +25,30 @@ local function get_media_info(input_file)
     return info
 end
 
+-- ffprobe reports fps as rationals like "30000/1001"; fps_override is a plain number
+local function parse_fps(value)
+    if type(value) == "number" then
+        if value > 0 then return value end
+        return nil
+    end
+    if type(value) ~= "string" then return nil end
+    local num, den = value:match("^(%d+)/(%d+)$")
+    if num then
+        num = tonumber(num)
+        den = tonumber(den)
+        if num > 0 and den > 0 then return num / den end
+        return nil
+    end
+    num = tonumber(value)
+    if num and num > 0 then return num end
+    return nil
+end
+
 function M.build_args(opts, input_file, output_file, creation_time)
     local args       = { "ffmpeg", "-y", "-hide_banner" }
     local duration   = opts.mark_out - opts.mark_in
     local media_info = get_media_info(input_file)
+    local out_fps    = nil
 
     table.insert(args, "-fflags") table.insert(args, "+genpts")
 
@@ -50,6 +70,7 @@ function M.build_args(opts, input_file, output_file, creation_time)
     end
 
     if opts.lossless_cut then
+        out_fps = parse_fps(media_info.v_fps)
         local codec_args = {
             "-c",            "copy",
             "-map",          "0",
@@ -69,6 +90,7 @@ function M.build_args(opts, input_file, output_file, creation_time)
         local fps_value   = opts.fps_override or media_info.v_fps
 
         if fps_value then
+            out_fps = parse_fps(fps_value)
             table.insert(args, "-vf")
             table.insert(args, "fps=" .. fps_value)
         end
@@ -143,7 +165,7 @@ function M.build_args(opts, input_file, output_file, creation_time)
     end
 
     table.insert(args, output_file)
-    return args
+    return args, out_fps
 end
 
 return M

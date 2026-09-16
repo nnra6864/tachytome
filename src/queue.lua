@@ -136,9 +136,10 @@ function M.build_job(spec)
         combine_audio       = spec.combine_audio,
         combined_audio_name = spec.combined_audio_name
     }
-    local args    = builder.build_args(build_opts, spec.input_file, spec.output_file, creation_time)
-    local in_info = utils.file_info(spec.input_file)
-    local temp_id = next_temp_id()
+    local args, out_fps = builder.build_args(build_opts, spec.input_file, spec.output_file, creation_time)
+    local in_info       = utils.file_info(spec.input_file)
+    local temp_id       = next_temp_id()
+    local duration      = (tonumber(spec.end_time) or 0) - (tonumber(spec.start_time) or 0)
 
     return {
         args                = args,
@@ -154,7 +155,10 @@ function M.build_job(spec)
         combined_audio_name = spec.combined_audio_name,
         start_time          = spec.start_time,
         end_time            = spec.end_time,
-        duration            = (tonumber(spec.end_time) or 0) - (tonumber(spec.start_time) or 0),
+        duration            = duration,
+        -- output frame count for render progress: exact for encodes (the
+        -- fps filter forces CFR), approximate for VFR lossless cuts
+        total_frames        = (out_fps and out_fps > 0 and duration > 0) and math.ceil(duration * out_fps) or nil,
         input_duration      = spec.input_duration or 0,
         quality             = spec.quality,
         video_encoder       = spec.video_encoder,
