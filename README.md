@@ -117,7 +117,8 @@ This is done to avoid global bind conflicts.
 | Keybind | Action | Description              |
 |---------|--------|--------------------------|
 | t       | Menu   | Open the Tachytome menu. |
-| g       | Go To  | Open the Go To menu.     |
+| nil     | Go To  | Open the Go To menu.     |
+| nil     | Trash  | Trash current file.      |
 
 #### Menu
 
@@ -137,7 +138,7 @@ This is done to avoid global bind conflicts.
 | l       | Lossless Cut      | Toggle the lossless cut option.                                                                               |
 | a       | Accurate Cut      | Toggle accurate cut.<br>Makes cuts millisecond precise, but may cause a slight delay before rendering starts. |
 | c       | Combine Audio     | Toggle the combine audio option.                                                                              |
-| t       | Trash Source      | Toggle trashing of the source file.                                                                           |
+| t       | Trash Source      | Toggle trashing of the source file on render completion.                                                      |
 | <hr>    | <hr>              | <hr>                                                                                                          |
 | _       | Space Replacement | Set the character to replace spaces with.                                                                     |
 | p       | Path              | Set Output path.<br>Learn more about [Path](#path).                                                           |
@@ -179,12 +180,13 @@ It should get automatically generated on the first launch.<br>
 You can find that same example config [here](./tachytome.conf).<br>
 The example config contains detailed explanations of all the settings, I would highly suggest reading it.
 
-To change the default Tachytome binds, add the following to your `mpv/input.conf`:
+To access exposed Tachytome functions, add the following to your `mpv/input.conf`:
 ```
 t script-binding tachytome/menu
 g script-binding tachytome/goto
+d script-binding tachytome/trash
 ```
-Replace `t` and `g` with keys of your choice.
+Replace `t`, `g` and `d` with keys of your choice.
 
 ### Recovery
 
