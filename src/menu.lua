@@ -16,6 +16,8 @@ local function v(val) return string.format("%s%s%s", theme.c("value_color"), tos
 local menu_items = {
     { key = "i", label = "Mark In",  get_val = function() return v(actions.get_mark_in_display()) end,  action = function() actions.mark(0) end, keep_open = true },
     { key = "o", label = "Mark Out", get_val = function() return v(actions.get_mark_out_display()) end, action = function() actions.mark(1) end, keep_open = true },
+
+    { separator = true },
     { key = "I", label = "Go to In",  action = function() actions.goto_mark(0) end,        keep_open = true },
     { key = "O", label = "Go to Out", action = function() actions.goto_mark(1) end,        keep_open = true },
     { key = "g", label = "Go to",     action = function() actions.goto_prompt(M.open) end, keep_open = false },
@@ -23,8 +25,8 @@ local menu_items = {
     { separator = true },
     { key = "e", label = "Encoder", get_val = function() return v(state.opts.video_encoder) end,  action = function() actions.select_encoder(M.open) end, keep_open = false },
     { key = "q", label = "Quality", get_val = function() return v(state.opts.quality) end,        action = function() actions.set_quality(M.open) end,    keep_open = false },
-    { key = "P", label = "Preset",  get_val = function() return v(state.opts.preset) end,         action = function() actions.set_preset(M.open) end,     keep_open = false },
     { key = "F", label = "FPS",     get_val = function() return v(actions.get_fps_display()) end, action = function() actions.set_fps(M.open) end,       keep_open = false },
+    { key = "P", label = "Preset",  get_val = function() return v(state.opts.preset) end,         action = function() actions.set_preset(M.open) end,     keep_open = false },
 
     { separator = true },
     { key = "l", label = "Lossless Cut",  get_val = function() return state.opts.lossless_cut and on(state.opts.on_text) or off(state.opts.off_text) end,  action = actions.toggle_lossless,      keep_open = true },
