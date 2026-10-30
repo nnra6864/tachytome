@@ -41,7 +41,7 @@ function M.set_quality(on_complete)
     local max_val = 51
     local label   = "CRF"
 
-    if enc == "av1" then max_val = 63
+    if enc == "av1" or enc == "nv_av1" then max_val = 63
     elseif enc == "h265" then max_val = 51
     elseif enc:match("^intel_") then min_val = 1; label = "Global Quality"
     elseif enc:match("^nv_") or enc:match("^amd_") then label = "CQ" end
