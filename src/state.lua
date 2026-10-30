@@ -5,6 +5,7 @@ local common  = require 'src.common'
 
 local M = {
     opts = {
+        selected_keymap     = "default",
         output_dir          = "",
         video_encoder       = "av1",
         space_replacement   = "_",
@@ -34,8 +35,10 @@ local M = {
         off_text            = "OFF",
         off_color           = "FF0000",
         warning_color       = "FFFF00",
-        error_color         = "FF0000"
+        error_color         = "FF0000",
+        highlight_color     = "00FFFF"
     },
+    conf_path          = nil,
     custom_output_name = "",
     fps_override       = nil,
     mark_in            = 0,
@@ -46,11 +49,11 @@ local M = {
     ui_owner           = nil
 }
 
-local function ensure_config_exists()
-    local opts_dir  = mp.command_native({"expand-path", "~~/script-opts"})
-    local user_conf = utils.join_path(opts_dir, "tachytome.conf")
+local opts_dir  = mp.command_native({"expand-path", "~~/script-opts"})
+M.conf_path     = utils.join_path(opts_dir, "tachytome.conf")
 
-    local f = io.open(user_conf, "r")
+local function ensure_config_exists()
+    local f = io.open(M.conf_path, "r")
     if f then
         f:close()
         return
@@ -67,7 +70,7 @@ local function ensure_config_exists()
     rf:close()
 
     common.ensure_dir(opts_dir)
-    local wf = io.open(user_conf, "w")
+    local wf = io.open(M.conf_path, "w")
     if wf then
         wf:write(conf_content)
         wf:close()

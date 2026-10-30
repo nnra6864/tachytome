@@ -134,19 +134,19 @@ This is done to avoid global bind conflicts.
 | q       | Quality           | Set the video encoder quality parameter.                                                                      |
 | P       | Preset            | Set the video encoder preset parameter.                                                                       |
 | F       | FPS               | Set the FPS of the video.                                                                                     |
-| <hr>    | <hr>              | <hr>                                                                                                          |
 | l       | Lossless Cut      | Toggle the lossless cut option.                                                                               |
 | a       | Accurate Cut      | Toggle accurate cut.<br>Makes cuts millisecond precise, but may cause a slight delay before rendering starts. |
+| <hr>    | <hr>              | <hr>                                                                                                          |
 | c       | Combine Audio     | Toggle the combine audio option.                                                                              |
 | A       | First Audio Only  | Toggle the first audio only option.                                                                           |
-| t       | Trash Source      | Toggle trashing of the source file on render completion.                                                      |
 | <hr>    | <hr>              | <hr>                                                                                                          |
 | _       | Space Replacement | Set the character to replace spaces with.                                                                     |
 | p       | Path              | Set Output path.<br>Learn more about [Path](#path).                                                           |
+| t       | Trash Source      | Toggle trashing of the source file on render completion.                                                      |
 | <hr>    | <hr>              | <hr>                                                                                                          |
 | Enter   | Render            | Start the render of the output file.                                                                          |
-| R       | Pause Render      | Pause the current render and render queue.<br>Can only pause the render queue on Windows.                     |
 | r       | Render Queue      | Open the render queue menu.                                                                                   |
+| R       | Pause Render      | Pause the current render and render queue.<br>Can only pause the render queue on Windows.                     |
 | d       | Trash Source Now  | Trash the source file.                                                                                        |
 | s       | Stats             | Display Tachytome stats.                                                                                      |
 | <hr>    | <hr>              | <hr>                                                                                                          |
