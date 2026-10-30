@@ -147,6 +147,9 @@ function M.build_args(opts, input_file, output_file, creation_time)
                 table.insert(args, "-filter_complex") table.insert(args, filter_complex)
                 table.insert(args, "-map") table.insert(args, "[aout]")
                 table.insert(args, "-map") table.insert(args, "0")
+                if opts.first_audio_only then
+                    table.insert(args, "-map") table.insert(args, "-0:a")
+                end
 
                 table.insert(args, "-c:a:0") table.insert(args, encoder)
                 if media_info.a_meta.sample_rate and media_info.a_meta.sample_rate ~= "N/A" then
@@ -156,9 +159,11 @@ function M.build_args(opts, input_file, output_file, creation_time)
                     table.insert(args, "-b:a:0") table.insert(args, media_info.a_meta.bit_rate)
                 end
 
-                for i = 1, media_info.audio_count do
-                    table.insert(args, string.format("-c:a:%d", i))
-                    table.insert(args, "copy")
+                if not opts.first_audio_only then
+                    for i = 1, media_info.audio_count do
+                        table.insert(args, string.format("-c:a:%d", i))
+                        table.insert(args, "copy")
+                    end
                 end
 
                 table.insert(args, "-disposition:a:0") table.insert(args, "default")
