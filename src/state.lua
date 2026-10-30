@@ -36,7 +36,8 @@ local M = {
         off_color           = "FF0000",
         warning_color       = "FFFF00",
         error_color         = "FF0000",
-        highlight_color     = "00FFFF"
+        highlight_color     = "00FFFF",
+        flash_duration      = 0.1
     },
     conf_path          = nil,
     custom_output_name = "",

@@ -13,6 +13,8 @@ local active_map    = {}
 local active_prefix = ""
 local bound_names   = {}
 local esc_back      = false
+local flash_name    = nil
+local flash_timer   = nil
 
 local function off(val) return string.format("%s%s%s", theme.c("off_color"), tostring(val), theme.reset()) end
 local function on(val) return string.format("%s%s%s", theme.c("on_color"),   tostring(val), theme.reset()) end
@@ -222,11 +224,11 @@ local function seq_matches(seq)
     return seq:sub(#active_prefix + 1, #active_prefix + 1) == "-"
 end
 
-local function render_seq(seq)
+local function render_seq(seq, base)
     if not seq_matches(seq) then
-        return theme.c("text_color") .. seq
+        return base .. seq
     end
-    return theme.c("highlight_color") .. active_prefix .. theme.reset() .. seq:sub(#active_prefix + 1)
+    return theme.c("highlight_color") .. active_prefix .. base .. seq:sub(#active_prefix + 1)
 end
 
 local function draw()
@@ -257,14 +259,15 @@ local function draw()
             if seqs then
                 local key_str = table.concat(seqs, ",")
                 local key_pad = string.rep("\\h", max_key_len - #key_str)
+                local base    = flash_name == def.name and theme.c("highlight_color") or theme.c("text_color")
                 local key_txt = nil
                 local matched = false
                 for _, seq in ipairs(seqs) do
-                    key_txt = key_txt and key_txt .. theme.reset() .. "," .. render_seq(seq) or render_seq(seq)
+                    key_txt = key_txt and key_txt .. base .. "," .. render_seq(seq, base) or render_seq(seq, base)
                     if seq_matches(seq) then matched = true end
                 end
 
-                local line = string.format("%s%s -> %s", key_pad, key_txt, def.label)
+                local line = string.format("%s%s%s -> %s", key_pad, key_txt, base, def.label)
                 local dim  = active_prefix ~= "" and not matched
 
                 if dim then line = theme.a("66") .. line end
@@ -287,6 +290,24 @@ local function draw()
 
     menu_overlay.data = text
     menu_overlay:update()
+end
+
+local function stop_flash()
+    flash_name = nil
+    if flash_timer then
+        flash_timer:kill()
+        flash_timer = nil
+    end
+end
+
+local function start_flash()
+    if not flash_name then return end
+    if flash_timer then flash_timer:kill() end
+    flash_timer = mp.add_timeout(state.opts.flash_duration, function()
+        flash_timer = nil
+        flash_name  = nil
+        if menu_active then draw() end
+    end)
 end
 
 local function level_keys(prefix)
@@ -348,11 +369,15 @@ fire = function(act)
     local def = defs_by_name[act]
     if not def then return end
     if not def.keep_open then M.close() end
+    if state.opts.flash_duration > 0 then flash_name = act end
     def.action()
     if menu_active then
         active_prefix = ""
         bind_level()
         draw()
+        start_flash()
+    elseif not state.ui_owner then
+        flash_name = nil
     end
 end
 
@@ -381,6 +406,7 @@ function M.close()
     menu_active    = false
     state.ui_owner = nil
     active_prefix  = ""
+    stop_flash()
     menu_overlay:remove()
     unbind_all()
 end
@@ -397,6 +423,7 @@ function M.open()
     mp.osd_message("", 0)
     bind_level()
     draw()
+    start_flash()
 end
 
 function M.refresh()
