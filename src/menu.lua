@@ -5,6 +5,7 @@ local keymap  = require 'src.keymap'
 local notify  = require 'src.notify'
 local render  = require 'src.render'
 local theme   = require 'src.theme'
+local easing  = require 'src.easing'
 
 local M             = {}
 local menu_active   = false
@@ -13,8 +14,42 @@ local active_map    = {}
 local active_prefix = ""
 local bound_names   = {}
 local esc_back      = false
-local flash_name    = nil
+local flashes       = {}
 local flash_timer   = nil
+local pending_name  = nil
+local flash_frame   = 0.003
+
+local function resolve_easing(val, name)
+    local fn = easing.parse(val)
+    if not fn then
+        fn = easing.parse("linear")
+        notify.show("unknown " .. name .. " '" .. tostring(val) .. "', using linear", false, "warn")
+    end
+    return fn
+end
+
+local function resolve_duration(val, fallback)
+    local n = tonumber(val)
+    if n == nil or n < 0 then return fallback end
+    return n
+end
+
+local flash_spec = {
+    in_d  = state.opts.flash_in_duration,
+    in_e  = resolve_easing(state.opts.flash_in_easing, "flash_in_easing"),
+    out_d = state.opts.flash_out_duration,
+    out_e = resolve_easing(state.opts.flash_out_easing, "flash_out_easing")
+}
+
+local start_spec = {
+    in_d  = resolve_duration(state.opts.start_in_duration, flash_spec.in_d),
+    in_e  = state.opts.start_in_easing ~= "" and resolve_easing(state.opts.start_in_easing, "start_in_easing") or flash_spec.in_e,
+    out_d = resolve_duration(state.opts.start_out_duration, flash_spec.out_d),
+    out_e = state.opts.start_out_easing ~= "" and resolve_easing(state.opts.start_out_easing, "start_out_easing") or flash_spec.out_e
+}
+
+flash_spec.total = flash_spec.in_d + flash_spec.out_d
+start_spec.total = start_spec.in_d + start_spec.out_d
 
 local function off(val) return string.format("%s%s%s", theme.c("off_color"), tostring(val), theme.reset()) end
 local function on(val) return string.format("%s%s%s", theme.c("on_color"),   tostring(val), theme.reset()) end
@@ -228,7 +263,18 @@ local function render_seq(seq, base)
     if not seq_matches(seq) then
         return base .. seq
     end
-    return theme.c("highlight_color") .. active_prefix .. base .. seq:sub(#active_prefix + 1)
+    return theme.c("flash_color") .. active_prefix .. base .. seq:sub(#active_prefix + 1)
+end
+
+local function flash_progress(fl)
+    local t    = mp.get_time() - fl.at
+    local spec = fl.spec
+    if t <= 0 then return 0 end
+    if t < spec.in_d then return spec.in_e(t / spec.in_d) end
+    if spec.out_d <= 0 then return 0 end
+    local u = (t - spec.in_d) / spec.out_d
+    if u >= 1 then return 0 end
+    return 1 - spec.out_e(u)
 end
 
 local function draw()
@@ -259,7 +305,12 @@ local function draw()
             if seqs then
                 local key_str = table.concat(seqs, ",")
                 local key_pad = string.rep("\\h", max_key_len - #key_str)
-                local base    = flash_name == def.name and theme.c("highlight_color") or theme.c("text_color")
+                local base    = theme.c("text_color")
+                local fl      = flashes[def.name]
+                if fl then
+                    local p = flash_progress(fl)
+                    if p > 0 then base = theme.mix(state.opts.text_color, state.opts.flash_color, p) end
+                end
                 local key_txt = nil
                 local matched = false
                 for _, seq in ipairs(seqs) do
@@ -293,21 +344,45 @@ local function draw()
 end
 
 local function stop_flash()
-    flash_name = nil
+    flashes = {}
     if flash_timer then
         flash_timer:kill()
         flash_timer = nil
     end
 end
 
-local function start_flash()
-    if not flash_name then return end
-    if flash_timer then flash_timer:kill() end
-    flash_timer = mp.add_timeout(state.opts.flash_duration, function()
+local function flash_tick()
+    local now = mp.get_time()
+    for name, fl in pairs(flashes) do
+        if now >= fl.at + fl.spec.total then flashes[name] = nil end
+    end
+    if not next(flashes) and flash_timer then
+        flash_timer:kill()
         flash_timer = nil
-        flash_name  = nil
-        if menu_active then draw() end
-    end)
+    end
+    if menu_active then draw() end
+end
+
+local function start_flash(name, delay, spec)
+    if spec.total <= 0 then return end
+    flashes[name] = { at = mp.get_time() + (delay or 0), spec = spec }
+    if not flash_timer then
+        flash_timer = mp.add_periodic_timer(flash_frame, flash_tick)
+    end
+end
+
+local function start_cascade()
+    if start_spec.total <= 0 then return end
+    local bound = {}
+    for _, action in pairs(active_map) do bound[action] = true end
+    local stagger = math.max(0, state.opts.start_stagger)
+    local i = 0
+    for _, def in ipairs(registry) do
+        if not def.separator and bound[def.name] then
+            start_flash(def.name, i * stagger, start_spec)
+            i = i + 1
+        end
+    end
 end
 
 local function level_keys(prefix)
@@ -369,15 +444,16 @@ fire = function(act)
     local def = defs_by_name[act]
     if not def then return end
     if not def.keep_open then M.close() end
-    if state.opts.flash_duration > 0 then flash_name = act end
+    if flash_spec.total > 0 then pending_name = act end
     def.action()
     if menu_active then
+        pending_name = nil
         active_prefix = ""
         bind_level()
+        start_flash(act, nil, flash_spec)
         draw()
-        start_flash()
     elseif not state.ui_owner then
-        flash_name = nil
+        pending_name = nil
     end
 end
 
@@ -422,8 +498,13 @@ function M.open()
     mp.set_osd_ass(0, 0, "")
     mp.osd_message("", 0)
     bind_level()
+    if pending_name then
+        start_flash(pending_name, nil, flash_spec)
+        pending_name = nil
+    else
+        start_cascade()
+    end
     draw()
-    start_flash()
 end
 
 function M.refresh()

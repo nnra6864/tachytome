@@ -2,16 +2,36 @@ local state = require 'src.state'
 
 local M = {}
 
-local function hex(h)
-    if type(h) ~= "string" then return "&HFFFFFF&" end
+local function channels(h)
+    if type(h) ~= "string" then return nil end
     h = h:gsub("#", "")
-    if #h ~= 6 then return "&HFFFFFF&" end
-    return string.format("&H%s%s%s&", h:sub(5,6), h:sub(3,4), h:sub(1,2))
+    if #h ~= 6 then return nil end
+    local r = tonumber(h:sub(1, 2), 16)
+    local g = tonumber(h:sub(3, 4), 16)
+    local b = tonumber(h:sub(5, 6), 16)
+    if not r or not g or not b then return nil end
+    return r, g, b
+end
+
+local function hex(h)
+    local r, g, b = channels(h)
+    if not r then return "&HFFFFFF&" end
+    return string.format("&H%02X%02X%02X&", b, g, r)
 end
 
 function M.c(key)
     local color = state.opts[key] or state.opts.text_color
     return string.format("{\\c%s}", hex(color))
+end
+
+function M.mix(ha, hb, t)
+    local ar, ag, ab = channels(ha)
+    local br, bg, bb = channels(hb)
+    if not ar or not br then return "{\\c&HFFFFFF&}" end
+    local r = math.max(0, math.min(255, math.floor(ar + (br - ar) * t + 0.5)))
+    local g = math.max(0, math.min(255, math.floor(ag + (bg - ag) * t + 0.5)))
+    local b = math.max(0, math.min(255, math.floor(ab + (bb - ab) * t + 0.5)))
+    return string.format("{\\c&H%02X%02X%02X&}", b, g, r)
 end
 
 function M.reset()
