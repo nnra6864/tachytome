@@ -50,6 +50,42 @@ local function deselect_extra_audio(args, audio_count)
     end
 end
 
+local function append_combine_audio(args, opts, media_info)
+    local encoder = media_info.a_meta.codec
+    if media_info.a_meta.codec     == "opus" then encoder   = "libopus"
+    elseif media_info.a_meta.codec == "mp3" then encoder    = "libmp3lame"
+    elseif media_info.a_meta.codec == "vorbis" then encoder = "libvorbis" end
+
+    local filter_inputs = ""
+    for i = 0, media_info.audio_count - 1 do filter_inputs = filter_inputs .. string.format("[0:a:%d]", i) end
+    local filter_complex = string.format("%samix=inputs=%d:normalize=0[aout]", filter_inputs, media_info.audio_count)
+
+    table.insert(args, "-filter_complex") table.insert(args, filter_complex)
+    table.insert(args, "-map") table.insert(args, "[aout]")
+    table.insert(args, "-map") table.insert(args, "0")
+    if opts.first_audio_only then
+        table.insert(args, "-map") table.insert(args, "-0:a")
+    end
+
+    table.insert(args, "-c:a:0") table.insert(args, encoder)
+    if media_info.a_meta.sample_rate and media_info.a_meta.sample_rate ~= "N/A" then
+        table.insert(args, "-ar:0") table.insert(args, media_info.a_meta.sample_rate)
+    end
+    if media_info.a_meta.bit_rate and media_info.a_meta.bit_rate ~= "N/A" then
+        table.insert(args, "-b:a:0") table.insert(args, media_info.a_meta.bit_rate)
+    end
+
+    if not opts.first_audio_only then
+        for i = 1, media_info.audio_count do
+            table.insert(args, string.format("-c:a:%d", i))
+            table.insert(args, "copy")
+        end
+    end
+
+    table.insert(args, "-disposition:a:0") table.insert(args, "default")
+    table.insert(args, "-metadata:s:a:0")  table.insert(args, string.format("TITLE=%s", opts.combined_audio_name))
+end
+
 function M.build_args(opts, input_file, output_file, creation_time)
     local args       = { "ffmpeg", "-y", "-hide_banner" }
     local duration   = opts.mark_out - opts.mark_in
@@ -77,15 +113,26 @@ function M.build_args(opts, input_file, output_file, creation_time)
 
     if opts.lossless_cut then
         out_fps = parse_fps(media_info.v_fps)
-        local codec_args = {
-            "-c",            "copy",
-            "-map",          "0",
-            "-map_metadata", "0",
-            "-metadata",     "ENCODED_BY=tachytome",
-            "-metadata",     "TACHYTOME_MODE=Lossless"
-        }
-        for _, v in ipairs(codec_args) do table.insert(args, v) end
-        if opts.first_audio_only then deselect_extra_audio(args, media_info.audio_count) end
+        if opts.combine_audio and media_info.audio_count > 1 and media_info.a_meta then
+            local codec_args = {
+                "-c",            "copy",
+                "-map_metadata", "0",
+                "-metadata",     "ENCODED_BY=tachytome",
+                "-metadata",     "TACHYTOME_MODE=Lossless"
+            }
+            for _, v in ipairs(codec_args) do table.insert(args, v) end
+            append_combine_audio(args, opts, media_info)
+        else
+            local codec_args = {
+                "-c",            "copy",
+                "-map",          "0",
+                "-map_metadata", "0",
+                "-metadata",     "ENCODED_BY=tachytome",
+                "-metadata",     "TACHYTOME_MODE=Lossless"
+            }
+            for _, v in ipairs(codec_args) do table.insert(args, v) end
+            if opts.first_audio_only then deselect_extra_audio(args, media_info.audio_count) end
+        end
     else
         local enc = opts.video_encoder:lower()
 
@@ -135,39 +182,7 @@ function M.build_args(opts, input_file, output_file, creation_time)
 
         if opts.combine_audio then
             if media_info.audio_count > 1 and media_info.a_meta then
-                local encoder = media_info.a_meta.codec
-                if media_info.a_meta.codec     == "opus" then encoder   = "libopus"
-                elseif media_info.a_meta.codec == "mp3" then encoder    = "libmp3lame"
-                elseif media_info.a_meta.codec == "vorbis" then encoder = "libvorbis" end
-
-                local filter_inputs = ""
-                for i = 0, media_info.audio_count - 1 do filter_inputs = filter_inputs .. string.format("[0:a:%d]", i) end
-                local filter_complex = string.format("%samix=inputs=%d:normalize=0[aout]", filter_inputs, media_info.audio_count)
-
-                table.insert(args, "-filter_complex") table.insert(args, filter_complex)
-                table.insert(args, "-map") table.insert(args, "[aout]")
-                table.insert(args, "-map") table.insert(args, "0")
-                if opts.first_audio_only then
-                    table.insert(args, "-map") table.insert(args, "-0:a")
-                end
-
-                table.insert(args, "-c:a:0") table.insert(args, encoder)
-                if media_info.a_meta.sample_rate and media_info.a_meta.sample_rate ~= "N/A" then
-                    table.insert(args, "-ar:0") table.insert(args, media_info.a_meta.sample_rate)
-                end
-                if media_info.a_meta.bit_rate and media_info.a_meta.bit_rate ~= "N/A" then
-                    table.insert(args, "-b:a:0") table.insert(args, media_info.a_meta.bit_rate)
-                end
-
-                if not opts.first_audio_only then
-                    for i = 1, media_info.audio_count do
-                        table.insert(args, string.format("-c:a:%d", i))
-                        table.insert(args, "copy")
-                    end
-                end
-
-                table.insert(args, "-disposition:a:0") table.insert(args, "default")
-                table.insert(args, "-metadata:s:a:0")  table.insert(args, string.format("TITLE=%s", opts.combined_audio_name))
+                append_combine_audio(args, opts, media_info)
             else
                 table.insert(args, "-map") table.insert(args, "0")
             end

@@ -206,13 +206,9 @@ end
 
 function M.toggle_lossless()
     state.opts.lossless_cut = not state.opts.lossless_cut
-    if state.opts.lossless_cut then
-        state.opts.accurate_cut = false
-        state.opts.combine_audio = false
-    end
-    notify.show("Lossless Cut: '"  .. tostring(state.opts.lossless_cut)  .. "'")
-    notify.show("Accurate Cut: '"  .. tostring(state.opts.accurate_cut)  .. "'")
-    notify.show("Combine Audio: '" .. tostring(state.opts.combine_audio) .. "'")
+    if state.opts.lossless_cut then state.opts.accurate_cut = false end
+    notify.show("Lossless Cut: '" .. tostring(state.opts.lossless_cut) .. "'")
+    notify.show("Accurate Cut: '" .. tostring(state.opts.accurate_cut) .. "'")
 end
 
 function M.toggle_accurate()
@@ -224,9 +220,7 @@ end
 
 function M.toggle_combine_audio()
     state.opts.combine_audio = not state.opts.combine_audio
-    if state.opts.combine_audio then state.opts.lossless_cut = false end
     notify.show("Combine Audio: '" .. tostring(state.opts.combine_audio) .. "'")
-    notify.show("Lossless Cut: '"  .. tostring(state.opts.lossless_cut)  .. "'")
 end
 
 function M.toggle_first_audio_only()
