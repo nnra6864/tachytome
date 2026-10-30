@@ -44,6 +44,12 @@ local function parse_fps(value)
     return nil
 end
 
+local function deselect_extra_audio(args, audio_count)
+    for i = 1, audio_count - 1 do
+        table.insert(args, "-map") table.insert(args, string.format("-0:a:%d", i))
+    end
+end
+
 function M.build_args(opts, input_file, output_file, creation_time)
     local args       = { "ffmpeg", "-y", "-hide_banner" }
     local duration   = opts.mark_out - opts.mark_in
@@ -79,6 +85,7 @@ function M.build_args(opts, input_file, output_file, creation_time)
             "-metadata",     "TACHYTOME_MODE=Lossless"
         }
         for _, v in ipairs(codec_args) do table.insert(args, v) end
+        if opts.first_audio_only then deselect_extra_audio(args, media_info.audio_count) end
     else
         local enc = opts.video_encoder:lower()
 
@@ -159,6 +166,9 @@ function M.build_args(opts, input_file, output_file, creation_time)
             else
                 table.insert(args, "-map") table.insert(args, "0")
             end
+        elseif opts.first_audio_only then
+            table.insert(args, "-map") table.insert(args, "0")
+            deselect_extra_audio(args, media_info.audio_count)
         else
             table.insert(args, "-map") table.insert(args, "0")
         end

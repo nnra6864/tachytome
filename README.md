@@ -138,6 +138,7 @@ This is done to avoid global bind conflicts.
 | l       | Lossless Cut      | Toggle the lossless cut option.                                                                               |
 | a       | Accurate Cut      | Toggle accurate cut.<br>Makes cuts millisecond precise, but may cause a slight delay before rendering starts. |
 | c       | Combine Audio     | Toggle the combine audio option.                                                                              |
+| A       | First Audio Only  | Toggle the first audio only option.                                                                           |
 | t       | Trash Source      | Toggle trashing of the source file on render completion.                                                      |
 | <hr>    | <hr>              | <hr>                                                                                                          |
 | _       | Space Replacement | Set the character to replace spaces with.                                                                     |

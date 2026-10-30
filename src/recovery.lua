@@ -235,6 +235,7 @@ local function adopt_orphan_queue(file)
                 accurate_cut        = it.accurate_cut,
                 combine_audio       = it.combine_audio,
                 combined_audio_name = it.combined_audio_name,
+                first_audio_only    = it.first_audio_only,
                 trash_source        = it.trash_source,
                 trash_path          = it.trash_path,
                 space_replacement   = it.space_replacement,

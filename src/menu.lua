@@ -29,10 +29,11 @@ local menu_items = {
     { key = "P", label = "Preset",  get_val = function() return v(state.opts.preset) end,         action = function() actions.set_preset(M.open) end,     keep_open = false },
 
     { separator = true },
-    { key = "l", label = "Lossless Cut",  get_val = function() return state.opts.lossless_cut and on(state.opts.on_text) or off(state.opts.off_text) end,  action = actions.toggle_lossless,      keep_open = true },
-    { key = "a", label = "Accurate Cut",  get_val = function() return state.opts.accurate_cut and on(state.opts.on_text) or off(state.opts.off_text) end,  action = actions.toggle_accurate,      keep_open = true },
-    { key = "c", label = "Combine Audio", get_val = function() return state.opts.combine_audio and on(state.opts.on_text) or off(state.opts.off_text) end, action = actions.toggle_combine_audio, keep_open = true },
-    { key = "t", label = "Trash Source",  get_val = function() return state.opts.trash_source and on(state.opts.on_text) or off(state.opts.off_text) end,  action = actions.toggle_trash_source,  keep_open = true },
+    { key = "l", label = "Lossless Cut",     get_val = function() return state.opts.lossless_cut and on(state.opts.on_text) or off(state.opts.off_text) end,     action = actions.toggle_lossless,         keep_open = true },
+    { key = "a", label = "Accurate Cut",     get_val = function() return state.opts.accurate_cut and on(state.opts.on_text) or off(state.opts.off_text) end,     action = actions.toggle_accurate,         keep_open = true },
+    { key = "c", label = "Combine Audio",    get_val = function() return state.opts.combine_audio and on(state.opts.on_text) or off(state.opts.off_text) end,    action = actions.toggle_combine_audio,    keep_open = true },
+    { key = "A", label = "First Audio Only", get_val = function() return state.opts.first_audio_only and on(state.opts.on_text) or off(state.opts.off_text) end, action = actions.toggle_first_audio_only, keep_open = true },
+    { key = "t", label = "Trash Source",     get_val = function() return state.opts.trash_source and on(state.opts.on_text) or off(state.opts.off_text) end,     action = actions.toggle_trash_source,     keep_open = true },
 
     { separator = true },
     { key = "_", label = "Space Replacement", get_val = function() return v(actions.get_space_replacement_display()) end, action = function() actions.set_space_replacement(M.open) end, keep_open = false },

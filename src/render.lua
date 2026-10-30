@@ -344,6 +344,7 @@ function M.start(opts)
         accurate_cut        = opts.accurate_cut,
         combine_audio       = opts.combine_audio,
         combined_audio_name = opts.combined_audio_name,
+        first_audio_only    = opts.first_audio_only,
         trash_source        = opts.trash_source,
         trash_path          = opts.trash_path,
         space_replacement   = opts.space_replacement,

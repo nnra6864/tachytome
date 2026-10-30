@@ -224,9 +224,20 @@ end
 
 function M.toggle_combine_audio()
     state.opts.combine_audio = not state.opts.combine_audio
-    if state.opts.combine_audio then state.opts.lossless_cut = false end
-    notify.show("Combine Audio: '" .. tostring(state.opts.combine_audio) .. "'")
-    notify.show("Lossless Cut: '"  .. tostring(state.opts.lossless_cut)  .. "'")
+    if state.opts.combine_audio then
+        state.opts.lossless_cut     = false
+        state.opts.first_audio_only = false
+    end
+    notify.show("Combine Audio: '"    .. tostring(state.opts.combine_audio)    .. "'")
+    notify.show("Lossless Cut: '"     .. tostring(state.opts.lossless_cut)     .. "'")
+    notify.show("First Audio Only: '" .. tostring(state.opts.first_audio_only) .. "'")
+end
+
+function M.toggle_first_audio_only()
+    state.opts.first_audio_only = not state.opts.first_audio_only
+    if state.opts.first_audio_only then state.opts.combine_audio = false end
+    notify.show("First Audio Only: '" .. tostring(state.opts.first_audio_only) .. "'")
+    notify.show("Combine Audio: '"    .. tostring(state.opts.combine_audio)    .. "'")
 end
 
 function M.toggle_trash_source()
@@ -305,6 +316,7 @@ function M.start_render(on_complete)
         fps_override        = state.fps_override,
         combine_audio       = state.opts.combine_audio,
         combined_audio_name = state.opts.combined_audio_name,
+        first_audio_only    = state.opts.first_audio_only,
         trash_source        = state.opts.trash_source,
         trash_path          = state.trash_path,
         space_replacement   = state.opts.space_replacement,

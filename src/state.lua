@@ -15,6 +15,7 @@ local M = {
         quality             = 35,
         preset              = 4,
         combine_audio       = false,
+        first_audio_only    = false,
         combined_audio_name = "Combined",
         trash_source        = true,
         show_stats_screen   = true,
