@@ -43,6 +43,7 @@ function M.set_quality(on_complete)
 
     if enc == "av1" or enc == "nv_av1" then max_val = 63
     elseif enc == "h265" then max_val = 51
+    elseif enc == "h264" then max_val = 51
     elseif enc:match("^intel_") then min_val = 1; label = "Global Quality"
     elseif enc:match("^nv_") or enc:match("^amd_") then label = "CQ" end
 
@@ -66,6 +67,7 @@ function M.set_preset(on_complete)
 
     if enc == "av1" then presets = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13"}
     elseif enc == "h265" then presets = {"ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow", "placebo"}
+    elseif enc == "h264" then presets = {"ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow", "placebo"}
     elseif enc:match("^nv_") then presets = {"p1", "p2", "p3", "p4", "p5", "p6", "p7"}
     elseif enc:match("^amd_") then presets = {"speed", "balanced", "quality"}
     elseif enc:match("^intel_") then presets = {"veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow"}
@@ -123,7 +125,7 @@ function M.set_fps(on_complete)
 end
 
 function M.select_encoder(on_complete)
-    local encoders = { "av1", "nv_av1", "amd_av1", "intel_av1", "h265", "nv_h265", "amd_h265", "intel_h265" }
+    local encoders = { "av1", "nv_av1", "amd_av1", "intel_av1", "h265", "nv_h265", "amd_h265", "intel_h265", "h264", "nv_h264", "amd_h264", "intel_h264" }
 
     ui_list.show("Select Video Encoder", encoders, state.opts.video_encoder, function(new_enc)
         if new_enc ~= state.opts.video_encoder then
@@ -131,6 +133,7 @@ function M.select_encoder(on_complete)
 
             if new_enc == "av1" then state.opts.preset = 4
             elseif new_enc == "h265" then state.opts.preset = "slow"
+            elseif new_enc == "h264" then state.opts.preset = "slow"
             elseif new_enc:match("^nv_") then state.opts.preset = "p7"
             elseif new_enc:match("^amd_") then state.opts.preset = "quality"
             elseif new_enc:match("^intel_") then state.opts.preset = "veryslow" end

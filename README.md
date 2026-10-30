@@ -3,7 +3,7 @@
 Tachos (τάχος) – Speed<br>
 Tome &nbsp;&nbsp;(τομή) &nbsp;– Cut
 
-Keyboard Driven, AV1/H265/Lossless, MPV Video Cutter.
+Keyboard Driven, AV1/H265/H264/Lossless, MPV Video Cutter.
 
 <a href="https://youtu.be/PoyvYFPhrfI">
   <img src="assets/tachytome.webp" width="100%">

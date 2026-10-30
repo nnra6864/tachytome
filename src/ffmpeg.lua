@@ -176,6 +176,18 @@ function M.build_args(opts, input_file, output_file, creation_time)
         elseif enc == "intel_h265" then
             local hw_args = { "-c:v", "hevc_qsv", "-preset", tostring(opts.preset), "-profile:v", "main10", "-global_quality", quality_str, "-extbrc", "1", "-look_ahead_depth", "32", "-pix_fmt", "p010le" }
             for _, v in ipairs(hw_args) do table.insert(args, v) end
+        elseif enc == "h264" then
+            local hw_args = { "-c:v", "libx264", "-preset", tostring(opts.preset), "-crf", quality_str, "-pix_fmt", "yuv420p", "-x264-params", "aq-mode=3", "-metadata", "TACHYTOME_PRESET=" .. tostring(opts.preset) }
+            for _, v in ipairs(hw_args) do table.insert(args, v) end
+        elseif enc == "nv_h264" then
+            local hw_args = { "-c:v", "h264_nvenc", "-preset", tostring(opts.preset), "-profile:v", "high", "-tune", "hq", "-rc", "vbr", "-cq", quality_str, "-b:v", "0", "-spatial-aq", "1", "-temporal-aq", "1", "-b_ref_mode", "middle", "-rc-lookahead", "32", "-multipass", "fullres", "-pix_fmt", "yuv420p" }
+            for _, v in ipairs(hw_args) do table.insert(args, v) end
+        elseif enc == "amd_h264" then
+            local hw_args = { "-c:v", "h264_amf", "-usage", "transcoding", "-quality", tostring(opts.preset), "-profile:v", "high", "-rc", "cqp", "-qp_i", quality_str, "-qp_p", quality_str, "-preanalysis", "1", "-pix_fmt", "yuv420p" }
+            for _, v in ipairs(hw_args) do table.insert(args, v) end
+        elseif enc == "intel_h264" then
+            local hw_args = { "-c:v", "h264_qsv", "-preset", tostring(opts.preset), "-profile:v", "high", "-global_quality", quality_str, "-extbrc", "1", "-look_ahead_depth", "32", "-pix_fmt", "nv12" }
+            for _, v in ipairs(hw_args) do table.insert(args, v) end
         else
             local hw_args = { "-c:v", "libsvtav1", "-preset", tostring(opts.preset), "-crf", quality_str, "-pix_fmt", "yuv420p10le", "-svtav1-params", "tune=0:scd=1", "-metadata", "TACHYTOME_PRESET=" .. tostring(opts.preset) }
             for _, v in ipairs(hw_args) do table.insert(args, v) end
