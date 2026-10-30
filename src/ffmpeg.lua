@@ -156,7 +156,7 @@ function M.build_args(opts, input_file, output_file, creation_time)
         table.insert(args, "-metadata") table.insert(args, "TACHYTOME_QUALITY=" .. quality_str)
 
         if enc == "nv_av1" then
-            local hw_args = { "-c:v", "av1_nvenc", "-preset", tostring(opts.preset), "-tune", "hq", "-rc", "vbr", "-cq", quality_str, "-b:v", "0", "-spatial-aq", "1", "-temporal-aq", "1", "-rc-lookahead", "32", "-multipass", "fullres", "-pix_fmt", "p010le" }
+            local hw_args = { "-c:v", "av1_nvenc", "-preset", tostring(opts.preset), "-tune", "hq", "-rc", "vbr", "-cq", quality_str, "-b:v", "0", "-spatial-aq", "1", "-temporal-aq", "1", "-b_ref_mode", "middle", "-rc-lookahead", "32", "-multipass", "fullres", "-pix_fmt", "p010le" }
             for _, v in ipairs(hw_args) do table.insert(args, v) end
         elseif enc == "amd_av1" then
             local hw_args = { "-c:v", "av1_amf", "-usage", "transcoding", "-quality", tostring(opts.preset), "-rc", "cqp", "-qp_i", quality_str, "-qp_p", quality_str, "-preanalysis", "1", "-pix_fmt", "p010le" }
@@ -168,7 +168,7 @@ function M.build_args(opts, input_file, output_file, creation_time)
             local hw_args = { "-c:v", "libx265", "-preset", tostring(opts.preset), "-crf", quality_str, "-pix_fmt", "yuv420p10le", "-x265-params", "aq-mode=3", "-metadata", "TACHYTOME_PRESET=" .. tostring(opts.preset) }
             for _, v in ipairs(hw_args) do table.insert(args, v) end
         elseif enc == "nv_h265" then
-            local hw_args = { "-c:v", "hevc_nvenc", "-preset", tostring(opts.preset), "-profile:v", "main10", "-tune", "hq", "-rc", "vbr", "-cq", quality_str, "-b:v", "0", "-spatial-aq", "1", "-temporal-aq", "1", "-b_ref_mode", "middle", "-rc-lookahead", "32", "-multipass", "fullres", "-pix_fmt", "p010le" }
+            local hw_args = { "-c:v", "hevc_nvenc", "-preset", tostring(opts.preset), "-profile:v", "main10", "-tune", "uhq", "-rc", "vbr", "-cq", quality_str, "-b:v", "0", "-spatial-aq", "1", "-temporal-aq", "1", "-b_ref_mode", "middle", "-rc-lookahead", "32", "-multipass", "fullres", "-pix_fmt", "p010le" }
             for _, v in ipairs(hw_args) do table.insert(args, v) end
         elseif enc == "amd_h265" then
             local hw_args = { "-c:v", "hevc_amf", "-usage", "transcoding", "-quality", tostring(opts.preset), "-profile:v", "main10", "-rc", "cqp", "-qp_i", quality_str, "-qp_p", quality_str, "-preanalysis", "1", "-pix_fmt", "p010le" }
