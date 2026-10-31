@@ -91,6 +91,35 @@ function M.ensure_dir(path)
     end
 end
 
+function M.ensure_default_conf(name)
+    local opts_dir  = mp.command_native({"expand-path", "~~/script-opts"})
+    local conf_path = utils.join_path(opts_dir, name)
+
+    local f = io.open(conf_path, "r")
+    if f then
+        f:close()
+        return conf_path
+    end
+
+    local script_dir = mp.get_script_directory()
+    if not script_dir then return conf_path end
+
+    local rf = io.open(utils.join_path(script_dir, name), "r")
+    if not rf then return conf_path end
+
+    local conf_content = rf:read("*all")
+    rf:close()
+
+    M.ensure_dir(opts_dir)
+    local wf = io.open(conf_path, "w")
+    if wf then
+        wf:write(conf_content)
+        wf:close()
+        mp.msg.info("Generated default config at: " .. conf_path)
+    end
+    return conf_path
+end
+
 local function resolve_absolute_path_base(custom, opts, input_path)
     if not input_path or input_path == "" then return "" end
 
