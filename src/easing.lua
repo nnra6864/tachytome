@@ -23,79 +23,79 @@ local function out_bounce(t)
 end
 
 local easings = {
-    linear           = function(t) return t end,
-    easeInQuad       = function(t) return t * t end,
-    easeOutQuad      = function(t) return 1 - (1 - t) * (1 - t) end,
-    easeInOutQuad    = function(t)
+    linear              = function(t) return t end,
+    ease_in_quad        = function(t) return t * t end,
+    ease_out_quad       = function(t) return 1 - (1 - t) * (1 - t) end,
+    ease_in_out_quad    = function(t)
         if t < 0.5 then return 2 * t * t end
         return 1 - (-2 * t + 2) ^ 2 / 2
     end,
-    easeInCubic      = function(t) return t * t * t end,
-    easeOutCubic     = function(t) return 1 - (1 - t) ^ 3 end,
-    easeInOutCubic   = function(t)
+    ease_in_cubic       = function(t) return t * t * t end,
+    ease_out_cubic      = function(t) return 1 - (1 - t) ^ 3 end,
+    ease_in_out_cubic   = function(t)
         if t < 0.5 then return 4 * t * t * t end
         return 1 - (-2 * t + 2) ^ 3 / 2
     end,
-    easeInQuart      = function(t) return t ^ 4 end,
-    easeOutQuart     = function(t) return 1 - (1 - t) ^ 4 end,
-    easeInOutQuart   = function(t)
+    ease_in_quart       = function(t) return t ^ 4 end,
+    ease_out_quart      = function(t) return 1 - (1 - t) ^ 4 end,
+    ease_in_out_quart   = function(t)
         if t < 0.5 then return 8 * t ^ 4 end
         return 1 - (-2 * t + 2) ^ 4 / 2
     end,
-    easeInQuint      = function(t) return t ^ 5 end,
-    easeOutQuint     = function(t) return 1 - (1 - t) ^ 5 end,
-    easeInOutQuint   = function(t)
+    ease_in_quint       = function(t) return t ^ 5 end,
+    ease_out_quint      = function(t) return 1 - (1 - t) ^ 5 end,
+    ease_in_out_quint   = function(t)
         if t < 0.5 then return 16 * t ^ 5 end
         return 1 - (-2 * t + 2) ^ 5 / 2
     end,
-    easeInSine       = function(t) return 1 - math.cos(t * math.pi / 2) end,
-    easeOutSine      = function(t) return math.sin(t * math.pi / 2) end,
-    easeInOutSine    = function(t) return -(math.cos(math.pi * t) - 1) / 2 end,
-    easeInExpo       = function(t)
+    ease_in_sine        = function(t) return 1 - math.cos(t * math.pi / 2) end,
+    ease_out_sine       = function(t) return math.sin(t * math.pi / 2) end,
+    ease_in_out_sine    = function(t) return -(math.cos(math.pi * t) - 1) / 2 end,
+    ease_in_expo        = function(t)
         if t == 0 then return 0 end
         return 2 ^ (10 * t - 10)
     end,
-    easeOutExpo      = function(t)
+    ease_out_expo       = function(t)
         if t == 1 then return 1 end
         return 1 - 2 ^ (-10 * t)
     end,
-    easeInOutExpo    = function(t)
+    ease_in_out_expo    = function(t)
         if t == 0 then return 0 end
         if t == 1 then return 1 end
         if t < 0.5 then return 2 ^ (20 * t - 10) / 2 end
         return (2 - 2 ^ (-20 * t + 10)) / 2
     end,
-    easeInCirc       = function(t) return 1 - math.sqrt(1 - t * t) end,
-    easeOutCirc      = function(t) return math.sqrt(1 - (t - 1) ^ 2) end,
-    easeInOutCirc    = function(t)
+    ease_in_circ        = function(t) return 1 - math.sqrt(1 - t * t) end,
+    ease_out_circ       = function(t) return math.sqrt(1 - (t - 1) ^ 2) end,
+    ease_in_out_circ    = function(t)
         if t < 0.5 then return (1 - math.sqrt(1 - (2 * t) ^ 2)) / 2 end
         return (math.sqrt(1 - (-2 * t + 2) ^ 2) + 1) / 2
     end,
-    easeInBack       = function(t) return c3 * t ^ 3 - c1 * t * t end,
-    easeOutBack      = function(t) return 1 + c3 * (t - 1) ^ 3 + c1 * (t - 1) ^ 2 end,
-    easeInOutBack    = function(t)
+    ease_in_back        = function(t) return c3 * t ^ 3 - c1 * t * t end,
+    ease_out_back       = function(t) return 1 + c3 * (t - 1) ^ 3 + c1 * (t - 1) ^ 2 end,
+    ease_in_out_back    = function(t)
         if t < 0.5 then return (2 * t) ^ 2 * ((c2 + 1) * 2 * t - c2) / 2 end
         return ((2 * t - 2) ^ 2 * ((c2 + 1) * (2 * t - 2) + c2) + 2) / 2
     end,
-    easeInElastic    = function(t)
+    ease_in_elastic     = function(t)
         if t == 0 then return 0 end
         if t == 1 then return 1 end
         return -(2 ^ (10 * t - 10)) * math.sin((10 * t - 10.75) * c4)
     end,
-    easeOutElastic   = function(t)
+    ease_out_elastic    = function(t)
         if t == 0 then return 0 end
         if t == 1 then return 1 end
         return 2 ^ (-10 * t) * math.sin((10 * t - 0.75) * c4) + 1
     end,
-    easeInOutElastic = function(t)
+    ease_in_out_elastic = function(t)
         if t == 0 then return 0 end
         if t == 1 then return 1 end
         if t < 0.5 then return -(2 ^ (20 * t - 10) * math.sin((20 * t - 11.125) * c5)) / 2 end
         return (2 ^ (-20 * t + 10) * math.sin((20 * t - 11.125) * c5)) / 2 + 1
     end,
-    easeInBounce     = function(t) return 1 - out_bounce(1 - t) end,
-    easeOutBounce    = out_bounce,
-    easeInOutBounce  = function(t)
+    ease_in_bounce      = function(t) return 1 - out_bounce(1 - t) end,
+    ease_out_bounce     = out_bounce,
+    ease_in_out_bounce  = function(t)
         if t < 0.5 then return (1 - out_bounce(1 - 2 * t)) / 2 end
         return (1 + out_bounce(2 * t - 1)) / 2
     end

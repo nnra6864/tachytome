@@ -76,7 +76,7 @@ end)
 
 check_orphans()
 
-mp.add_key_binding("ESC", "clear-osd", function()
+mp.add_key_binding("ESC", "clear_osd", function()
     mp.set_osd_ass(0, 0, "")
     mp.osd_message("", 0)
     mp.commandv("set", "fullscreen", "no")
