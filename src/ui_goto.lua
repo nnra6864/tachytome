@@ -44,14 +44,19 @@ local function seek_to(seconds, relative, exact)
     mp.commandv("osd-bar", "seek", seconds, mode)
 end
 
+local function scaled(str, factor)
+    local num = tonumber(str)
+    return num and num * factor
+end
+
 local function parse_duration(str)
     if str == "" then return nil end
 
-    if str:sub(-2) == 'ms' then return tonumber(str:sub(1, -3)) / 1000 end
-    if str:sub(-1) == 's'  then return tonumber(str:sub(1, -2)) end
-    if str:sub(-1) == 'm'  then return tonumber(str:sub(1, -2)) * 60 end
-    if str:sub(-1) == 'h'  then return tonumber(str:sub(1, -2)) * 3600 end
-    if str:sub(-1) == 'd'  then return tonumber(str:sub(1, -2)) * 86400 end
+    if str:sub(-2) == 'ms' then return scaled(str:sub(1, -3), 0.001) end
+    if str:sub(-1) == 's'  then return scaled(str:sub(1, -2), 1) end
+    if str:sub(-1) == 'm'  then return scaled(str:sub(1, -2), 60) end
+    if str:sub(-1) == 'h'  then return scaled(str:sub(1, -2), 3600) end
+    if str:sub(-1) == 'd'  then return scaled(str:sub(1, -2), 86400) end
     if str:sub(-1) == 'f'  then return nil end
 
     if str:find(":") then
@@ -136,7 +141,12 @@ local function backspace()
 end
 
 function M.show(on_complete)
-    if active or not mp.get_property("seekable") then return end
+    if active then return end
+    if not mp.get_property_bool("seekable") then
+        notify.show("Cannot seek in this file.", true, "warn")
+        if on_complete then on_complete() end
+        return
+    end
     active           = true
     state.ui_owner   = "goto"
     input            = ""
