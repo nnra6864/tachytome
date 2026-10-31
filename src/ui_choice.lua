@@ -53,7 +53,7 @@ function M.show_exists(display_name, on_rename, on_overwrite, on_cancel)
         { key = "1", label = "Rename" },
         { key = "2", label = "Overwrite" },
         { key = "3", label = "Cancel" }
-    }, nil, function(idx)
+    }, 3, function(idx)
         if idx == 1 then
             if on_rename then on_rename() end
         elseif idx == 2 then
