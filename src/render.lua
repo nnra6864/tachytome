@@ -134,7 +134,7 @@ function M.process_queue()
         for _, v in ipairs(active_job.args) do table.insert(launch_args, v) end
     end
 
-    local name_no_ext      = active_job.final_name:match("^(.*)%.[^%.]+$") or active_job.final_name
+    local name_no_ext      = theme.escape(active_job.final_name:match("^(.*)%.[^%.]+$") or active_job.final_name)
     local progress_overlay = mp.create_osd_overlay("ass-events")
 
     local function get_queue_str()
@@ -232,7 +232,7 @@ function M.process_queue()
             local msg_title = active_job.final_name
             local pad_len   = math.max(0, msg_width - #msg_title)
             local pad       = string.rep("\\h", pad_len)
-            local full_osd  = string.format("%s%s%s%s%s%s%s\\N\\N%s", theme.c("text_color"), theme.align(1), theme.f(false), theme.b(true), msg_title, pad, theme.b(false), msg_osd_body)
+            local full_osd  = string.format("%s%s%s%s%s%s%s\\N\\N%s", theme.c("text_color"), theme.align(1), theme.f(false), theme.b(true), theme.escape(msg_title), pad, theme.b(false), msg_osd_body)
 
             if active_job.show_stats_terminal then
                 notify.show("\n" .. msg_title .. "\n" .. msg_body .. "\n", false)

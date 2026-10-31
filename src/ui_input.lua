@@ -34,11 +34,11 @@ local function render()
         tooltip = "\\N" .. theme.f(true) .. "(Enter to confirm, Esc to cancel)"
     end
 
-    local sub_str = (current_sub_prompt ~= "") and string.format("\\N%s%sCurrent: %s", theme.f(true), theme.a("88"), current_sub_prompt) or ""
+    local sub_str = (current_sub_prompt ~= "") and string.format("\\N%s%sCurrent: %s", theme.f(true), theme.a("88"), theme.escape(current_sub_prompt)) or ""
 
     overlay.data = string.format("%s%s%s%s%s%s%s_%s%s%s%s",
         theme.align(7), theme.f(), theme.c("text_color"),
-        current_prompt, theme.c("value_color"), buffer, theme.a("FF"), theme.a("00"), theme.reset(), tooltip, sub_str
+        current_prompt, theme.c("value_color"), theme.escape(buffer), theme.a("FF"), theme.a("00"), theme.reset(), tooltip, sub_str
     )
     overlay:update()
 end

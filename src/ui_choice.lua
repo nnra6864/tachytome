@@ -49,7 +49,7 @@ function M.show(title, body, choices, esc_index, on_pick)
 end
 
 function M.show_exists(display_name, on_rename, on_overwrite, on_cancel)
-    M.show("Warning: File already exists!", display_name, {
+    M.show("Warning: File already exists!", theme.escape(display_name), {
         { key = "1", label = "Rename" },
         { key = "2", label = "Overwrite" },
         { key = "3", label = "Cancel" }

@@ -72,7 +72,7 @@ function M.show(on_close)
             local prefix = (i == cursor) and string.format("%s\\h> ", theme.c("value_color")) or "\\h\\h"
             local status = job.is_active and string.format("%s" .. state.opts.on_text, theme.c("on_color")) or ""
 
-            text = text .. string.format("%s%s%s %s%s\\N", theme.c("text_color"), prefix, job.title, status, theme.reset())
+            text = text .. string.format("%s%s%s %s%s\\N", theme.c("text_color"), prefix, theme.escape(job.title), status, theme.reset())
         end
 
         if end_idx < #jobs then text = text .. "\\h\\h...\\N" end

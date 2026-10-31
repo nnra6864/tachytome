@@ -38,6 +38,10 @@ function M.reset()
     return M.c("text_color")
 end
 
+function M.escape(text)
+    return (tostring(text):gsub("\\", "\\\226\129\160"):gsub("{", "\\{"))
+end
+
 function M.glow()
     local size = tonumber(state.opts.glow_size) or 0
     if size <= 0 then return "" end

@@ -24,7 +24,7 @@ function M.show(warning, sub_text, on_yes, on_no)
     end
 
     ov.data = string.format("%s%s%s%s%s\\N%s%s\\N\\N[ y / Enter ] Yes\\N[ n / Esc ]   No",
-        theme.align(7), theme.f(), theme.c("warning_color"), warning, theme.reset(), theme.f(true), sub_text)
+        theme.align(7), theme.f(), theme.c("warning_color"), warning, theme.reset(), theme.f(true), theme.escape(sub_text))
     ov:update()
 
     local function yes() cleanup(); if on_yes then on_yes() end end

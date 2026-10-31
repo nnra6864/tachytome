@@ -164,14 +164,14 @@ local registry = {
     {
         name = "space_replacement",
         label = "Space Replacement",
-        get_val = function() return v(actions.get_space_replacement_display()) end,
+        get_val = function() return v(theme.escape(actions.get_space_replacement_display())) end,
         action = function() actions.set_space_replacement(M.open) end,
         keep_open = false
     },
     {
         name = "path",
         label = "Path",
-        get_val = function() return v(actions.get_final_path()) end,
+        get_val = function() return v(theme.escape(actions.get_final_path())) end,
         action = function() actions.set_path(M.open) end,
         keep_open = false
     },

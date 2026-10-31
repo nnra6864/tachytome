@@ -22,7 +22,7 @@ function M.show(msg, show_osd, type)
             color_key = "error_color"
         end
 
-        notify_ov.data = string.format("%s%s%s%s%s%s", theme.align(9), theme.f(), theme.b(true), theme.c(color_key), msg, theme.b(false))
+        notify_ov.data = string.format("%s%s%s%s%s%s", theme.align(9), theme.f(), theme.b(true), theme.c(color_key), theme.escape(msg), theme.b(false))
         notify_ov:update()
 
         if notify_timer then notify_timer:kill() end

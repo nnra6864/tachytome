@@ -45,9 +45,9 @@ end
 
 local function show_temp_orphan_dialog(entry, on_done)
     local shown = {}
-    for i = 1, math.min(#entry.files, 3) do table.insert(shown, entry.files[i]) end
+    for i = 1, math.min(#entry.files, 3) do table.insert(shown, theme.escape(entry.files[i])) end
     local extra = (#entry.files > 3) and string.format(" +%d more", #entry.files - 3) or ""
-    local body  = string.format("%s%s\\N%s%s", theme.f(true), entry.dir, table.concat(shown, "\\N"), extra)
+    local body  = string.format("%s%s\\N%s%s", theme.f(true), theme.escape(entry.dir), table.concat(shown, "\\N"), extra)
 
     ui_choice.show("Interrupted Render Leftovers", body, {
         { key = "1", label = "Delete" },
@@ -187,7 +187,7 @@ local function show_recover_dialog(file, on_recover, on_discard, on_ignore)
             table.insert(names, string.format("+%d more", #file.items - 3))
             break
         end
-        table.insert(names, string.format("%s [%s]", tostring(it.final_name), tostring(it.status)))
+        table.insert(names, string.format("%s [%s]", theme.escape(it.final_name), tostring(it.status)))
     end
     local body = string.format("%s%s\\N%s", theme.f(true), owner_str, table.concat(names, "\\N"))
 
