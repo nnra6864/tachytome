@@ -426,10 +426,10 @@ local function handle_key(key)
     end
 end
 
-local function handle_root_key(key)
+local function cancel_prefix()
     active_prefix = ""
     bind_level()
-    handle_key(key)
+    draw()
 end
 
 local function go_back()
@@ -480,7 +480,7 @@ bind_level = function()
         end
         for key in pairs(level_keys("")) do
             if not continuations[key] and key ~= "ESC" then
-                bind_key(key, "menu-root-" .. key, function() handle_root_key(key) end)
+                bind_key(key, "menu-root-" .. key, cancel_prefix)
             end
         end
     end
