@@ -340,6 +340,7 @@ function M.start(opts)
         quality             = opts.quality,
         preset              = opts.preset,
         fps_override        = opts.fps_override,
+        effects             = opts.effects,
         lossless_cut        = opts.lossless_cut,
         accurate_cut        = opts.accurate_cut,
         combine_audio       = opts.combine_audio,

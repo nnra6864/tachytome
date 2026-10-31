@@ -11,6 +11,7 @@ local builtin = {
     O     = "goto_out",
     g     = "goto",
     e     = "encoder",
+    E     = "effects",
     q     = "quality",
     F     = "fps",
     P     = "preset",

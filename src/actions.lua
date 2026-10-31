@@ -1,5 +1,6 @@
 local mp            = require 'mp'
 local common        = require 'src.common'
+local effects       = require 'src.effects'
 local ui_input      = require 'src.ui_input'
 local ui_list       = require 'src.ui_list'
 local ui_confirm    = require 'src.ui_confirm'
@@ -10,6 +11,7 @@ local state         = require 'src.state'
 local notify        = require 'src.notify'
 local theme         = require 'src.theme'
 local ui_goto       = require 'src.ui_goto'
+local ui_effects    = require 'src.ui_effects'
 
 local M = {}
 
@@ -209,7 +211,13 @@ end
 
 function M.toggle_lossless()
     state.opts.lossless_cut = not state.opts.lossless_cut
-    if state.opts.lossless_cut then state.opts.accurate_cut = false end
+    if state.opts.lossless_cut then
+        state.opts.accurate_cut = false
+        if state.effects_enabled then
+            state.effects_enabled = false
+            notify.show("Effects: '" .. tostring(state.effects_enabled) .. "'")
+        end
+    end
     notify.show("Lossless Cut: '" .. tostring(state.opts.lossless_cut) .. "'")
     notify.show("Accurate Cut: '" .. tostring(state.opts.accurate_cut) .. "'")
 end
@@ -219,6 +227,18 @@ function M.toggle_accurate()
     if state.opts.accurate_cut then state.opts.lossless_cut = false end
     notify.show("Accurate Cut: '" .. tostring(state.opts.accurate_cut) .. "'")
     notify.show("Lossless Cut: '" .. tostring(state.opts.lossless_cut) .. "'")
+end
+
+function M.get_effects_display()
+    if not state.effects_enabled then return "Off" end
+    if #state.effects == 0 then return "None" end
+    local parts = {}
+    for _, inst in ipairs(state.effects) do parts[#parts + 1] = effects.summary(inst) end
+    return table.concat(parts, ", ")
+end
+
+function M.effects_menu(on_complete)
+    ui_effects.show(on_complete)
 end
 
 function M.toggle_combine_audio()
@@ -305,6 +325,7 @@ function M.start_render(on_complete)
         quality             = state.opts.quality,
         preset              = state.opts.preset,
         fps_override        = state.fps_override,
+        effects             = state.effects_enabled and state.effects or nil,
         combine_audio       = state.opts.combine_audio,
         combined_audio_name = state.opts.combined_audio_name,
         first_audio_only    = state.opts.first_audio_only,

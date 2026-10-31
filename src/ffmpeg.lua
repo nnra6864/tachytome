@@ -1,4 +1,5 @@
 local common = require 'src.common'
+local effects = require 'src.effects'
 
 local M = {}
 
@@ -50,15 +51,22 @@ local function deselect_extra_audio(args, audio_count)
     end
 end
 
-local function append_combine_audio(args, opts, media_info)
-    local encoder = media_info.a_meta.codec
-    if media_info.a_meta.codec     == "opus" then encoder   = "libopus"
-    elseif media_info.a_meta.codec == "mp3" then encoder    = "libmp3lame"
-    elseif media_info.a_meta.codec == "vorbis" then encoder = "libvorbis" end
+local function audio_encoder(a_meta)
+    local encoder = a_meta.codec
+    if a_meta.codec     == "opus" then encoder   = "libopus"
+    elseif a_meta.codec == "mp3" then encoder    = "libmp3lame"
+    elseif a_meta.codec == "vorbis" then encoder = "libvorbis" end
+    return encoder
+end
+
+local function append_combine_audio(args, opts, media_info, af_effects)
+    local encoder = audio_encoder(media_info.a_meta)
 
     local filter_inputs = ""
     for i = 0, media_info.audio_count - 1 do filter_inputs = filter_inputs .. string.format("[0:a:%d]", i) end
-    local filter_complex = string.format("%samix=inputs=%d:normalize=0[aout]", filter_inputs, media_info.audio_count)
+    local mix            = string.format("%samix=inputs=%d:normalize=0", filter_inputs, media_info.audio_count)
+    if #af_effects > 0 then mix = mix .. "," .. table.concat(af_effects, ",") end
+    local filter_complex = mix .. "[aout]"
 
     table.insert(args, "-filter_complex") table.insert(args, filter_complex)
     table.insert(args, "-map") table.insert(args, "[aout]")
@@ -86,11 +94,31 @@ local function append_combine_audio(args, opts, media_info)
     table.insert(args, "-metadata:s:a:0")  table.insert(args, string.format("TITLE=%s", opts.combined_audio_name))
 end
 
+local function append_audio_effects(args, media_info, af_effects)
+    if #af_effects == 0 or not media_info.a_meta then return end
+    table.insert(args, "-af") table.insert(args, table.concat(af_effects, ","))
+    table.insert(args, "-c:a") table.insert(args, audio_encoder(media_info.a_meta))
+    if media_info.a_meta.sample_rate and media_info.a_meta.sample_rate ~= "N/A" then
+        table.insert(args, "-ar") table.insert(args, media_info.a_meta.sample_rate)
+    end
+    if media_info.a_meta.bit_rate and media_info.a_meta.bit_rate ~= "N/A" then
+        table.insert(args, "-b:a") table.insert(args, media_info.a_meta.bit_rate)
+    end
+end
+
 function M.build_args(opts, input_file, output_file, creation_time)
     local args       = { "ffmpeg", "-y", "-hide_banner" }
     local duration   = opts.mark_out - opts.mark_in
     local media_info = get_media_info(input_file)
     local out_fps    = nil
+
+    local vf_effects = {}
+    local af_effects = {}
+    if opts.effects then
+        local offset = opts.accurate_cut and opts.mark_in or 0
+        vf_effects, af_effects = effects.build_filters(opts.effects, duration, offset)
+    end
+    local lossless = opts.lossless_cut and #vf_effects == 0 and #af_effects == 0
 
     table.insert(args, "-fflags") table.insert(args, "+genpts")
 
@@ -111,7 +139,7 @@ function M.build_args(opts, input_file, output_file, creation_time)
         table.insert(args, "creation_time=" .. creation_time)
     end
 
-    if opts.lossless_cut then
+    if lossless then
         out_fps = parse_fps(media_info.v_fps)
         if opts.combine_audio and media_info.audio_count > 1 and media_info.a_meta then
             local codec_args = {
@@ -121,7 +149,7 @@ function M.build_args(opts, input_file, output_file, creation_time)
                 "-metadata",     "TACHYTOME_MODE=Lossless"
             }
             for _, v in ipairs(codec_args) do table.insert(args, v) end
-            append_combine_audio(args, opts, media_info)
+            append_combine_audio(args, opts, media_info, af_effects)
         else
             local codec_args = {
                 "-c",            "copy",
@@ -144,10 +172,15 @@ function M.build_args(opts, input_file, output_file, creation_time)
         local quality_str = tostring(safe_quality)
         local fps_value   = opts.fps_override or media_info.v_fps
 
+        local v_filters = {}
         if fps_value then
             out_fps = parse_fps(fps_value)
+            v_filters[#v_filters + 1] = "fps=" .. fps_value
+        end
+        for _, fx in ipairs(vf_effects) do v_filters[#v_filters + 1] = fx end
+        if #v_filters > 0 then
             table.insert(args, "-vf")
-            table.insert(args, "fps=" .. fps_value)
+            table.insert(args, table.concat(v_filters, ","))
         end
 
         table.insert(args, "-c") table.insert(args, "copy")
@@ -195,15 +228,18 @@ function M.build_args(opts, input_file, output_file, creation_time)
 
         if opts.combine_audio then
             if media_info.audio_count > 1 and media_info.a_meta then
-                append_combine_audio(args, opts, media_info)
+                append_combine_audio(args, opts, media_info, af_effects)
             else
                 table.insert(args, "-map") table.insert(args, "0")
+                append_audio_effects(args, media_info, af_effects)
             end
         elseif opts.first_audio_only then
             table.insert(args, "-map") table.insert(args, "0")
             deselect_extra_audio(args, media_info.audio_count)
+            append_audio_effects(args, media_info, af_effects)
         else
             table.insert(args, "-map") table.insert(args, "0")
+            append_audio_effects(args, media_info, af_effects)
         end
     end
 

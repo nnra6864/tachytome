@@ -50,6 +50,8 @@ local M = {
     conf_path          = nil,
     custom_output_name = "",
     fps_override       = nil,
+    effects_enabled    = false,
+    effects            = {},
     mark_in            = 0,
     mark_out           = 0,
     trash_path         = nil,
@@ -83,7 +85,7 @@ local function ensure_config_exists()
     if wf then
         wf:write(conf_content)
         wf:close()
-        mp.msg.info("Generated default config at: " .. user_conf)
+        mp.msg.info("Generated default config at: " .. M.conf_path)
     end
 end
 

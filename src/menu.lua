@@ -153,6 +153,15 @@ local registry = {
 
     { separator = true },
     {
+        name = "effects",
+        label = "Effects",
+        get_val = function() return v(actions.get_effects_display()) end,
+        action = function() actions.effects_menu(M.open) end,
+        keep_open = false
+    },
+
+    { separator = true },
+    {
         name = "space_replacement",
         label = "Space Replacement",
         get_val = function() return v(actions.get_space_replacement_display()) end,
