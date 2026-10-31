@@ -236,6 +236,12 @@ Instead of having to type `1:0`, you simply type `1m` to go to 1 minute.
 | `-60f` | 60 frames back      |
 | `5%`   | 5%                  |
 
+### Effects
+
+Tachytome offers a powerful effects and presets engine.
+You can learn more about it in the [tachytome-effects](./tachytome-effects.conf) config.
+These are extremely useful for adding transitions such as video/audio fade and blur.
+
 ### Path
 
 Tachytome offers powerful path resolution.<br>
