@@ -205,6 +205,10 @@ function M.process_queue()
             queue.render_paused = false
             queue.active        = nil
             current_req         = nil
+            if #queue.jobs == 0 then
+                queue.total_jobs      = 0
+                queue.current_job_num = 0
+            end
             queue.save()
             M.process_queue()
         end
@@ -241,11 +245,6 @@ function M.process_queue()
                 stats_ov.data = full_osd
                 stats_ov:update()
                 mp.add_timeout(active_job.stats_osd_time, function() stats_ov:remove() end)
-            end
-
-            if #queue.jobs == 0 then
-                queue.total_jobs = 0
-                queue.current_job_num = 0
             end
 
             reset_and_advance()
