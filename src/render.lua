@@ -260,7 +260,7 @@ function M.process_queue()
                 return
             end
 
-            if active_job.trash_source and active_job.trash_path then
+            if active_job.trash_source and active_job.trash_path and active_job.input_file ~= active_job.output_file then
                 common.trash_file(active_job.input_file, active_job.trash_path, function(t_success)
                     if not t_success then notify.show("Failed to trash original", true, "warn") end
                     finish_job()
