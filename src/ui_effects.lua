@@ -45,7 +45,7 @@ function M.show(on_close)
     end
 
     local function draw()
-        local text = string.format("%s%s%sEffects%s\\N%s(Up/Down to navigate, Enter to toggle/select, d to edit, Esc to close)\\N\\N",
+        local text = string.format("%s%s%sEffects%s\\N%s(Up/Down to navigate, Enter to toggle, d to edit, Esc to close)\\N\\N",
             theme.align(7), theme.f(), theme.b(true), theme.b(false), theme.f(true))
 
         local start_idx = math.max(1, cursor - 7)
@@ -65,13 +65,11 @@ function M.show(on_close)
                     or  string.format("%s%s%s", theme.c("off_color"), state.opts.off_text, theme.reset())
                 line = string.format("Enabled > %s", val)
             else
-                local name    = row.preset.name
-                local sel     = effects.instance(name)
-                local summary = effects.summary_for(name)
-                local marker  = sel
+                local sel    = effects.instance(row.preset.name)
+                local marker = sel
                     and string.format(" %s%s", theme.c("on_color"), state.opts.on_text)
                     or  ""
-                line = string.format("%s%s%s", summary, marker, theme.reset())
+                line = string.format("%s%s%s", row.preset.label, marker, theme.reset())
             end
 
             text = text .. string.format("%s%s%s%s\\N", theme.c("text_color"), prefix, line, theme.reset())
@@ -87,9 +85,7 @@ function M.show(on_close)
         state.effects_enabled = enabled
         if enabled and state.opts.lossless_cut then
             state.opts.lossless_cut = false
-            state.opts.accurate_cut = true
             notify.show("Lossless Cut: '" .. tostring(state.opts.lossless_cut) .. "'")
-            notify.show("Accurate Cut: '" .. tostring(state.opts.accurate_cut) .. "'")
         end
         notify.show("Effects: '" .. tostring(state.effects_enabled) .. "'")
     end
@@ -98,14 +94,13 @@ function M.show(on_close)
     local prompt_params
 
     local function apply_instance(name, params)
-        for i, inst in ipairs(state.effects) do
-            if inst.name == name then
-                table.remove(state.effects, i)
-                break
-            end
+        local inst = effects.instance(name)
+        if inst then
+            inst.params = params
+        else
+            state.effects[#state.effects + 1] = { name = name, params = params }
         end
-        state.effects[#state.effects + 1] = { name = name, params = params }
-        notify.show("Effect set: " .. effects.summary_for(name))
+        notify.show("Effect set: " .. effects.label(name))
     end
 
     prompt_params = function(p, params, idx)
@@ -113,7 +108,13 @@ function M.show(on_close)
         if p.d then prompts[#prompts + 1] = { key = "d", label = "Duration (s)", default = params.d or p.d } end
         if p.params then
             for _, prm in ipairs(p.params) do
-                prompts[#prompts + 1] = { key = prm.key, label = prm.key, default = params[prm.key] or prm.default }
+                local curve = effects.is_curve(prm.default)
+                prompts[#prompts + 1] = {
+                    key     = prm.key,
+                    label   = curve and "Easing" or prm.key,
+                    curve   = curve,
+                    default = params[prm.key] or prm.default
+                }
             end
         end
 
@@ -126,9 +127,20 @@ function M.show(on_close)
         local pr = prompts[idx]
         ui_input.get_user_input(string.format("%s > ", pr.label), function(input)
             if input == "" then input = tostring(pr.default) end
-            local num = tonumber(input)
-            if num and num > 0 then
-                params[pr.key] = num
+            local num     = tonumber(input)
+            local numeric = type(pr.default) == "number"
+            local ok      = false
+            if pr.key == "d" then
+                ok = num ~= nil and num > 0
+            elseif pr.curve then
+                ok = effects.is_curve(input)
+            elseif numeric then
+                ok = num ~= nil
+            else
+                ok = input ~= ""
+            end
+            if ok then
+                params[pr.key] = numeric and num or input
                 prompt_params(p, params, idx + 1)
             else
                 notify.show(string.format("Invalid %s, effect cancelled", pr.label), true, "warn")
@@ -139,25 +151,27 @@ function M.show(on_close)
         end)
     end
 
-    local function select_preset(p)
-        teardown()
-        if effects.instance(p.name) then
-            for i, inst in ipairs(state.effects) do
-                if inst.name == p.name then
-                    table.remove(state.effects, i)
-                    break
-                end
+    local function toggle_preset(p)
+        for i, inst in ipairs(state.effects) do
+            if inst.name == p.name then
+                table.remove(state.effects, i)
+                notify.show("Effect removed: " .. p.label)
+                draw()
+                return
             end
-            notify.show("Effect removed: " .. p.label)
-            open_ui()
-            return
         end
-        prompt_params(p, {}, 1)
+        apply_instance(p.name, {})
+        draw()
     end
 
     local function edit_preset(p)
+        local inst   = effects.instance(p.name)
+        local params = {}
+        if inst then
+            for k, val in pairs(inst.params) do params[k] = val end
+        end
         teardown()
-        prompt_params(p, {}, 1)
+        prompt_params(p, params, 1)
     end
 
     local function bind()
@@ -181,7 +195,7 @@ function M.show(on_close)
                 set_enabled(not state.effects_enabled)
                 draw()
             else
-                select_preset(row.preset)
+                toggle_preset(row.preset)
             end
         end)
 

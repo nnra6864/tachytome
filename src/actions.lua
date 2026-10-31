@@ -230,11 +230,11 @@ function M.toggle_accurate()
 end
 
 function M.get_effects_display()
-    if not state.effects_enabled then return "Off" end
-    if #state.effects == 0 then return "None" end
     local parts = {}
-    for _, inst in ipairs(state.effects) do parts[#parts + 1] = effects.summary(inst) end
-    return table.concat(parts, ", ")
+    for _, inst in ipairs(state.effects) do parts[#parts + 1] = effects.label(inst.name) end
+    if #parts == 0 then return state.effects_enabled and "None" or "Off" end
+    local selected = table.concat(parts, ", ")
+    return state.effects_enabled and selected or "Off: " .. selected
 end
 
 function M.effects_menu(on_complete)
@@ -325,7 +325,7 @@ function M.start_render(on_complete)
         quality             = state.opts.quality,
         preset              = state.opts.preset,
         fps_override        = state.fps_override,
-        effects             = state.effects_enabled and state.effects or nil,
+        effects             = state.effects_enabled and effects.snapshot() or nil,
         combine_audio       = state.opts.combine_audio,
         combined_audio_name = state.opts.combined_audio_name,
         first_audio_only    = state.opts.first_audio_only,
