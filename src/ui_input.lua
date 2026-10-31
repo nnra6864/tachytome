@@ -17,8 +17,8 @@ local history      = {}
 local history_idx  = 1
 local draft_buffer = ""
 
-local key_mappings   = { ["SPACE"] = " " }
-local standard_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.,:;/\\|()[]~@#$%^&*+=<>?'\""
+local key_mappings   = { ["SPACE"] = " ", ["SHARP"] = "#" }
+local standard_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.,:;/\\|()[]~@$%^&*+=<>?'\"!`"
 for i = 1, #standard_chars do
     local c = standard_chars:sub(i, i)
     key_mappings[c] = c

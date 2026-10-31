@@ -120,6 +120,10 @@ function M.ensure_default_conf(name)
     return conf_path
 end
 
+local function replace_spaces(name, replacement)
+    return (name:gsub(" ", (replacement:gsub("%%", "%%%%"))))
+end
+
 local function resolve_absolute_path_base(custom, opts, input_path)
     if not input_path or input_path == "" then return "" end
 
@@ -133,7 +137,7 @@ local function resolve_absolute_path_base(custom, opts, input_path)
     if not base_output_dir:match("[/\\]$") then base_output_dir = base_output_dir .. "/" end
 
     if not custom or custom == "" then
-        return utils.join_path(base_output_dir, (base_name .. opts.suffix):gsub(" ", opts.space_replacement) .. default_ext)
+        return utils.join_path(base_output_dir, replace_spaces(base_name .. opts.suffix, opts.space_replacement) .. default_ext)
     end
 
     local custom_mod = custom
@@ -177,9 +181,8 @@ local function resolve_absolute_path_base(custom, opts, input_path)
             target_name = target_name .. default_ext
         end
     end
-    target_name = target_name:gsub(" ", opts.space_replacement)
 
-    return utils.join_path(target_dir, target_name)
+    return utils.join_path(target_dir, replace_spaces(target_name, opts.space_replacement))
 end
 
 function M.resolve_absolute_path(custom, opts)
