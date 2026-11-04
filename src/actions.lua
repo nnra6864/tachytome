@@ -16,7 +16,10 @@ local ui_effects    = require 'src.ui_effects'
 local M = {}
 
 function M.goto_prompt(on_complete)
-    ui_goto.show(on_complete)
+    ui_goto.show(on_complete, {
+        { key = "i", label = "In",  get_val = M.get_mark_in_display,  action = function() M.goto_mark(0) end },
+        { key = "o", label = "Out", get_val = M.get_mark_out_display, action = function() M.goto_mark(1) end }
+    })
 end
 
 function M.mark(place)

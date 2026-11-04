@@ -70,20 +70,6 @@ local registry = {
         action = function() actions.mark(1) end,
         keep_open = true
     },
-
-    { separator = true },
-    {
-        name = "goto_in",
-        label = "Go to In",
-        action = function() actions.goto_mark(0) end,
-        keep_open = true
-    },
-    {
-        name = "goto_out",
-        label = "Go to Out",
-        action = function() actions.goto_mark(1) end,
-        keep_open = true
-    },
     {
         name = "goto",
         label = "Go to",

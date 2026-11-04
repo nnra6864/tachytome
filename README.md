@@ -24,6 +24,7 @@ Keyboard Driven, AV1/H265/H264/Lossless, MPV Video Cutter.
   - [Config](#config)
   - [Recovery](#recovery)
   - [Go To](#go-to)
+  - [Effects](#effects)
   - [Path](#path)
 - [Contributing](#contributing)
 - [Donations](#donations)
@@ -107,7 +108,7 @@ This is done to avoid global bind conflicts.
 - `i` to mark in.
 - `g` and type in `90%` to go to 90% of your video.
 - `o` to mark out.
-- `I` and `O` to make sure mark in and out are good.
+- `g` and `i`/`o` to make sure mark in and out are good.
 - `p` to set the name of your video.
 - `Enter` to start the render.
 - `r` to access the render queue.
@@ -126,8 +127,6 @@ This is done to avoid global bind conflicts.
 |---------|-------------------|---------------------------------------------------------------------------------------------------------------|
 | i       | Mark In           | Mark the start of the video.                                                                                  |
 | o       | Mark Out          | Mark the end of the video.                                                                                    |
-| I       | Go To In          | Go to Mark In.                                                                                                |
-| O       | Go To Out         | Go to Mark Out.                                                                                               |
 | g       | Go To             | Go to a precise location in the video.<br>Learn more about [Go To](#go-to).                                   |
 | <hr>    | <hr>              | <hr>                                                                                                          |
 | e       | Encoder           | Set the video encoder.                                                                                        |
@@ -139,6 +138,8 @@ This is done to avoid global bind conflicts.
 | <hr>    | <hr>              | <hr>                                                                                                          |
 | c       | Combine Audio     | Toggle the combine audio option.                                                                              |
 | A       | First Audio Only  | Toggle the first audio only option.                                                                           |
+| <hr>    | <hr>              | <hr>                                                                                                          |
+| E       | Effects           | Select the effects applied to the output.<br>Learn more about [Effects](#effects).                            |
 | <hr>    | <hr>              | <hr>                                                                                                          |
 | _       | Space Replacement | Set the character to replace spaces with.                                                                     |
 | p       | Path              | Set Output path.<br>Learn more about [Path](#path).                                                           |
@@ -159,6 +160,14 @@ This is done to avoid global bind conflicts.
 | Enter   | Pause Render  | Pauses the current render and render queue.<br>Can only pause the render queue on Windows. |
 | p       | Change Path   | Change output path.                                                                        |
 | d       | Delete        | Deletes the item from the render queue.                                                    |
+
+#### Go To Prompt
+
+| Keybind | Action    | Description                        |
+|---------|-----------|------------------------------------|
+| i       | Go To In  | Go to Mark In, no Enter required.  |
+| o       | Go To Out | Go to Mark Out, no Enter required. |
+| Enter   | Go To     | Go to the typed in location.       |
 
 #### Path
 
@@ -188,6 +197,36 @@ g script-binding tachytome/goto
 d script-binding tachytome/trash
 ```
 Replace `t`, `g` and `d` with keys of your choice.
+
+#### Custom Keymaps
+
+Binds inside the Tachytome menu are fully configurable through keymaps in `tachytome.conf`.<br>
+Pick the active one with `selected_keymap`, which can be `builtin`, `default`, or the name of any keymap you define.
+
+```
+keymap my_keymap
+    base default
+
+    r render
+    v-e encoder
+    d ignore
+end
+```
+
+| Line              | Meaning                                                                                       |
+|-------------------|-----------------------------------------------------------------------------------------------|
+| `keymap <name>`   | Starts a keymap, closed with `end`.                                                           |
+| `base <name>`     | Start from another keymap's binds instead of an empty one.                                    |
+| `<keys> <action>` | Bind a key to an action. Chain keys with `-`, e.g. `v-e`, to make nested binds.               |
+| `<keys> ignore`   | Unbind a key inherited from the base, `none` works too.                                       |
+
+- `builtin` is the hardcoded keymap and can't be redefined.
+- `default` always builds on top of `builtin`, so you can use it to tweak just a few binds.
+- A single line `keymap <keys> <action>` outside of any block rebinds on top of whichever keymap is selected.
+- If a key is bound on its own, any nested binds starting with it are unreachable and will be ignored with a warning.
+
+Actions are named after menu items in snake_case, e.g. `mark_in`, `goto`, `render_queue`, `trash_source_now`.<br>
+See the `default` keymap in the [example config](./tachytome.conf) for the full list.
 
 ### Recovery
 
@@ -224,6 +263,11 @@ Instead of having to type `1:0`, you simply type `1m` to go to 1 minute.
 | f      | frame       |
 | %      | percent     |
 
+#### In/Out
+
+Press `i` or `o` inside the Go To prompt to instantly jump to Mark In or Mark Out.<br>
+Their current values are listed right below the input.
+
 #### Examples
 
 | Input  | Goes To             |
@@ -238,9 +282,34 @@ Instead of having to type `1:0`, you simply type `1m` to go to 1 minute.
 
 ### Effects
 
-Tachytome offers a powerful effects and presets engine.
-You can learn more about it in the [tachytome-effects](./tachytome-effects.conf) config.
+Tachytome offers a powerful effects and presets engine.<br>
 These are extremely useful for adding transitions such as video/audio fade and blur.
+
+Effects are defined in `mpv/script-opts/tachytome-effects.conf`.<br>
+You can find an example config with every option explained [here](./tachytome-effects.conf).
+
+```
+effect blur_fade
+    label Blur Fade
+    duration 0.5
+    param blur 200
+    param curve ease_out_expo
+
+    anchor start
+    ramp {blur} 0 0 {curve}
+    fade {curve}
+
+    anchor end
+    ramp 0 {blur} 0 {curve}
+    fade {curve}
+end
+```
+
+- `anchor` picks whether the following lines apply to the start or the end of the clip.
+- `duration` and `param` values can be changed from the menu, and are used in the effect as `{name}`.
+- `fade`, `vfade`, `afade`, `ramp`, `blur`, `tmix`, `vanimate` and `aanimate` cover the common cases.
+- `video` and `audio` accept raw ffmpeg filters for everything else.
+- Easings follow [easings.net](https://easings.net) in snake_case, custom curves can be made with `bezier(x1, y1, x2, y2)`.
 
 ### Path
 

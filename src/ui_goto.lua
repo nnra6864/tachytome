@@ -9,6 +9,7 @@ local overlay          = mp.create_osd_overlay("ass-events")
 local active           = false
 local input            = ""
 local current_callback = nil
+local current_options  = {}
 
 local key_mappings   = { ["SPACE"] = " " }
 local standard_chars = "0123456789:.dhmsf%+-"
@@ -18,9 +19,22 @@ for i = 1, #standard_chars do
 end
 
 local function render()
-    overlay.data = string.format("%s%s%sGo to > %s%s%s_%s%s\\N%s(Enter to seek, Esc to cancel)",
+    local max_label_len = 0
+    for _, opt in ipairs(current_options) do
+        if #opt.label > max_label_len then max_label_len = #opt.label end
+    end
+
+    local options_str = ""
+    for _, opt in ipairs(current_options) do
+        local val_pad = string.rep("\\h", max_label_len - #opt.label + 1)
+        options_str = options_str .. string.format("\\N%s -> %s%s> %s%s%s",
+            opt.key, opt.label, val_pad, theme.c("value_color"), opt.val, theme.reset()
+        )
+    end
+
+    overlay.data = string.format("%s%s%sGo to > %s%s%s_%s%s%s\\N%s(Enter to seek, Esc to cancel)",
         theme.align(7), theme.f(), theme.c("text_color"),
-        theme.c("value_color"), input, theme.a("FF"), theme.a("00"), theme.reset(), theme.f(true)
+        theme.c("value_color"), input, theme.a("FF"), theme.a("00"), theme.reset(), options_str, theme.f(true)
     )
     overlay:update()
 end
@@ -34,6 +48,7 @@ local function cleanup()
     mp.remove_key_binding("goto-enter")
     mp.remove_key_binding("goto-esc")
     for key, _ in pairs(key_mappings) do mp.remove_key_binding("goto-char-" .. key) end
+    for _, opt in ipairs(current_options) do mp.remove_key_binding("goto-opt-" .. opt.key) end
     if current_callback then pcall(current_callback) end
 end
 
@@ -140,7 +155,12 @@ local function backspace()
     end
 end
 
-function M.show(on_complete)
+local function run_option(opt)
+    cleanup()
+    opt.action()
+end
+
+function M.show(on_complete, options)
     if active then return end
     if not mp.get_property_bool("seekable") then
         notify.show("Cannot seek in this file.", true, "warn")
@@ -151,6 +171,10 @@ function M.show(on_complete)
     state.ui_owner   = "goto"
     input            = ""
     current_callback = on_complete
+    current_options  = {}
+    for _, opt in ipairs(options or {}) do
+        current_options[#current_options + 1] = { key = opt.key, label = opt.label, val = opt.get_val(), action = opt.action }
+    end
 
     mp.set_osd_ass(0, 0, "")
     mp.osd_message("", 0)
@@ -162,6 +186,9 @@ function M.show(on_complete)
 
     for key, char in pairs(key_mappings) do
         mp.add_forced_key_binding(key, "goto-char-" .. key, function() add_char(char) end, {repeatable=true})
+    end
+    for _, opt in ipairs(current_options) do
+        mp.add_forced_key_binding(opt.key, "goto-opt-" .. opt.key, function() run_option(opt) end)
     end
 end
 

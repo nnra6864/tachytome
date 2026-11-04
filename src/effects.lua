@@ -5,8 +5,6 @@ local easing = require 'src.easing'
 
 local M = {}
 
--- TODO: document the effect preset config (script-opts/tachytome-effects.conf)
-
 local TWEEN_RATE   = 30
 local MAX_TWEENS   = 120
 local GAIN_RATE    = 60

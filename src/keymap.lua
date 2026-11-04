@@ -1,4 +1,3 @@
--- TODO: document the keymap config syntax in README
 local state  = require 'src.state'
 local notify = require 'src.notify'
 
@@ -7,8 +6,6 @@ local M = {}
 local builtin = {
     i     = "mark_in",
     o     = "mark_out",
-    I     = "goto_in",
-    O     = "goto_out",
     g     = "goto",
     e     = "encoder",
     E     = "effects",
