@@ -12,6 +12,7 @@ local notify        = require 'src.notify'
 local theme         = require 'src.theme'
 local ui_goto       = require 'src.ui_goto'
 local ui_effects    = require 'src.ui_effects'
+local updater       = require 'src.updater'
 
 local M = {}
 
@@ -349,6 +350,10 @@ end
 
 function M.toggle_render_pause()
     render.toggle_pause()
+end
+
+function M.update(on_complete)
+    updater.run(on_complete)
 end
 
 return M

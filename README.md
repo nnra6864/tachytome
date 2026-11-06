@@ -153,6 +153,8 @@ This is done to avoid global bind conflicts.
 | <hr>    | <hr>              | <hr>                                                                                                          |
 | Esc     | Close             | Close the currently active menu.                                                                              |
 
+<!-- TODO: document Update (U) above Close, git first with GitHub archive fallback, restart mpv after -->
+
 #### Render Queue
 
 | Keybind | Action        | Description                                                                                |

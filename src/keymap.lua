@@ -24,6 +24,7 @@ local builtin = {
     r     = "render_queue",
     d     = "trash_source_now",
     s     = "stats",
+    U     = "update",
     ESC   = "close"
 }
 

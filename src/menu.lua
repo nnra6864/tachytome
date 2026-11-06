@@ -201,6 +201,12 @@ local registry = {
         action = actions.toggle_stats,
         keep_open = true
     },
+    {
+        name = "update",
+        label = "Update",
+        action = function() actions.update(M.open) end,
+        keep_open = false
+    },
 
     { separator = true },
     {
