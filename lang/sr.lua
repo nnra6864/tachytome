@@ -91,10 +91,6 @@ return {
     trash_done    = "Izvorni video je premešten u smeće",
     trash_failed  = "Premeštanje izvornog videa u smeće nije uspelo, možda je u upotrebi",
 
-    effects_on        = "Uključeni",
-    effects_off       = "Isključeni",
-    effects_off_list  = "Isključeni: {list}",
-    effects_enabled   = "Uključeni",
     effects_duration  = "Trajanje (s)",
     effects_added     = "Efekat dodat: {name}",
     effects_removed   = "Efekat uklonjen: {name}",

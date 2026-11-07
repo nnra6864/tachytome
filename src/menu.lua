@@ -173,7 +173,11 @@ local items = {
     {
         name      = "effects",
         label_key = "menu_effects",
-        get_val   = function() return v(actions.get_effects_display()) end,
+        get_val   = function()
+            local list = actions.get_effects_display()
+            if list == "" then return toggle(state.effects_enabled) end
+            return toggle(state.effects_enabled) .. " " .. v(theme.escape(list))
+        end,
         action    = function() actions.effects_menu(M.open) end,
         keep_open = false
     },

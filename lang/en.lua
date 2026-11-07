@@ -91,10 +91,6 @@ return {
     trash_done    = "Trashed the source video",
     trash_failed  = "Failed to trash the source video, it may be in use",
 
-    effects_on        = "On",
-    effects_off       = "Off",
-    effects_off_list  = "Off: {list}",
-    effects_enabled   = "Enabled",
     effects_duration  = "Duration (s)",
     effects_added     = "Effect added: {name}",
     effects_removed   = "Effect removed: {name}",

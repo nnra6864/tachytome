@@ -58,7 +58,7 @@ function M.show(on_close)
                 local val = state.effects_enabled
                     and string.format("%s%s", theme.c("on_color"), state.opts.on_text)
                     or  string.format("%s%s", theme.c("off_color"), state.opts.off_text)
-                return string.format("%s > %s", theme.escape(lang.t("effects_enabled")), val)
+                return string.format("%s > %s", theme.escape(lang.t("menu_effects")), val)
             elseif row.kind == "header" then
                 return string.format("%s%s", theme.c("dim_text_color"), theme.escape(row.file))
             end
@@ -76,7 +76,7 @@ function M.show(on_close)
             state.opts.lossless_cut = false
             notify.show(lang.t("value_set", { label = lang.t("menu_lossless_cut"), value = lang.t("value_off") }))
         end
-        notify.show(lang.t("value_set", { label = lang.t("menu_effects"), value = lang.t(enabled and "effects_on" or "effects_off") }))
+        notify.show(lang.t("value_set", { label = lang.t("menu_effects"), value = lang.t(enabled and "value_on" or "value_off") }))
     end
 
     local open_ui
