@@ -200,14 +200,17 @@ This is done to avoid global bind conflicts.
 
 ### Config
 
-You can configure Tachytome with the `mpv/script-opts/tachytome/tachytome.conf` file.<br>
+You can configure Tachytome with the `mpv/script-opts/tachytome/default.conf` file.<br>
 It should get automatically generated on the first launch, with every line commented out.<br>
 Uncomment and change only what you need, everything else uses the [builtin config](./tachytome.conf).<br>
 The builtin config contains detailed explanations of all the settings, I would highly suggest reading it.
 
+`mpv/script-opts/tachytome/tachytome.conf` is generated too, containing only `configs=default`, which picks the [configs](#configs) that get used.
+
 > [!NOTE]
 > Older versions used `mpv/script-opts/tachytome.conf` and `mpv/script-opts/tachytome-effects.conf`.<br>
-> These get moved into `mpv/script-opts/tachytome/` on start.
+> These get moved to `mpv/script-opts/tachytome/default.conf` and `mpv/script-opts/tachytome/effects.conf` on start, with a new `tachytome.conf` sourcing `default`.<br>
+> A `tachytome/tachytome.conf` without a `configs=` line is moved to `default.conf` the same way.
 
 To access exposed Tachytome functions, add the following to your `mpv/input.conf`:
 ```
@@ -219,9 +222,9 @@ Replace `t`, `g` and `d` with keys of your choice.
 
 #### Configs
 
-`mpv/script-opts/tachytome/` can hold more `.conf` files, e.g. `work.conf` and `stream.conf`, picked with the `configs` option in `tachytome.conf`:
+`mpv/script-opts/tachytome/` can hold more `.conf` files next to `default.conf`, e.g. `work.conf` and `stream.conf`, picked with the `configs` option in `tachytome.conf`:
 ```
-configs=work,stream,!old
+configs=default,work,stream,!old
 ```
 
 - Configs are named without `.conf`, later ones override earlier ones.
@@ -231,11 +234,12 @@ configs=work,stream,!old
 - `.conf` files in the dir that aren't listed show up as disabled.
 - Switch them from the menu with `c` in Settings, which writes the `configs=` line and reloads options and menus.<br>
   Options changed from the menu during the session are reset to the config values on reload.
-- Switching the menu or language from the menu saves it to whichever file sets it, e.g. `work.conf` when it's the one that wins.
+- Switching the menu or language from the menu saves it to whichever file sets it, e.g. `work.conf` when it's the one that wins.<br>
+  When no file sets it yet, it goes to the first enabled config.
 
 #### Custom Menus
 
-The Tachytome menu is fully configurable through menus in `tachytome.conf`.<br>
+The Tachytome menu is fully configurable through menus in your configs, e.g. `default.conf`.<br>
 Pick the active one with `selected_menu`, or switch it from the menu with `m`.
 
 ```

@@ -141,22 +141,6 @@ local function apply_script_opts(opts)
     end
 end
 
-function M.read_options(opts)
-    if defaults then
-        for key, val in pairs(defaults) do opts[key] = val end
-    else
-        defaults = {}
-        for key, val in pairs(opts) do defaults[key] = val end
-    end
-    origins      = {}
-    M.menu_lines = {}
-    M.configs    = {}
-    M.user_path  = common.ensure_default_conf("tachytome.conf", "tachytome.conf", true)
-    parse_file(M.builtin_path, "tachytome.conf (builtin)", opts, M.menu_lines, "builtin")
-    parse_file(M.user_path, M.user_path, opts, M.menu_lines, "main")
-    apply_script_opts(opts)
-end
-
 local function read_lines(path)
     local lines = {}
     local f = io.open(path, "r")
@@ -176,6 +160,65 @@ local function write_lines(path, lines, key)
     f:write(table.concat(lines, "\n") .. "\n")
     f:close()
     return true
+end
+
+local function has_configs_line(path)
+    for _, line in ipairs(read_lines(path)) do
+        if line:sub(1, 8) == "configs=" then return true end
+    end
+    return false
+end
+
+local function ensure_main_conf()
+    local main    = utils.join_path(common.get_conf_dir(), "tachytome.conf")
+    local default = M.config_path("default")
+    local legacy  = utils.join_path(mp.command_native({"expand-path", "~~/script-opts"}), "tachytome.conf")
+    local source  = nil
+
+    if not common.file_exists(default) then
+        if common.file_exists(legacy) and not common.file_exists(main) then
+            source = legacy
+        elseif common.file_exists(main) and not has_configs_line(main) then
+            source = main
+        end
+    end
+
+    if source then
+        common.ensure_dir(common.get_conf_dir())
+        local ok, err = os.rename(source, default)
+        if ok then
+            mp.msg.info("Moved config " .. source .. " to " .. default)
+        else
+            mp.msg.warn("Failed to move config " .. source .. ": " .. tostring(err))
+            return main
+        end
+    elseif common.file_exists(legacy) then
+        mp.msg.warn("Ignoring old config " .. legacy .. ", using " .. main)
+    elseif not common.file_exists(default) and not common.file_exists(main) then
+        common.ensure_default_conf("tachytome.conf", "default.conf", true)
+    end
+
+    if source == main or not common.file_exists(main) then
+        write_lines(main, { "configs=default" }, "configs")
+        mp.msg.info("Generated config at: " .. main)
+    end
+    return main
+end
+
+function M.read_options(opts)
+    if defaults then
+        for key, val in pairs(defaults) do opts[key] = val end
+    else
+        defaults = {}
+        for key, val in pairs(opts) do defaults[key] = val end
+    end
+    origins      = {}
+    M.menu_lines = {}
+    M.configs    = {}
+    M.user_path  = ensure_main_conf()
+    parse_file(M.builtin_path, "tachytome.conf (builtin)", opts, M.menu_lines, "builtin")
+    parse_file(M.user_path, M.user_path, opts, M.menu_lines, "main")
+    apply_script_opts(opts)
 end
 
 local function builtin_block(key)
@@ -215,7 +258,13 @@ function M.write_option(key, val)
         return write_lines(path, lines, key)
     end
 
-    path  = M.user_path
+    path = M.user_path
+    for _, c in ipairs(M.configs) do
+        if c.enabled and c.exists then
+            path = M.config_path(c.name)
+            break
+        end
+    end
     lines = read_lines(path)
     local block = builtin_block(key)
     block[#block + 1] = entry
