@@ -266,7 +266,7 @@ function M.set_space_replacement(on_complete)
         notify.show("Space replacement set to: '" .. input .. "'")
         notify.show("Target: " .. M.get_final_path())
         if on_complete then on_complete() end
-    end, state.opts.space_replacement, true, nil, on_complete)
+    end, state.opts.space_replacement, true, nil, on_complete, true)
 end
 
 function M.get_space_replacement_display()
@@ -314,7 +314,7 @@ function M.set_path(on_complete)
             notify.show("Output path reset to default")
         end
         if on_complete then on_complete() end
-    end, display_path, binds, state.path_history, on_complete)
+    end, display_path, binds, state.path_history, on_complete, true)
 end
 
 function M.start_render(on_complete)

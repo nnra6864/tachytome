@@ -173,7 +173,7 @@ function M.show(on_close)
                 end)
             end, current_output, "(Up/Down for history, Enter to confirm, Esc to cancel)", state.path_history, function()
                 open_ui()
-            end)
+            end, true)
         end
 
         prompt_change_path()

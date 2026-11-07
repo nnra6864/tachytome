@@ -17,7 +17,7 @@ local history      = {}
 local history_idx  = 1
 local draft_buffer = ""
 
-local key_mappings   = { ["SPACE"] = " ", ["SHARP"] = "#" }
+local key_mappings   = { ["SHARP"] = "#" }
 local standard_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.,:;/\\|()[]~@$%^&*+=<>?'\"!`"
 for i = 1, #standard_chars do
     local c = standard_chars:sub(i, i)
@@ -51,6 +51,7 @@ local function cleanup_bindings()
     mp.remove_key_binding("osd-input-down")
     mp.remove_key_binding("osd-input-cj")
     mp.remove_key_binding("osd-input-ck")
+    mp.remove_key_binding("osd-input-space")
     for key, _ in pairs(key_mappings) do mp.remove_key_binding("osd-input-char-" .. key) end
 end
 
@@ -110,7 +111,7 @@ local function history_down()
     end
 end
 
-function M.get_user_input(prompt, callback, sub_prompt, tooltip_override, history_list, on_cancel)
+function M.get_user_input(prompt, callback, sub_prompt, tooltip_override, history_list, on_cancel, allow_space)
     if active then return end
     active                  = true
     state.ui_owner          = "input"
@@ -136,6 +137,9 @@ function M.get_user_input(prompt, callback, sub_prompt, tooltip_override, histor
     mp.add_forced_key_binding("DOWN", "osd-input-down", history_down, {repeatable=true})
     mp.add_forced_key_binding("ctrl+j", "osd-input-cj", history_down, {repeatable=true})
     mp.add_forced_key_binding("ctrl+k", "osd-input-ck", history_up, {repeatable=true})
+    if allow_space then
+        mp.add_forced_key_binding("SPACE", "osd-input-space", function() add_char(" ") end, {repeatable=true})
+    end
 
     for key, char in pairs(key_mappings) do
         mp.add_forced_key_binding(key, "osd-input-char-" .. key, function() add_char(char) end, {repeatable=true})
