@@ -152,7 +152,7 @@ This is done to avoid global bind conflicts.
 | r       | Render Queue      | Open the render queue menu.                                                                                   |
 | R       | Pause Render      | Pause the current render and render queue.<br>Can only pause the render queue on Windows.                     |
 | d       | Trash Source Now  | Trash the source file.                                                                                        |
-| s       | Stats             | Display Tachytome stats.                                                                                      |
+| s       | Stats             | Toggle the Tachytome stats overlay.                                                                           |
 | <hr>    | <hr>              | <hr>                                                                                                          |
 | m       | Menu              | Switch the menu, saved to your config.<br>Learn more about [Custom Menus](#custom-menus).                     |
 | c       | Configs           | Enable, disable and reorder extra configs.<br>Learn more about [Configs](#configs).                           |
@@ -185,6 +185,10 @@ This is done to avoid global bind conflicts.
 | Home/End             | Start/End   | Jump to the start or end of the text.   |
 | Backspace            | Delete      | Delete the character before the cursor. |
 | ctrl+Backspace       | Delete Word | Delete the word before the cursor.      |
+
+Inputs show the current value and a hint on the accepted format below the prompt.<br>
+Submitting an empty input resets to the default where there is one, e.g. the source FPS for FPS or the default path for Path, otherwise it keeps the current value.<br>
+Esc closes any prompt or dialog without changing anything.
 
 Words end at whitespace and separators like `-`, `_`, `/`, `\`, `.`, `,`, `:`, `;` and brackets, e.g. ctrl+Backspace on `~/Videos/my_clip` leaves `~/Videos/my_`.<br>
 The cursor is a bar by default, set `cursor_style` to `bar`, `underline` or `block` to change it.<br>
@@ -335,13 +339,15 @@ A language file returns a flat table of keys and their text:
 return {
     menu_mark_in     = "Mark In",
     submenu_settings = "Settings",
-    notify_mark_in   = "In: {time}"
+    value_set        = "{label}: {value}"
 }
 ```
 
 - Keys missing from a language fall back to [English](./lang/en.lua), so a translation can be partial.
 - `{name}` placeholders get replaced with values, keep them as they are, their order can change.
 - Submenus are labeled by `submenu_<id>`, e.g. `submenu_video`, or their id when there's no such key.
+- Menu item labels, `menu_<action>`, are reused as the titles of the screens they open and in their notifications, e.g. `Quality: 30`.
+- Key tooltips are built from `key_hint`, e.g. `{keys} to {action}`, and one `key_<action>` per action, e.g. `key_navigate`.
 - To add a language, copy `lang/en.lua` to `lang/<code>.lua` and translate the text.
 
 ### Recovery

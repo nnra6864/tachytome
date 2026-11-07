@@ -5,6 +5,7 @@ local state  = require 'src.state'
 local theme  = require 'src.theme'
 local lang   = require 'src.lang'
 local edit   = require 'src.text_edit'
+local ui     = require 'src.ui'
 
 local M = {}
 
@@ -17,7 +18,6 @@ local current_callback = nil
 local current_options  = {}
 local current_place    = nil
 local current_title    = ""
-local current_tooltip  = ""
 
 local key_mappings   = {}
 local standard_chars = "0123456789:.dhmsf%+-[]"
@@ -27,21 +27,12 @@ for i = 1, #standard_chars do
 end
 
 local function render()
-    local max_label_len = 0
-    for _, opt in ipairs(current_options) do
-        if common.text_len(opt.label) > max_label_len then max_label_len = common.text_len(opt.label) end
-    end
+    local rows = {}
+    for i, opt in ipairs(current_options) do rows[i] = { keys = opt.key, label = opt.label, value = opt.val } end
 
-    local options_str = ""
-    for _, opt in ipairs(current_options) do
-        local val_pad = string.rep("\\h", max_label_len - common.text_len(opt.label) + 1)
-        options_str = options_str .. string.format("\\N%s -> %s%s> %s%s%s",
-            opt.key, opt.label, val_pad, theme.c("value_color"), opt.val, theme.reset()
-        )
-    end
-
-    local line = edit.render(layers, theme.align(7) .. theme.f() .. theme.c("text_color"), current_title .. " > ", input, cursor)
-    overlay.data = string.format("%s%s%s\\N%s%s", line, theme.reset(), options_str, theme.f(true), current_tooltip)
+    local hints = { { "Enter", current_place and "set" or "seek" }, { "Esc", "cancel" } }
+    local line  = edit.render(layers, theme.align(7) .. theme.f() .. theme.c("text_color"), current_title .. " > ", input, cursor)
+    overlay.data = string.format("%s%s%s%s", line, theme.reset(), ui.rows(rows), ui.tooltip(hints))
     overlay:update()
 end
 
@@ -141,7 +132,7 @@ local function parse_input(str)
         if base or relative then
             local duration = mp.get_property_number("duration")
             if not (duration and duration > 0) then
-                notify.show(lang.t("warn_percent"), true, "warn")
+                notify.show(lang.t("goto_no_duration"), true, "warn")
                 return nil
             end
             if base then
@@ -157,7 +148,7 @@ local function parse_input(str)
         if not num then return nil end
         local fps = mp.get_property_number("container-fps") or mp.get_property_number("container-fps-approx")
         if not (fps and fps > 0) then
-            notify.show(lang.t("warn_frames"), true, "warn")
+            notify.show(lang.t("goto_no_fps"), true, "warn")
             return nil
         end
         if base then
@@ -182,7 +173,7 @@ local function apply_input(t)
             seconds = mp.get_property_number("time-pos", 0) + t.seconds
         elseif t.kind == "percent" then
             if not (duration and duration > 0) then
-                notify.show(lang.t("warn_percent"), true, "warn")
+                notify.show(lang.t("goto_no_duration"), true, "warn")
                 return
             end
             seconds = duration * t.value / 100
@@ -191,11 +182,11 @@ local function apply_input(t)
         if duration and duration > 0 and seconds > duration then seconds = duration end
         if current_place == 0 then
             state.mark_in = seconds
-            notify.show(lang.t("notify_mark_in", { time = common.format_time(seconds) }))
         else
             state.mark_out = seconds
-            notify.show(lang.t("notify_mark_out", { time = common.format_time(seconds) }))
         end
+        local label = lang.t(current_place == 0 and "menu_mark_in" or "menu_mark_out")
+        notify.show(lang.t("value_set", { label = label, value = common.format_time(seconds) }))
         return
     end
 
@@ -232,7 +223,7 @@ end
 function M.show(on_complete, options, place)
     if active then return end
     if not place and not mp.get_property_bool("seekable") then
-        notify.show(lang.t("warn_not_seekable"), true, "warn")
+        notify.show(lang.t("goto_not_seekable"), true, "warn")
         if on_complete then on_complete() end
         return
     end
@@ -242,15 +233,13 @@ function M.show(on_complete, options, place)
     cursor           = 0
     current_callback = on_complete
     current_place    = place
-    current_title    = lang.t(place == 0 and "goto_set_in" or place == 1 and "goto_set_out" or "goto_title")
-    current_tooltip  = lang.t(place and "tooltip_set" or "tooltip_seek")
+    current_title    = lang.t(place == 0 and "menu_set_mark_in" or place == 1 and "menu_set_mark_out" or "menu_goto")
     current_options  = {}
     for _, opt in ipairs(options or {}) do
         current_options[#current_options + 1] = { key = opt.key, label = opt.label, val = opt.get_val(), action = opt.action }
     end
 
-    mp.set_osd_ass(0, 0, "")
-    mp.osd_message("", 0)
+    ui.clear_osd()
     render()
 
     edit.add_bindings("goto", apply_edit)

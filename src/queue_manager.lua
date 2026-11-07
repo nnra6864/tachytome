@@ -9,6 +9,7 @@ local theme     = require 'src.theme'
 local ui_input  = require 'src.ui_input'
 local ui_choice = require 'src.ui_choice'
 local lang      = require 'src.lang'
+local ui        = require 'src.ui'
 
 local M = {}
 
@@ -17,7 +18,7 @@ function M.show(on_close)
         local new_jobs = {}
         if queue.is_rendering and queue.active then
             local active_title = queue.active.final_name
-            if queue.render_paused then active_title = lang.t("queue_paused", { name = active_title }) end
+            if queue.render_paused then active_title = lang.t("queue_paused_job", { name = active_title }) end
             table.insert(new_jobs, {title = active_title, is_active = true, original_index = 0})
         end
         for i, q_job in ipairs(queue.jobs) do
@@ -59,26 +60,13 @@ function M.show(on_close)
     end
 
     local function draw()
-        local text = string.format("%s%s%s%s%s\\N%s%s\\N\\N",
-            theme.align(7), theme.f(), theme.b(true), lang.t("queue_title"), theme.b(false), theme.f(true), lang.t("tooltip_queue"))
-
-        local start_idx = math.max(1, cursor - 7)
-        local end_idx   = math.min(#jobs, start_idx + 14)
-        if end_idx - start_idx < 14 then start_idx = math.max(1, end_idx - 14) end
-
-        if start_idx > 1 then text = text .. "\\h\\h...\\N" end
-
-        for i = start_idx, end_idx do
+        local body = ui.list(#jobs, cursor, function(i)
             local job    = jobs[i]
-            local prefix = (i == cursor) and string.format("%s\\h> ", theme.c("value_color")) or "\\h\\h"
-            local status = job.is_active and string.format("%s%s", theme.c("on_color"), state.opts.on_text) or ""
-
-            text = text .. string.format("%s%s%s %s%s\\N", theme.c("text_color"), prefix, theme.escape(job.title), status, theme.reset())
-        end
-
-        if end_idx < #jobs then text = text .. "\\h\\h...\\N" end
-
-        ov.data = text
+            local status = job.is_active and string.format(" %s%s", theme.c("on_color"), state.opts.on_text) or ""
+            return theme.escape(job.title) .. status
+        end)
+        local hints = { { "Up/Down", "navigate" }, { "Enter", "pause" }, { "p", "path" }, { "d", "delete" }, { "Esc", "close" } }
+        ov.data = ui.title(lang.t("menu_render_queue")) .. "\\N" .. body .. "\\N" .. ui.tooltip(hints)
         ov:update()
     end
 
@@ -128,55 +116,45 @@ function M.show(on_close)
             q_job.output_file = new_output
             q_job.final_name  = fname
 
-            if queue.active == q_job then
-                notify.show(lang.t("notify_active_target", { name = fname }), true)
-            else
+            if queue.active ~= q_job then
                 q_job.args[q_job.output_arg_index] = new_output
                 q_job.temp_file                    = queue.temp_path_for(new_output, q_job.temp_id)
-                notify.show(lang.t("notify_path_changed", { name = fname }), true)
             end
+            notify.show(lang.t("value_set", { label = lang.t("menu_path"), value = fname }), true)
 
             common.add_to_history(state.path_history, input)
             common.save_history(state.path_history)
             queue.save()
         end
 
+        local function resolve(input)
+            return common.resolve_absolute_path_for(input, state.opts, q_job.input_file)
+        end
+
         local function prompt_change_path()
-            ui_input.get_user_input(lang.t("prompt_new_output_path"), function(input)
-                if input == "" then
-                    notify.show(lang.t("notify_path_change_cancelled"), true)
-                    open_ui()
-                    return
-                end
+            ui_input.show({
+                title       = lang.t("menu_path"),
+                current     = common.display_path(current_output, q_job.input_file),
+                history     = state.path_history,
+                allow_space = true,
+                preview     = resolve,
+                on_cancel   = open_ui,
+                on_submit   = function(input)
+                    local new_output = input ~= "" and resolve(input) or ""
+                    if new_output == "" or new_output == current_output then return open_ui() end
 
-                local new_output = common.resolve_absolute_path_for(input, state.opts, q_job.input_file)
-                if new_output == "" or new_output == current_output then
-                    notify.show(lang.t("notify_path_unchanged", { name = q_job.final_name }), true)
-                    open_ui()
-                    return
-                end
+                    if not queue.is_path_in_use(new_output) then
+                        apply_change_path(input, new_output)
+                        return open_ui()
+                    end
 
-                if not queue.is_path_in_use(new_output) then
-                    apply_change_path(input, new_output)
-                    open_ui()
-                    return
+                    local _, new_name = utils.split_path(new_output)
+                    ui_choice.show_exists(new_name, prompt_change_path, function()
+                        apply_change_path(input, new_output)
+                        open_ui()
+                    end, open_ui)
                 end
-
-                local _, new_name = utils.split_path(new_output)
-                ui_choice.show_exists(new_name, function()
-                    prompt_change_path()
-                end, function()
-                    apply_change_path(input, new_output)
-                    open_ui()
-                end, function()
-                    notify.show(lang.t("notify_path_change_cancelled"), true)
-                    open_ui()
-                end)
-            end, common.display_path(current_output, q_job.input_file), lang.t("tooltip_history"), state.path_history, function()
-                open_ui()
-            end, true, function(input)
-                return common.resolve_absolute_path_for(input, state.opts, q_job.input_file)
-            end)
+            })
         end
 
         prompt_change_path()
@@ -216,7 +194,7 @@ function M.show(on_close)
             else
                 table.remove(queue.jobs, job.original_index)
                 queue.total_jobs = queue.total_jobs > 0 and (queue.total_jobs - 1) or 0
-                notify.show(lang.t("notify_queue_removed", { name = job.title }), true)
+                notify.show(lang.t("queue_removed", { name = job.title }), true)
                 queue.save()
             end
 
@@ -244,8 +222,7 @@ function M.show(on_close)
         end
         if cursor > #jobs then cursor = #jobs end
 
-        mp.set_osd_ass(0, 0, "")
-        mp.osd_message("", 0)
+        ui.clear_osd()
 
         active          = true
         state.ui_owner  = "queue"

@@ -8,6 +8,7 @@ local render  = require 'src.render'
 local theme   = require 'src.theme'
 local easing  = require 'src.easing'
 local lang    = require 'src.lang'
+local ui      = require 'src.ui'
 
 local M             = {}
 local menu_active   = false
@@ -31,7 +32,7 @@ local function resolve_easing(val, name)
     local fn = easing.parse(val)
     if not fn then
         fn = easing.parse("linear")
-        notify.show(lang.t("warn_unknown_easing", { name = name, value = tostring(val) }), false, "warn")
+        notify.show(lang.t("warn_unknown_easing", { where = name, value = tostring(val) }), false, "warn")
     end
     return fn
 end
@@ -66,9 +67,12 @@ end
 
 load_specs()
 
-local function off(val) return string.format("%s%s%s", theme.c("off_color"), tostring(val), theme.reset()) end
-local function on(val) return string.format("%s%s%s", theme.c("on_color"),   tostring(val), theme.reset()) end
 local function v(val) return string.format("%s%s%s", theme.c("value_color"), tostring(val), theme.reset()) end
+
+local function toggle(val)
+    if val then return string.format("%s%s%s", theme.c("on_color"), state.opts.on_text, theme.reset()) end
+    return string.format("%s%s%s", theme.c("off_color"), state.opts.off_text, theme.reset())
+end
 
 local items = {
     {
@@ -141,28 +145,28 @@ local items = {
     {
         name      = "lossless_cut",
         label_key = "menu_lossless_cut",
-        get_val   = function() return state.opts.lossless_cut and on(state.opts.on_text) or off(state.opts.off_text) end,
+        get_val   = function() return toggle(state.opts.lossless_cut) end,
         action    = actions.toggle_lossless,
         keep_open = true
     },
     {
         name      = "accurate_cut",
         label_key = "menu_accurate_cut",
-        get_val   = function() return state.opts.accurate_cut and on(state.opts.on_text) or off(state.opts.off_text) end,
+        get_val   = function() return toggle(state.opts.accurate_cut) end,
         action    = actions.toggle_accurate,
         keep_open = true
     },
     {
         name      = "combine_audio",
         label_key = "menu_combine_audio",
-        get_val   = function() return state.opts.combine_audio and on(state.opts.on_text) or off(state.opts.off_text) end,
+        get_val   = function() return toggle(state.opts.combine_audio) end,
         action    = actions.toggle_combine_audio,
         keep_open = true
     },
     {
         name      = "first_audio_only",
         label_key = "menu_first_audio_only",
-        get_val   = function() return state.opts.first_audio_only and on(state.opts.on_text) or off(state.opts.off_text) end,
+        get_val   = function() return toggle(state.opts.first_audio_only) end,
         action    = actions.toggle_first_audio_only,
         keep_open = true
     },
@@ -190,7 +194,7 @@ local items = {
     {
         name      = "trash_source",
         label_key = "menu_trash_source",
-        get_val   = function() return state.opts.trash_source and on(state.opts.on_text) or off(state.opts.off_text) end,
+        get_val   = function() return toggle(state.opts.trash_source) end,
         action    = actions.toggle_trash_source,
         keep_open = true
     },
@@ -209,7 +213,7 @@ local items = {
     {
         name      = "render_pause",
         label_key = "menu_render_pause",
-        get_val   = function() return render.is_paused() and on(state.opts.on_text) or off(state.opts.off_text) end,
+        get_val   = function() return toggle(render.is_paused()) end,
         action    = function() actions.toggle_render_pause() end,
         keep_open = true
     },
@@ -222,6 +226,7 @@ local items = {
     {
         name      = "stats",
         label_key = "menu_stats",
+        get_val   = function() return toggle(actions.stats_visible) end,
         action    = actions.toggle_stats,
         keep_open = true
     },
@@ -461,7 +466,7 @@ local function draw()
     end
 
     if esc_back then
-        text = text .. "\\N" .. theme.f(true) .. theme.c("dim_text_color") .. theme.escape(lang.t("menu_esc_back"))
+        text = text .. ui.tooltip({ { "Esc", "back" } })
     end
 
     menu_overlay.data = text
@@ -638,8 +643,7 @@ function M.open()
     if not resume_row then path = {} end
     resume_row     = nil
     sync_level()
-    mp.set_osd_ass(0, 0, "")
-    mp.osd_message("", 0)
+    ui.clear_osd()
     bind_level()
     if pending_row then
         start_flash(pending_row, nil, flash_spec)

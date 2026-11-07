@@ -5,7 +5,6 @@ local process   = require 'src.process'
 local queue     = require 'src.queue'
 local state     = require 'src.state'
 local notify    = require 'src.notify'
-local theme     = require 'src.theme'
 local ui_choice = require 'src.ui_choice'
 local lang      = require 'src.lang'
 
@@ -45,12 +44,11 @@ local function all_queue_referenced_temps()
 end
 
 local function show_temp_orphan_dialog(entry, on_done)
-    local shown = {}
-    for i = 1, math.min(#entry.files, 3) do table.insert(shown, theme.escape(entry.files[i])) end
-    local extra = (#entry.files > 3) and " " .. lang.t("recovery_more", { count = #entry.files - 3 }) or ""
-    local body  = string.format("%s%s\\N%s%s", theme.f(true), theme.escape(entry.dir), table.concat(shown, "\\N"), extra)
+    local lines = { entry.dir }
+    for i = 1, math.min(#entry.files, 3) do lines[#lines + 1] = entry.files[i] end
+    if #entry.files > 3 then lines[#lines + 1] = lang.t("recovery_more", { count = #entry.files - 3 }) end
 
-    ui_choice.show(lang.t("recovery_leftovers_title"), body, {
+    ui_choice.show(lang.t("leftovers_title"), table.concat(lines, "\n"), {
         { key = "1", label = lang.t("choice_delete") },
         { key = "2", label = lang.t("choice_keep") }
     }, 2, function(idx)
@@ -58,10 +56,10 @@ local function show_temp_orphan_dialog(entry, on_done)
             for _, name in ipairs(entry.files) do
                 queue.delete_temp_file(utils.join_path(entry.dir, name))
             end
-            notify.show(lang.t("notify_leftovers_deleted"), true)
+            notify.show(lang.t("leftovers_deleted"), true)
         else
             for _, name in ipairs(entry.files) do dismissed_temps[name] = true end
-            notify.show(lang.t("notify_leftovers_kept"), true)
+            notify.show(lang.t("leftovers_kept"), true)
         end
         if on_done then on_done() end
     end)
@@ -181,18 +179,16 @@ local function collect_orphan_queues()
 end
 
 local function show_recover_dialog(file, on_recover, on_discard, on_ignore)
-    local owner_str = file.owner_pid and lang.t("recovery_owner_pid", { pid = string.format("%d", file.owner_pid) }) or lang.t("recovery_owner")
-    local names     = {}
+    local lines = { lang.t("recovery_owner") .. (file.owner_pid and string.format(" (pid %d)", file.owner_pid) or "") }
     for i, it in ipairs(file.items) do
         if i > 3 then
-            table.insert(names, lang.t("recovery_more", { count = #file.items - 3 }))
+            lines[#lines + 1] = lang.t("recovery_more", { count = #file.items - 3 })
             break
         end
-        table.insert(names, string.format("%s [%s]", theme.escape(it.final_name), tostring(it.status)))
+        lines[#lines + 1] = string.format("%s [%s]", it.final_name, tostring(it.status))
     end
-    local body = string.format("%s%s\\N%s", theme.f(true), owner_str, table.concat(names, "\\N"))
 
-    ui_choice.show(lang.t("recovery_title"), body, {
+    ui_choice.show(lang.t("recovery_title"), table.concat(lines, "\n"), {
         { key = "1", label = lang.t("choice_recover") },
         { key = "2", label = lang.t("choice_discard") },
         { key = "3", label = lang.t("choice_ignore") }
@@ -216,9 +212,9 @@ local function adopt_orphan_queue(file)
         queue.delete_temp_file(it.temp_file)
 
         if not utils.file_info(it.input_file) then
-            notify.show(lang.t("warn_recovery_source", { name = it.final_name }), true, "warn")
+            notify.show(lang.t("recovery_skipped", { reason = lang.t("recovery_no_source"), name = it.final_name }), true, "warn")
         elseif (tonumber(it.mark_out) or 0) <= (tonumber(it.mark_in) or 0) then
-            notify.show(lang.t("warn_recovery_marks", { name = it.final_name }), true, "warn")
+            notify.show(lang.t("recovery_skipped", { reason = lang.t("recovery_bad_marks"), name = it.final_name }), true, "warn")
         else
             table.insert(queue.jobs, queue.build_job({
                 input_file          = it.input_file,
@@ -254,7 +250,7 @@ local function adopt_orphan_queue(file)
     if adopted > 0 then
         queue.total_jobs   = queue.total_jobs + adopted
         queue.queue_paused = true
-        notify.show(lang.t("notify_recovery_done"), true)
+        notify.show(lang.t("recovery_done"), true)
     end
     queue.save()
 end

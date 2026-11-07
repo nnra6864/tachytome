@@ -45,7 +45,7 @@ local function parse_entry(line, where)
     local unbind             = action == "none" or action == "ignore"
     local hide_seq           = action == "hide"
     if not seq or not valid_seq(seq) or text:find("{$") or ((unbind or hide_seq) and (add or hide or label ~= "")) then
-        warn(lang.t("warn_invalid_menu_line", { where = where, line = line }))
+        warn(lang.t("warn_invalid_line", { where = where, line = line }))
         return nil
     end
 
@@ -69,7 +69,7 @@ local function parse_submenu(line, where)
 
     local seq, id, label = line:match("^(%S+)%s+(%S+)%s*(.-)%s*{$")
     if not seq or seq == "add" or seq == "hide" or not valid_seq(seq) or id == "none" or id == "ignore" or id == "hide" then
-        warn(lang.t("warn_invalid_submenu_line", { where = where, line = line }))
+        warn(lang.t("warn_invalid_line", { where = where, line = line }))
         return nil
     end
 
@@ -85,7 +85,7 @@ end
 
 local function finish(current, defined)
     if defined[current.name] then
-        warn(lang.t("warn_menu_redefined", { name = current.name, where = current.where }))
+        warn(lang.t("warn_redefined", { name = current.name, where = current.where }))
     end
     defined[current.name] = true
     if not presets[current.name] then order[#order + 1] = current.name end
@@ -109,7 +109,7 @@ local function parse_lines(lines)
                 if base and #stack == 1 then
                     current.base = base
                 else
-                    warn(lang.t("warn_invalid_base_line", { where = ln.where, line = text }))
+                    warn(lang.t("warn_invalid_line", { where = ln.where, line = text }))
                 end
             elseif text:find("{$") then
                 local entry = parse_submenu(text, ln.where)
@@ -132,12 +132,12 @@ local function parse_lines(lines)
                 local entry = parse_entry(body, ln.where)
                 if entry then flats[#flats + 1] = entry end
             else
-                warn(lang.t("warn_invalid_menu_line", { where = ln.where, line = text }))
+                warn(lang.t("warn_invalid_line", { where = ln.where, line = text }))
             end
         end
     end
 
-    if stack[1] then warn(lang.t("warn_unclosed_menu", { name = stack[1].name, where = stack[1].where })) end
+    if stack[1] then warn(lang.t("warn_unclosed", { name = stack[1].name, where = stack[1].where })) end
 end
 
 local function unbind(rows, seq)
@@ -175,7 +175,7 @@ end
 local function find_row(rows, action, submenu, name)
     local found = collect(rows, action, submenu, {})
     if #found > 1 then
-        warn(lang.t("warn_action_on_several_rows", { name = name, action = action }))
+        warn(lang.t("warn_several_rows", { name = name, action = action }))
     end
     if found[1] then return found[1].row, found[1].level end
     return nil, rows
@@ -236,13 +236,13 @@ end
 local function resolve(name, visited)
     local p = presets[name]
     if not p then
-        warn(lang.t("warn_menu_not_defined", { name = name }))
+        warn(lang.t("warn_menu_undefined", { name = name }))
         if name == "default" then return {} end
         return resolve("default", visited)
     end
 
     if visited[name] then
-        warn(lang.t("warn_menu_base_cycle", { name = name }))
+        warn(lang.t("warn_menu_cycle", { name = name }))
         return {}
     end
     visited[name] = true

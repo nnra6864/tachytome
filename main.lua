@@ -26,7 +26,7 @@ local function check_dependencies()
         return
     end
 
-    ui_confirm.show(lang.t("ffmpeg_missing_title"), lang.t("ffmpeg_missing_prompt"), function()
+    ui_confirm.show(lang.t("ffmpeg_missing"), lang.t("ffmpeg_install_prompt"), function()
         notify.show(lang.t("ffmpeg_installing"), true)
         local args = {}
         if platform == "windows" then
@@ -49,7 +49,7 @@ local function check_dependencies()
             end
         end)
     end, function()
-        notify.show(lang.t("ffmpeg_install_skipped"), true, "warn")
+        notify.show(lang.t("ffmpeg_install_skip"), true, "warn")
     end)
 end
 

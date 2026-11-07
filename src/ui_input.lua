@@ -3,6 +3,7 @@ local state = require 'src.state'
 local theme = require 'src.theme'
 local lang  = require 'src.lang'
 local edit  = require 'src.text_edit'
+local ui    = require 'src.ui'
 
 local M = {}
 
@@ -11,11 +12,10 @@ local layers                  = edit.create_layers()
 local active                  = false
 local buffer                  = ""
 local cursor                  = 0
-local current_prompt          = ""
-local current_sub_prompt      = ""
+local current_title           = ""
+local current_value           = ""
 local current_callback        = nil
 local current_cancel_callback = nil
-local custom_tooltip          = nil
 local current_preview         = nil
 local current_hint            = nil
 
@@ -31,23 +31,16 @@ for i = 1, #standard_chars do
 end
 
 local function render()
-    local tooltip = ""
-    if custom_tooltip == false then
-        tooltip = ""
-    elseif type(custom_tooltip) == "string" then
-        tooltip = "\\N" .. theme.f(true) .. custom_tooltip
-    else
-        tooltip = "\\N" .. theme.f(true) .. lang.t("tooltip_confirm")
-    end
-
-    local sub_str = (current_sub_prompt ~= "") and string.format("\\N%s%s%s", theme.f(true), theme.a("88"), lang.t("input_current", { value = theme.escape(current_sub_prompt) })) or ""
+    local hints = { { "Enter", "confirm" }, { "Esc", "cancel" } }
+    if #history > 0 then table.insert(hints, 1, { "Up/Down", "history" }) end
 
     local preview     = current_preview and current_preview(buffer) or ""
-    local preview_str = (preview ~= "") and string.format("\\N%s%s%s%s", theme.f(true), theme.c("value_color"), lang.t("input_expanded", { value = theme.escape(preview) }), theme.reset()) or ""
-    local hint_str    = current_hint and string.format("\\N%s%s%s%s", theme.f(true), theme.c("dim_text_color"), current_hint, theme.reset()) or ""
+    local preview_str = preview ~= "" and string.format("\\N%s%s-> %s%s", theme.f(true), theme.c("value_color"), theme.escape(preview), theme.reset()) or ""
+    local current_str = current_value ~= "" and ui.dim(lang.t("value_current", { value = current_value })) or ""
+    local hint_str    = current_hint and ui.dim(current_hint) or ""
 
-    local line = edit.render(layers, theme.align(7) .. theme.f() .. theme.c("text_color"), current_prompt, buffer, cursor)
-    overlay.data = string.format("%s%s%s%s%s%s", line, theme.reset(), preview_str, hint_str, tooltip, sub_str)
+    local line = edit.render(layers, theme.align(7) .. theme.f() .. theme.c("text_color"), current_title .. " > ", buffer, cursor)
+    overlay.data = string.format("%s%s%s%s%s%s", line, theme.reset(), preview_str, current_str, hint_str, ui.tooltip(hints))
     overlay:update()
 end
 
@@ -124,26 +117,24 @@ local function history_down()
     end
 end
 
-function M.get_user_input(prompt, callback, sub_prompt, tooltip_override, history_list, on_cancel, allow_space, preview, hint)
+function M.show(opts)
     if active then return end
     active                  = true
     state.ui_owner          = "input"
-    current_prompt          = prompt or ""
-    current_sub_prompt      = sub_prompt or ""
-    current_callback        = callback
-    current_cancel_callback = on_cancel
-    custom_tooltip          = tooltip_override
-    current_preview         = preview
-    current_hint            = hint
+    current_title           = opts.title or ""
+    current_value           = opts.current and tostring(opts.current) or ""
+    current_callback        = opts.on_submit
+    current_cancel_callback = opts.on_cancel
+    current_preview         = opts.preview
+    current_hint            = opts.hint
     buffer                  = ""
     cursor                  = 0
 
-    history      = history_list or {}
+    history      = opts.history or {}
     history_idx  = #history + 1
     draft_buffer = ""
 
-    mp.set_osd_ass(0, 0, "")
-    mp.osd_message("", 0)
+    ui.clear_osd()
     render()
 
     edit.add_bindings("osd-input", apply_edit)
@@ -153,7 +144,7 @@ function M.get_user_input(prompt, callback, sub_prompt, tooltip_override, histor
     mp.add_forced_key_binding("DOWN", "osd-input-down", history_down, {repeatable=true})
     mp.add_forced_key_binding("ctrl+j", "osd-input-cj", history_down, {repeatable=true})
     mp.add_forced_key_binding("ctrl+k", "osd-input-ck", history_up, {repeatable=true})
-    if allow_space then
+    if opts.allow_space then
         mp.add_forced_key_binding("SPACE", "osd-input-space", function() add_char(" ") end, {repeatable=true})
     end
 

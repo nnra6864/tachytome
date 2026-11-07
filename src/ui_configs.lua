@@ -3,6 +3,7 @@ local common = require 'src.common'
 local state  = require 'src.state'
 local theme  = require 'src.theme'
 local lang   = require 'src.lang'
+local ui     = require 'src.ui'
 
 local M = {}
 
@@ -16,8 +17,7 @@ function M.show(configs, on_apply, on_close)
     local rows    = {}
     for i, c in ipairs(configs) do rows[i] = { name = c.name, enabled = c.enabled, exists = c.exists } end
 
-    mp.set_osd_ass(0, 0, "")
-    mp.osd_message("", 0)
+    ui.clear_osd()
     state.ui_owner = "configs"
 
     local function teardown()
@@ -38,32 +38,18 @@ function M.show(configs, on_apply, on_close)
     end
 
     local function draw()
-        local text = string.format("%s%s%s%s%s\\N%s%s\\N\\N",
-            theme.align(7), theme.f(), theme.b(true), lang.t("configs_title"), theme.b(false), theme.f(true), lang.t("tooltip_configs"))
-
-        if #rows == 0 then
-            text = text .. theme.c("dim_text_color") .. theme.escape(lang.t("configs_empty", { dir = common.display_path(common.get_conf_dir()) }))
-        end
-
-        local start_idx = math.max(1, cursor - 7)
-        local end_idx   = math.min(#rows, start_idx + 14)
-        if end_idx - start_idx < 14 then start_idx = math.max(1, end_idx - 14) end
-
-        if start_idx > 1 then text = text .. "\\h\\h...\\N" end
-
-        for i = start_idx, end_idx do
+        local body = ui.list(#rows, cursor, function(i)
             local row     = rows[i]
-            local prefix  = (i == cursor) and string.format("%s\\h> ", theme.c("value_color")) or "\\h\\h"
             local val     = row.enabled
                 and string.format("%s%s", theme.c("on_color"), state.opts.on_text)
                 or  string.format("%s%s", theme.c("off_color"), state.opts.off_text)
-            local missing = row.exists and "" or string.format(" %s%s", theme.c("warning_color"), lang.t("configs_missing"))
-            text = text .. string.format("%s%s%s %s%s%s\\N", theme.c("text_color"), prefix, theme.escape(row.name), val, missing, theme.reset())
-        end
+            local missing = row.exists and "" or string.format(" %s%s", theme.c("warning_color"), theme.escape(lang.t("configs_missing")))
+            return string.format("%s %s%s", theme.escape(row.name), val, missing)
+        end)
+        if #rows == 0 then body = ui.dim(lang.t("configs_empty", { dir = common.display_path(common.get_conf_dir()) })) end
 
-        if end_idx < #rows then text = text .. "\\h\\h...\\N" end
-
-        ov.data = text
+        local hints = { { "Up/Down", "navigate" }, { "Enter", "toggle" }, { "Shift+Up/Down", "move" }, { "Esc", "apply" } }
+        ov.data = ui.title(lang.t("menu_configs")) .. "\\N" .. body .. "\\N" .. ui.tooltip(hints)
         ov:update()
     end
 

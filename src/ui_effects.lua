@@ -5,6 +5,7 @@ local state     = require 'src.state'
 local notify    = require 'src.notify'
 local theme     = require 'src.theme'
 local lang      = require 'src.lang'
+local ui        = require 'src.ui'
 
 local M = {}
 
@@ -51,41 +52,21 @@ function M.show(on_close)
     end
 
     local function draw()
-        local text = string.format("%s%s%s%s%s\\N%s%s\\N\\N",
-            theme.align(7), theme.f(), theme.b(true), lang.t("effects_title"), theme.b(false), theme.f(true), lang.t("tooltip_effects"))
-
-        local start_idx = math.max(1, cursor - 7)
-        local end_idx   = math.min(#rows, start_idx + 14)
-        if end_idx - start_idx < 14 then start_idx = math.max(1, end_idx - 14) end
-
-        if start_idx > 1 then text = text .. "\\h\\h...\\N" end
-
-        for i = start_idx, end_idx do
-            local row    = rows[i]
-            local prefix = (i == cursor) and string.format("%s\\h> ", theme.c("value_color")) or "\\h\\h"
-            local line   = nil
-
+        local body = ui.list(#rows, cursor, function(i)
+            local row = rows[i]
             if row.kind == "toggle" then
                 local val = state.effects_enabled
-                    and string.format("%s%s%s", theme.c("on_color"), state.opts.on_text, theme.reset())
-                    or  string.format("%s%s%s", theme.c("off_color"), state.opts.off_text, theme.reset())
-                line = string.format("%s > %s", lang.t("effects_enabled"), val)
+                    and string.format("%s%s", theme.c("on_color"), state.opts.on_text)
+                    or  string.format("%s%s", theme.c("off_color"), state.opts.off_text)
+                return string.format("%s > %s", theme.escape(lang.t("effects_enabled")), val)
             elseif row.kind == "header" then
-                line = string.format("%s%s", theme.c("dim_text_color"), theme.escape(row.file))
-            else
-                local sel    = effects.instance(row.preset.id)
-                local marker = sel
-                    and string.format(" %s%s", theme.c("on_color"), state.opts.on_text)
-                    or  ""
-                line = string.format("\\h%s%s%s", row.preset.label, marker, theme.reset())
+                return string.format("%s%s", theme.c("dim_text_color"), theme.escape(row.file))
             end
-
-            text = text .. string.format("%s%s%s%s\\N", theme.c("text_color"), prefix, line, theme.reset())
-        end
-
-        if end_idx < #rows then text = text .. "\\h\\h...\\N" end
-
-        ov.data = text
+            local marker = effects.instance(row.preset.id) and string.format(" %s%s", theme.c("on_color"), state.opts.on_text) or ""
+            return string.format("\\h%s%s", theme.escape(row.preset.label), marker)
+        end)
+        local hints = { { "Up/Down", "navigate" }, { "Enter", "toggle" }, { "d", "edit" }, { "Esc", "close" } }
+        ov.data = ui.title(lang.t("menu_effects")) .. "\\N" .. body .. "\\N" .. ui.tooltip(hints)
         ov:update()
     end
 
@@ -93,9 +74,9 @@ function M.show(on_close)
         state.effects_enabled = enabled
         if enabled and state.opts.lossless_cut then
             state.opts.lossless_cut = false
-            notify.show(lang.t("notify_lossless_cut", { value = state.opts.lossless_cut }))
+            notify.show(lang.t("value_set", { label = lang.t("menu_lossless_cut"), value = lang.t("value_off") }))
         end
-        notify.show(lang.t("notify_effects", { value = state.effects_enabled }))
+        notify.show(lang.t("value_set", { label = lang.t("menu_effects"), value = lang.t(enabled and "value_on" or "value_off") }))
     end
 
     local open_ui
@@ -108,7 +89,7 @@ function M.show(on_close)
         else
             state.effects[#state.effects + 1] = { name = name, params = params }
         end
-        notify.show(lang.t("notify_effect_set", { name = effects.label(name) }))
+        notify.show(lang.t("effects_added", { name = effects.label(name) }))
     end
 
     prompt_params = function(p, params, idx)
@@ -119,7 +100,8 @@ function M.show(on_close)
                 local curve = effects.is_curve(prm.default)
                 prompts[#prompts + 1] = {
                     key     = prm.key,
-                    label   = curve and lang.t("effects_easing") or prm.key,
+                    label   = prm.key,
+                    hint    = curve and lang.t("hint_easing") or nil,
                     curve   = curve,
                     default = params[prm.key] or prm.default
                 }
@@ -133,37 +115,41 @@ function M.show(on_close)
         end
 
         local pr = prompts[idx]
-        ui_input.get_user_input(string.format("%s > ", pr.label), function(input)
-            if input == "" then input = tostring(pr.default) end
-            local num     = tonumber(input)
-            local numeric = type(pr.default) == "number"
-            local ok      = false
-            if pr.key == "d" then
-                ok = num ~= nil and num > 0
-            elseif pr.curve then
-                ok = effects.is_curve(input)
-            elseif numeric then
-                ok = num ~= nil
-            else
-                ok = input ~= ""
+        ui_input.show({
+            title     = string.format("%s %s %s", p.label, state.opts.menu_path_separator, pr.label),
+            current   = pr.default,
+            hint      = pr.hint,
+            on_cancel = open_ui,
+            on_submit = function(input)
+                if input == "" then input = tostring(pr.default) end
+                local num     = tonumber(input)
+                local numeric = type(pr.default) == "number"
+                local ok      = false
+                if pr.key == "d" then
+                    ok = num ~= nil and num > 0
+                elseif pr.curve then
+                    ok = effects.is_curve(input)
+                elseif numeric then
+                    ok = num ~= nil
+                else
+                    ok = input ~= ""
+                end
+                if ok then
+                    params[pr.key] = numeric and num or input
+                    prompt_params(p, params, idx + 1)
+                else
+                    notify.show(lang.t("value_invalid", { label = pr.label, value = input }), true, "warn")
+                    open_ui()
+                end
             end
-            if ok then
-                params[pr.key] = numeric and num or input
-                prompt_params(p, params, idx + 1)
-            else
-                notify.show(lang.t("warn_effect_invalid", { label = pr.label }), true, "warn")
-                open_ui()
-            end
-        end, tostring(pr.default), true, nil, function()
-            open_ui()
-        end)
+        })
     end
 
     local function toggle_preset(p)
         for i, inst in ipairs(state.effects) do
             if inst.name == p.id then
                 table.remove(state.effects, i)
-                notify.show(lang.t("notify_effect_removed", { name = p.label }))
+                notify.show(lang.t("effects_removed", { name = p.label }))
                 draw()
                 return
             end
@@ -220,10 +206,9 @@ function M.show(on_close)
         rebuild_rows()
         if cursor > #rows then cursor = #rows end
 
-        mp.set_osd_ass(0, 0, "")
-        mp.osd_message("", 0)
+        ui.clear_osd()
 
-        active         = true
+        active        = true
         state.ui_owner = "effects"
         bind()
         draw()

@@ -1,13 +1,14 @@
 local mp    = require 'mp'
 local state = require 'src.state'
 local theme = require 'src.theme'
-local lang  = require 'src.lang'
+local ui    = require 'src.ui'
 
 local M = {}
 
+local bindings = { "list-up", "list-down", "list-j", "list-k", "list-enter", "list-esc" }
+
 function M.show(title, items, current_val, on_select, on_cancel)
-    mp.set_osd_ass(0, 0, "")
-    mp.osd_message("", 0)
+    ui.clear_osd()
     state.ui_owner = "list"
 
     local ov     = mp.create_osd_overlay("ass-events")
@@ -21,42 +22,25 @@ function M.show(title, items, current_val, on_select, on_cancel)
         end
     end
 
-    local function cleanup()
-        if not active then return end
+    local function teardown()
         active         = false
         state.ui_owner = nil
         ov:remove()
-        mp.remove_key_binding("list-up")
-        mp.remove_key_binding("list-down")
-        mp.remove_key_binding("list-j")
-        mp.remove_key_binding("list-k")
-        mp.remove_key_binding("list-enter")
-        mp.remove_key_binding("list-esc")
+        for _, name in ipairs(bindings) do mp.remove_key_binding(name) end
+    end
+
+    local function cleanup()
+        if not active then return end
+        teardown()
         if on_cancel then on_cancel() end
     end
 
     local function draw()
-        local text = string.format("%s%s%s%s%s\\N%s%s\\N\\N",
-            theme.align(7), theme.f(), theme.b(false), theme.c("text_color"), title, theme.f(false), lang.t("tooltip_list"))
-
-        local start_idx = math.max(1, cursor - 7)
-        local end_idx   = math.min(#items, start_idx + 14)
-        if end_idx - start_idx < 14 then
-            start_idx = math.max(1, end_idx - 14)
-        end
-
-        if start_idx > 1 then text = text .. "\\h\\h...\\N" end
-
-        for i = start_idx, end_idx do
-            local val      = items[i]
-            local prefix   = (i == cursor) and (theme.b(true) .. theme.c("value_color") .. "\\h> ") or theme.b(false) .. "\\h\\h"
-            local selected = (val == current_val) and (theme.b(true) .. theme.c("on_color") .. state.opts.on_text) or theme.b(false) .. ""
-            text = text .. string.format("%s%s %s%s\\N", prefix, val, selected, theme.reset())
-        end
-
-        if end_idx < #items then text = text .. "\\h\\h...\\N" end
-
-        ov.data = text
+        local body = ui.list(#items, cursor, function(i)
+            local marker = items[i] == current_val and string.format(" %s%s", theme.c("on_color"), state.opts.on_text) or ""
+            return theme.escape(items[i]) .. marker
+        end)
+        ov.data = ui.title(title) .. "\\N" .. body .. "\\N" .. ui.tooltip({ { "Up/Down", "navigate" }, { "Enter", "select" }, { "Esc", "cancel" } })
         ov:update()
     end
 
@@ -74,16 +58,8 @@ function M.show(title, items, current_val, on_select, on_cancel)
     mp.add_forced_key_binding("k", "list-k", move_up, {repeatable = true})
 
     mp.add_forced_key_binding("ENTER", "list-enter", function()
-        local val      = items[cursor]
-        active         = false
-        state.ui_owner = nil
-        ov:remove()
-        mp.remove_key_binding("list-up")
-        mp.remove_key_binding("list-down")
-        mp.remove_key_binding("list-j")
-        mp.remove_key_binding("list-k")
-        mp.remove_key_binding("list-enter")
-        mp.remove_key_binding("list-esc")
+        local val = items[cursor]
+        teardown()
         if on_select then on_select(val) end
     end)
 

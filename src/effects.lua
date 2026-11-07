@@ -44,7 +44,7 @@ local function upsert(preset)
         if p.id == preset.id then idx = i end
     end
     if idx then
-        notify.show(lang.t("warn_effect_redefined", { name = preset.name, file = preset.file }), false, "warn")
+        notify.show(lang.t("warn_redefined", { name = preset.name, where = preset.where }), false, "warn")
         presets[idx] = preset
     else
         presets[#presets + 1] = preset
@@ -55,7 +55,7 @@ local function curve_fn(ctx, name)
     if not name or name == "" then return nil end
     local fn = easing.parse(name)
     if fn then return fn end
-    notify.show(lang.t("warn_effect_easing", { effect = ctx.effect, easing = name }), false, "warn")
+    notify.show(lang.t("warn_unknown_easing", { where = ctx.effect, value = name }), false, "warn")
     return easing.parse("linear")
 end
 
@@ -78,7 +78,7 @@ local function numeric_tween(ctx, from, to, curve)
     local a = tonumber(from)
     local b = tonumber(to)
     if a and b and ctx.d > 0 then return make_tween(ctx, a, b, curve_fn(ctx, curve)) end
-    notify.show(lang.t("warn_effect_numeric", { effect = ctx.effect }), false, "warn")
+    notify.show(lang.t("effects_numeric", { name = ctx.effect }), false, "warn")
     return nil
 end
 
@@ -336,7 +336,7 @@ end
 
 local function finish_effect(current)
     if #current.atoms == 0 then
-        notify.show(lang.t("warn_effect_empty", { name = current.name }), false, "warn")
+        notify.show(lang.t("warn_empty", { name = current.name, where = current.where }), false, "warn")
         return
     end
     for _, atom in ipairs(current.atoms) do
@@ -350,7 +350,10 @@ local function parse_effects_file(path, file)
     if not f then return end
 
     local current = nil
+    local n       = 0
     for line in f:lines() do
+        n = n + 1
+        local where   = string.format("%s.eff:%d", file, n)
         local content = line:gsub("\r$", "")
         local hash = content:find("#", 1, true)
         if hash then content = content:sub(1, hash - 1) end
@@ -390,7 +393,7 @@ local function parse_effects_file(path, file)
                 elseif (head == "video" or head == "audio") and #words > 1 then
                     add_atom(current, head, { content:match("^%s*" .. head .. "%s+(.+)$") })
                 else
-                    notify.show(lang.t("warn_effect_line", { name = current.name, line = content }), false, "warn")
+                    notify.show(lang.t("warn_invalid_line", { where = where, line = content }), false, "warn")
                 end
             elseif head == "effect" and #words == 2 then
                 current = {
@@ -398,17 +401,18 @@ local function parse_effects_file(path, file)
                     label  = words[2],
                     anchor = "start",
                     file   = file,
+                    where  = where,
                     params = {},
                     atoms  = {}
                 }
             else
-                notify.show(lang.t("warn_effects_line", { line = content }), false, "warn")
+                notify.show(lang.t("warn_invalid_line", { where = where, line = content }), false, "warn")
             end
         end
     end
     f:close()
 
-    if current then notify.show(lang.t("warn_effect_unclosed", { name = current.name }), false, "warn") end
+    if current then notify.show(lang.t("warn_unclosed", { name = current.name, where = current.where }), false, "warn") end
 end
 
 local function seed_from_opts()
@@ -429,7 +433,7 @@ local function seed_from_opts()
                 state.effects[#state.effects + 1] = { name = p.id, params = {} }
             end
         else
-            notify.show(lang.t("warn_effect_unknown", { name = name }), false, "warn")
+            notify.show(lang.t("effects_unknown", { name = name }), false, "warn")
         end
     end
 end

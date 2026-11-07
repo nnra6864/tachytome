@@ -43,15 +43,14 @@ local function fail(msg, err, on_complete)
     done(on_complete)
 end
 
-local function cancelled(on_complete)
-    notify.show(lang.t("update_cancelled"), true)
-    done(on_complete)
+local function failed(step)
+    return lang.t("update_failed", { step = step })
 end
 
 local function apply_git(dir, old, new, on_complete)
     notify.show(lang.t("update_updating"), true)
     git(dir, {"reset", "--hard", "origin/" .. branch}, function(ok, _, err)
-        if not ok then return fail(lang.t("update_failed_reset"), err, on_complete) end
+        if not ok then return fail(failed("git reset"), err, on_complete) end
         notify.show(lang.t("update_done_git", { old = old, new = new }), true)
         done(on_complete)
     end)
@@ -60,22 +59,22 @@ end
 local function update_git(dir, on_complete)
     notify.show(lang.t("update_checking"), true)
     git(dir, {"fetch", "origin", branch}, function(ok, _, err)
-        if not ok then return fail(lang.t("update_failed_fetch"), err, on_complete) end
+        if not ok then return fail(failed("git fetch"), err, on_complete) end
         git(dir, {"rev-list", "--count", "HEAD..origin/" .. branch}, function(ok_count, count, err_count)
-            if not ok_count then return fail(lang.t("update_failed_count"), err_count, on_complete) end
+            if not ok_count then return fail(failed("git rev-list"), err_count, on_complete) end
             if tonumber(count) == 0 then
                 notify.show(lang.t("update_up_to_date"), true)
                 return done(on_complete)
             end
             git(dir, {"show", "-s", "--format=%h", "HEAD", "origin/" .. branch}, function(ok_rev, revs, err_rev)
-                if not ok_rev then return fail(lang.t("update_failed_show"), err_rev, on_complete) end
+                if not ok_rev then return fail(failed("git show"), err_rev, on_complete) end
                 local old, new = revs:match("^(%S+)%s+(%S+)$")
                 old = old or "?"
                 new = new or "?"
                 ui_confirm.show(lang.t("update_title"), lang.t("update_method_git", { count = count, old = old, new = new }), function()
                     apply_git(dir, old, new, on_complete)
                 end, function()
-                    cancelled(on_complete)
+                    done(on_complete)
                 end)
             end)
         end)
@@ -89,11 +88,11 @@ local function apply_archive(dir, on_complete)
     run({"curl", "-fsSL", "-o", archive, archive_url}, function(ok, _, err)
         if not ok then
             os.remove(archive)
-            return fail(lang.t("update_failed_download"), err, on_complete)
+            return fail(failed("curl"), err, on_complete)
         end
         run({"tar", "-xzf", archive, "--strip-components=1", "-C", dir}, function(ok_tar, _, err_tar)
             os.remove(archive)
-            if not ok_tar then return fail(lang.t("update_failed_extract"), err_tar, on_complete) end
+            if not ok_tar then return fail(failed("tar"), err_tar, on_complete) end
             notify.show(lang.t("update_done_archive"), true)
             done(on_complete)
         end)
@@ -104,7 +103,7 @@ local function update_archive(dir, reason, on_complete)
     ui_confirm.show(lang.t("update_title"), lang.t("update_method_archive", { reason = reason }), function()
         apply_archive(dir, on_complete)
     end, function()
-        cancelled(on_complete)
+        done(on_complete)
     end)
 end
 
@@ -129,8 +128,8 @@ function M.run(on_complete)
     busy = true
     git(dir, {"rev-parse", "--show-prefix"}, function(ok, prefix, _, result)
         if ok and prefix == "" then return update_git(dir, on_complete) end
-        local reason = lang.t("update_reason_no_repo")
-        if result and result.error_string == "init" then reason = lang.t("update_reason_no_git") end
+        local reason = lang.t("update_no_repo")
+        if result and result.error_string == "init" then reason = lang.t("update_no_git") end
         update_archive(dir, reason, on_complete)
     end)
 end

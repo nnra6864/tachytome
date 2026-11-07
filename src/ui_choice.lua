@@ -2,55 +2,54 @@ local mp    = require 'mp'
 local state = require 'src.state'
 local theme = require 'src.theme'
 local lang  = require 'src.lang'
+local ui    = require 'src.ui'
 
 local M = {}
 
 function M.show(title, body, choices, esc_index, on_pick)
-    mp.set_osd_ass(0, 0, "")
-    mp.osd_message("", 0)
-
+    ui.clear_osd()
     state.ui_owner = "dialog"
 
-    local ov     = mp.create_osd_overlay("ass-events")
-    local active = true
+    local ov       = mp.create_osd_overlay("ass-events")
+    local active   = true
+    local bindings = {}
 
     local function cleanup()
         if not active then return end
         active         = false
         state.ui_owner = nil
         ov:remove()
-        for _, choice in ipairs(choices) do
-            mp.remove_key_binding("choice-" .. choice.key)
-        end
-        if esc_index then mp.remove_key_binding("choice-esc") end
+        for _, name in ipairs(bindings) do mp.remove_key_binding(name) end
     end
 
-    local lines = {}
-    for _, choice in ipairs(choices) do
-        table.insert(lines, string.format("[%s] %s", choice.key, choice.label))
+    local function bind(key, idx)
+        local name = "choice-" .. key
+        bindings[#bindings + 1] = name
+        mp.add_forced_key_binding(key, name, function()
+            cleanup()
+            if on_pick then on_pick(idx) end
+        end)
     end
 
-    ov.data = string.format("%s%s%s%s%s\\N%s\\N\\N%s",
-        theme.align(7), theme.f(), theme.c("warning_color"), title, theme.reset(), body, table.concat(lines, "\\N"))
-    ov:update()
-
+    local rows = {}
     for i, choice in ipairs(choices) do
-        mp.add_forced_key_binding(choice.key, "choice-" .. choice.key, function()
-            cleanup()
-            if on_pick then on_pick(i) end
-        end)
+        local keys = { choice.key }
+        if choice.alt then keys[#keys + 1] = choice.alt end
+        if i == esc_index then keys[#keys + 1] = "ESC" end
+        rows[i] = { keys = table.concat(keys, ","), label = choice.label }
+        for _, key in ipairs(keys) do bind(key, i) end
     end
 
-    if esc_index then
-        mp.add_forced_key_binding("ESC", "choice-esc", function()
-            cleanup()
-            if on_pick then on_pick(esc_index) end
-        end)
-    end
+    local body_lines = {}
+    for line in (body .. "\n"):gmatch("(.-)\n") do body_lines[#body_lines + 1] = ui.dim(line) end
+
+    ov.data = string.format("%s%s%s%s%s%s%s\\N%s", theme.align(7), theme.f(), theme.c("warning_color"), theme.escape(title), theme.reset(),
+        table.concat(body_lines), theme.f(), ui.rows(rows))
+    ov:update()
 end
 
 function M.show_exists(display_name, on_rename, on_overwrite, on_cancel)
-    M.show(lang.t("exists_title"), theme.escape(display_name), {
+    M.show(lang.t("render_exists"), display_name, {
         { key = "1", label = lang.t("choice_rename") },
         { key = "2", label = lang.t("choice_overwrite") },
         { key = "3", label = lang.t("choice_cancel") }
@@ -59,8 +58,8 @@ function M.show_exists(display_name, on_rename, on_overwrite, on_cancel)
             if on_rename then on_rename() end
         elseif idx == 2 then
             if on_overwrite then on_overwrite() end
-        elseif idx == 3 then
-            if on_cancel then on_cancel() end
+        elseif on_cancel then
+            on_cancel()
         end
     end)
 end
