@@ -55,6 +55,8 @@ end
 
 check_dependencies()
 
+lang.on_change(menu.refresh)
+
 local function check_orphans()
     if state.opts.output_dir ~= "" then
         recovery.check_orphan_temp_files(common.expand_path(state.opts.output_dir))

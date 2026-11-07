@@ -264,7 +264,14 @@ See the `default` menu in the [builtin config](./tachytome.conf) for the full li
 
 Every UI string comes from a language file in the [`lang`](./lang) dir, e.g. `lang/en.lua`.<br>
 Pick one with the `language` option, or switch it from the menu with `l`, which saves it to your config.<br>
-`auto` uses English for now.
+`auto`, the default, detects the system language on every start, any other value forces that language.
+
+- Linux/BSD read the `LC_ALL`, `LC_MESSAGES` and `LANG` env vars, in that order.
+- macOS reads the same env vars when launched from a terminal, otherwise `defaults read -g AppleLanguages`.
+- Windows asks PowerShell for `(Get-UICulture).Name` in the background, the UI switches once it answers.
+- A detected `sr_RS.UTF-8` or `sr-Latn-RS` tries the most specific language file first, e.g. `sr_RS`, `sr-RS`, then `sr`.
+- When nothing matches an available language, English is used.
+- The menu shows the detected language next to `auto`, e.g. `auto (sr)`.
 
 A language file returns a flat table of keys and their text:
 

@@ -220,7 +220,11 @@ local items = {
     {
         name      = "language",
         label_key = "menu_language",
-        get_val   = function() return v(theme.escape(state.opts.language)) end,
+        get_val   = function()
+            local val = state.opts.language
+            if val == "auto" then val = val .. " (" .. lang.code .. ")" end
+            return v(theme.escape(val))
+        end,
         action    = function() actions.select_language(M.open) end,
         keep_open = false
     },
