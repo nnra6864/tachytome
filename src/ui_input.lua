@@ -7,7 +7,7 @@ local edit  = require 'src.text_edit'
 local M = {}
 
 local overlay                 = mp.create_osd_overlay("ass-events")
-local cursor_overlay          = mp.create_osd_overlay("ass-events")
+local layers                  = edit.create_layers()
 local active                  = false
 local buffer                  = ""
 local cursor                  = 0
@@ -17,8 +17,6 @@ local current_callback        = nil
 local current_cancel_callback = nil
 local custom_tooltip          = nil
 local current_preview         = nil
-
-cursor_overlay.z = 1
 
 local history      = {}
 local history_idx  = 1
@@ -46,20 +44,14 @@ local function render()
     local preview     = current_preview and current_preview(buffer) or ""
     local preview_str = (preview ~= "") and string.format("\\N%s%s%s%s", theme.f(true), theme.c("value_color"), lang.t("input_expanded", { value = theme.escape(preview) }), theme.reset()) or ""
 
-    local line, top = edit.render(theme.align(7) .. theme.f() .. theme.c("text_color") .. current_prompt, buffer, cursor)
+    local line = edit.render(layers, theme.align(7) .. theme.f() .. theme.c("text_color") .. current_prompt, buffer, cursor)
     overlay.data = string.format("%s%s%s%s%s", line, theme.reset(), preview_str, tooltip, sub_str)
     overlay:update()
-    if top then
-        cursor_overlay.data = top
-        cursor_overlay:update()
-    else
-        cursor_overlay:remove()
-    end
 end
 
 local function remove_overlays()
     overlay:remove()
-    cursor_overlay:remove()
+    edit.remove_layers(layers)
 end
 
 local function cleanup_bindings()

@@ -9,7 +9,7 @@ local edit   = require 'src.text_edit'
 local M = {}
 
 local overlay          = mp.create_osd_overlay("ass-events")
-local cursor_overlay   = mp.create_osd_overlay("ass-events")
+local layers           = edit.create_layers()
 local active           = false
 local input            = ""
 local cursor           = 0
@@ -18,8 +18,6 @@ local current_options  = {}
 local current_place    = nil
 local current_title    = ""
 local current_tooltip  = ""
-
-cursor_overlay.z = 1
 
 local key_mappings   = {}
 local standard_chars = "0123456789:.dhmsf%+-[]"
@@ -42,15 +40,9 @@ local function render()
         )
     end
 
-    local line, top = edit.render(theme.align(7) .. theme.f() .. theme.c("text_color") .. current_title .. " > ", input, cursor)
+    local line = edit.render(layers, theme.align(7) .. theme.f() .. theme.c("text_color") .. current_title .. " > ", input, cursor)
     overlay.data = string.format("%s%s%s\\N%s%s", line, theme.reset(), options_str, theme.f(true), current_tooltip)
     overlay:update()
-    if top then
-        cursor_overlay.data = top
-        cursor_overlay:update()
-    else
-        cursor_overlay:remove()
-    end
 end
 
 local function cleanup()
@@ -58,7 +50,7 @@ local function cleanup()
     active         = false
     state.ui_owner = nil
     overlay:remove()
-    cursor_overlay:remove()
+    edit.remove_layers(layers)
     edit.remove_bindings("goto")
     mp.remove_key_binding("goto-enter")
     mp.remove_key_binding("goto-esc")

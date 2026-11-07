@@ -82,18 +82,51 @@ function M.remove_bindings(prefix)
     for _, b in ipairs(bindings) do mp.remove_key_binding(prefix .. "-" .. b.name) end
 end
 
-local function cursor_color()
-    return theme.c(state.opts.cursor_color ~= "" and "cursor_color" or "value_color")
+local function color(key)
+    return theme.c(state.opts[key] ~= "" and key or "value_color")
 end
 
-function M.render(prefix, text, pos)
+local function glow(prefix)
+    local tags = theme.glow(prefix)
+    return tags ~= "" and tags or "{\\bord0}{\\shad0}{\\blur0}"
+end
+
+local function layer(prefix, before, glyph, glow_prefix, color_key, after)
+    return string.format("%s%s%s%s%s%s%s%s%s",
+        theme.a("FF"), prefix, before, theme.a("00"), glow(glow_prefix), color(color_key), theme.escape(glyph), theme.a("FF"), after
+    )
+end
+
+function M.create_layers()
+    local layers = { cursor = mp.create_osd_overlay("ass-events"), char = mp.create_osd_overlay("ass-events") }
+    layers.cursor.z = 1
+    layers.char.z   = 2
+    return layers
+end
+
+local function set_layer(overlay, data)
+    if data then
+        overlay.data = data
+        overlay:update()
+    else
+        overlay:remove()
+    end
+end
+
+function M.remove_layers(layers)
+    layers.cursor:remove()
+    layers.char:remove()
+end
+
+function M.render(layers, prefix, text, pos)
     local before = theme.escape(text:sub(1, pos))
     local under  = pos < #text and text:sub(pos + 1, char_end(text, pos)) or ""
     local after  = theme.escape(text:sub(pos + #under + 1))
-    local line   = string.format("%s%s%s%s█%s%s", prefix, theme.c("value_color"), before, cursor_color(), theme.c("value_color"), after)
-    if under == "" or under:find("^%s$") then return line, nil end
-    local top = string.format("%s%s%s{\\1a&H00&\\bord0\\shad0\\blur0}%s%s%s%s", theme.a("FF"), prefix, before, theme.c("cursor_text_color"), theme.escape(under), theme.a("FF"), after)
-    return line, top
+    local cursor = layer(prefix, before, state.opts.cursor_char, "cursor_", "cursor_color", after)
+    local char   = (under ~= "" and not under:find("^%s$")) and layer(prefix, before, under, "cursor_text_", "cursor_text_color", after) or nil
+    set_layer(layers.cursor, cursor)
+    set_layer(layers.char, char)
+    return string.format("%s%s%s", prefix, theme.c("value_color"), theme.escape(text))
 end
 
 return M

@@ -43,16 +43,17 @@ function M.escape(text)
     return (tostring(text):gsub("\\", "\\\226\129\160"):gsub("{", "\\{"))
 end
 
-function M.glow()
-    local size = tonumber(state.opts.glow_size) or 0
+function M.glow(prefix)
+    prefix = prefix or ""
+    local size = tonumber(state.opts[prefix .. "glow_size"]) or 0
     if size <= 0 then return "" end
 
-    local blur = tonumber(state.opts.glow_blur) or 0.5
+    local blur = tonumber(state.opts[prefix .. "glow_blur"]) or 0.5
     if blur < 0 then blur = 0 end
     if blur > 1 then blur = 1 end
     blur = blur * size
 
-    local h = state.opts.glow_color
+    local h = state.opts[prefix .. "glow_color"]
     if type(h) ~= "string" then return string.format("{\\bord%s}{\\blur%s}{\\3c&HFFFFFF&}", tostring(size), tostring(blur)) end
     h = h:gsub("#", "")
 
