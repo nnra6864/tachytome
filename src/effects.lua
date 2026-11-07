@@ -27,20 +27,24 @@ local timed_atoms = {
     aanimate = true
 }
 
-local function preset_index(name)
+local function preset_index(id)
     for i, p in ipairs(presets) do
-        if p.name == name then return i end
+        if p.id == id then return i end
+    end
+    for i, p in ipairs(presets) do
+        if p.name == id then return i end
     end
     return nil
 end
 
 local function upsert(preset)
-    local idx = preset_index(preset.name)
+    preset.id = preset.file .. "/" .. preset.name
+    local idx = nil
+    for i, p in ipairs(presets) do
+        if p.id == preset.id then idx = i end
+    end
     if idx then
-        local previous = presets[idx].file
-        if previous ~= preset.file then
-            notify.show(lang.t("warn_effect_overridden", { name = preset.name, file = preset.file, previous = previous }), false, "warn")
-        end
+        notify.show(lang.t("warn_effect_redefined", { name = preset.name, file = preset.file }), false, "warn")
         presets[idx] = preset
     else
         presets[#presets + 1] = preset
@@ -232,8 +236,8 @@ local function fill(template, vars)
     end))
 end
 
-function M.preset(name)
-    local idx = preset_index(name)
+function M.preset(id)
+    local idx = preset_index(id)
     if idx then return presets[idx] end
     return nil
 end
@@ -275,7 +279,7 @@ function M.build_filters(instances, duration, offset, media)
     for _, inst in ipairs(instances) do
         local p = M.preset(inst.name)
         if p then
-            ctx.effect = p.name
+            ctx.effect = p.id
             ctx.d      = math.min(tonumber(inst.params.d) or p.d or 0, duration)
 
             local vars = {
@@ -419,9 +423,10 @@ local function seed_from_opts()
         state.opts.lossless_cut = false
     end
     for _, name in ipairs(names) do
-        if M.preset(name) then
-            if not M.instance(name) then
-                state.effects[#state.effects + 1] = { name = name, params = {} }
+        local p = M.preset(name)
+        if p then
+            if not M.instance(p.id) then
+                state.effects[#state.effects + 1] = { name = p.id, params = {} }
             end
         else
             notify.show(lang.t("warn_effect_unknown", { name = name }), false, "warn")
@@ -435,16 +440,24 @@ function M.seed()
     seed_from_opts()
 end
 
-local function load_presets()
-    local dir   = common.get_conf_dir()
+local function effect_files(dir)
     local files = {}
-    common.migrate_file(utils.join_path(dir, "effects.conf"), utils.join_path(dir, "default.eff"))
-    common.ensure_default_conf("tachytome-effects.conf", "default.eff")
     for _, file in ipairs(utils.readdir(dir, "files") or {}) do
         if file:match("%.eff$") then files[#files + 1] = file end
     end
     table.sort(files)
-    for _, file in ipairs(files) do parse_effects_file(utils.join_path(dir, file), file) end
+    return files
+end
+
+local function load_presets()
+    local dir = common.get_conf_dir()
+    common.migrate_file(utils.join_path(dir, "effects.conf"), utils.join_path(dir, "default.eff"))
+    local files = effect_files(dir)
+    if #files == 0 then
+        common.ensure_default_conf("tachytome-effects.conf", "default.eff")
+        files = effect_files(dir)
+    end
+    for _, file in ipairs(files) do parse_effects_file(utils.join_path(dir, file), (file:gsub("%.eff$", ""))) end
 end
 
 load_presets()

@@ -242,8 +242,18 @@ function M.toggle_accurate()
 end
 
 function M.get_effects_display()
-    local parts = {}
-    for _, inst in ipairs(state.effects) do parts[#parts + 1] = effects.label(inst.name) end
+    local parts  = {}
+    local counts = {}
+    for _, inst in ipairs(state.effects) do
+        local label = effects.label(inst.name)
+        counts[label] = (counts[label] or 0) + 1
+    end
+    for _, inst in ipairs(state.effects) do
+        local label = effects.label(inst.name)
+        local p     = effects.preset(inst.name)
+        if counts[label] > 1 and p then label = lang.t("effect_label_file", { label = label, file = p.file }) end
+        parts[#parts + 1] = label
+    end
     if #parts == 0 then return lang.t(state.effects_enabled and "effects_none" or "effects_off") end
     local selected = table.concat(parts, ", ")
     return state.effects_enabled and selected or lang.t("effects_list", { list = selected })

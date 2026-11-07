@@ -383,11 +383,19 @@ Their current values are listed right below the input.
 Tachytome offers a powerful effects and presets engine.<br>
 These are extremely useful for adding transitions such as video/audio fade and blur.
 
-Effects are defined in `.eff` files in `mpv/script-opts/tachytome/`, starting with the generated `default.eff`.<br>
+Effects are defined in `.eff` files in `mpv/script-opts/tachytome/`, `default.eff` gets generated when there are none.<br>
 You can find an example config with every option explained [here](./tachytome-effects.conf).
 
-- Every `.eff` file in the dir is read in alphabetical order, e.g. `default.eff` then `stream.eff`, and their presets are merged.
-- When two files define the same preset name, the one from the later file wins with a warning.
+- Every `.eff` file in the dir is read in alphabetical order and shown as its own section in the Effects list:
+  ```
+  default
+    fade
+    blur_fade
+  nnra6864
+    dissolve
+  ```
+- Names only need to be unique within a file, different files can each have their own `fade`.
+- `effects_presets` picks a preset from a specific file with `file/name`, e.g. `nnra6864/dissolve`, a bare name picks the first file that defines it.
 
 ```
 effect blur_fade

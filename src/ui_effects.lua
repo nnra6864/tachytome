@@ -40,7 +40,12 @@ function M.show(on_close)
 
     local function rebuild_rows()
         rows = { { kind = "toggle" } }
+        local file = nil
         for _, p in ipairs(effects.list()) do
+            if p.file ~= file then
+                file            = p.file
+                rows[#rows + 1] = { kind = "header", file = file }
+            end
             rows[#rows + 1] = { kind = "preset", preset = p }
         end
     end
@@ -65,12 +70,14 @@ function M.show(on_close)
                     and string.format("%s%s%s", theme.c("on_color"), state.opts.on_text, theme.reset())
                     or  string.format("%s%s%s", theme.c("off_color"), state.opts.off_text, theme.reset())
                 line = string.format("%s > %s", lang.t("effects_enabled"), val)
+            elseif row.kind == "header" then
+                line = string.format("%s%s", theme.c("dim_text_color"), theme.escape(row.file))
             else
-                local sel    = effects.instance(row.preset.name)
+                local sel    = effects.instance(row.preset.id)
                 local marker = sel
                     and string.format(" %s%s", theme.c("on_color"), state.opts.on_text)
                     or  ""
-                line = string.format("%s%s%s", row.preset.label, marker, theme.reset())
+                line = string.format("\\h%s%s%s", row.preset.label, marker, theme.reset())
             end
 
             text = text .. string.format("%s%s%s%s\\N", theme.c("text_color"), prefix, line, theme.reset())
@@ -120,7 +127,7 @@ function M.show(on_close)
         end
 
         if idx > #prompts then
-            apply_instance(p.name, params)
+            apply_instance(p.id, params)
             open_ui()
             return
         end
@@ -154,19 +161,19 @@ function M.show(on_close)
 
     local function toggle_preset(p)
         for i, inst in ipairs(state.effects) do
-            if inst.name == p.name then
+            if inst.name == p.id then
                 table.remove(state.effects, i)
                 notify.show(lang.t("notify_effect_removed", { name = p.label }))
                 draw()
                 return
             end
         end
-        apply_instance(p.name, {})
+        apply_instance(p.id, {})
         draw()
     end
 
     local function edit_preset(p)
-        local inst   = effects.instance(p.name)
+        local inst   = effects.instance(p.id)
         local params = {}
         if inst then
             for k, val in pairs(inst.params) do params[k] = val end
@@ -176,13 +183,14 @@ function M.show(on_close)
     end
 
     local function bind()
-        local function move_up()
-            if cursor > 1 then cursor = cursor - 1; draw() end
+        local function move(delta)
+            local target = cursor + delta
+            while rows[target] and rows[target].kind == "header" do target = target + delta end
+            if rows[target] then cursor = target; draw() end
         end
 
-        local function move_down()
-            if cursor < #rows then cursor = cursor + 1; draw() end
-        end
+        local function move_up() move(-1) end
+        local function move_down() move(1) end
 
         mp.add_forced_key_binding("UP", "fx-up", move_up, {repeatable = true})
         mp.add_forced_key_binding("DOWN", "fx-down", move_down, {repeatable = true})

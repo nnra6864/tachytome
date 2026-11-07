@@ -165,7 +165,8 @@ return {
     warn_effect_line       = "invalid line in effect '{name}': {line}",
     warn_effects_line      = "invalid effects line: {line}",
     warn_effect_unclosed   = "unclosed effect: {name}",
-    warn_effect_overridden = "effect '{name}' from {file} overrides the one from {previous}",
+    warn_effect_redefined  = "effect '{name}' redefined in {file}.eff, the last one wins",
+    effect_label_file      = "{label} ({file})",
     warn_effect_unknown    = "unknown preset in effects_presets: {name}",
 
     queue_title                  = "Render Queue Manager",
