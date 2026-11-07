@@ -186,8 +186,10 @@ This is done to avoid global bind conflicts.
 
 | Keybind     | Action        | Description              |
 |-------------|---------------|--------------------------|
-| Up/ctrl+k   | Navigate Up   | Navigates to item above. |
-| Down/ctrl+j | Navigate Down | Navigates to item below. |
+| Up/k        | Navigate Up   | Navigates to item above. |
+| Down/j      | Navigate Down | Navigates to item below. |
+
+Inputs like the Path prompt use ctrl+k/ctrl+j instead, since plain letters are typed into the input.
 
 #### Configs List
 

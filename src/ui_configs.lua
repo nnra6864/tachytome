@@ -6,7 +6,7 @@ local lang   = require 'src.lang'
 
 local M = {}
 
-local bindings = { "cfg-up", "cfg-down", "cfg-cj", "cfg-ck", "cfg-move-up", "cfg-move-down", "cfg-K", "cfg-J", "cfg-enter", "cfg-esc" }
+local bindings = { "cfg-up", "cfg-down", "cfg-j", "cfg-k", "cfg-move-up", "cfg-move-down", "cfg-K", "cfg-J", "cfg-enter", "cfg-esc" }
 
 function M.show(configs, on_apply, on_close)
     local ov      = mp.create_osd_overlay("ass-events")
@@ -93,8 +93,8 @@ function M.show(configs, on_apply, on_close)
 
     mp.add_forced_key_binding("UP", "cfg-up", function() move_cursor(-1) end, {repeatable = true})
     mp.add_forced_key_binding("DOWN", "cfg-down", function() move_cursor(1) end, {repeatable = true})
-    mp.add_forced_key_binding("ctrl+j", "cfg-cj", function() move_cursor(1) end, {repeatable = true})
-    mp.add_forced_key_binding("ctrl+k", "cfg-ck", function() move_cursor(-1) end, {repeatable = true})
+    mp.add_forced_key_binding("j", "cfg-j", function() move_cursor(1) end, {repeatable = true})
+    mp.add_forced_key_binding("k", "cfg-k", function() move_cursor(-1) end, {repeatable = true})
     mp.add_forced_key_binding("shift+UP", "cfg-move-up", function() move_row(-1) end, {repeatable = true})
     mp.add_forced_key_binding("shift+DOWN", "cfg-move-down", function() move_row(1) end, {repeatable = true})
     mp.add_forced_key_binding("K", "cfg-K", function() move_row(-1) end, {repeatable = true})

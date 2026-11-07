@@ -56,9 +56,9 @@ return {
 
     tooltip_confirm = "(Enter to confirm, Esc to cancel)",
     tooltip_history = "(Up/Down for history, Enter to confirm, Esc to cancel)",
-    tooltip_list    = "(Up/Down to navigate, Enter to select, Esc to cancel)",
-    tooltip_effects = "(Up/Down to navigate, Enter to toggle, d to edit, Esc to close)",
-    tooltip_queue   = "(Up/Down to navigate, Enter to pause/resume, d to delete, p to change path, Esc to close)",
+    tooltip_list    = "(Up/Down or j/k to navigate, Enter to select, Esc to cancel)",
+    tooltip_effects = "(Up/Down or j/k to navigate, Enter to toggle, d to edit, Esc to close)",
+    tooltip_queue   = "(Up/Down or j/k to navigate, Enter to pause/resume, d to delete, p to change path, Esc to close)",
     tooltip_seek    = "(Enter to seek, Esc to cancel)",
     tooltip_set     = "(Enter to set, Esc to cancel)",
     input_current   = "Current: {value}",
@@ -137,7 +137,7 @@ return {
     notify_language       = "Language set to: {name}",
 
     configs_title   = "Configs",
-    tooltip_configs = "(Up/Down to navigate, Enter to toggle, Shift+Up/Down or K/J to move, Esc to apply and close)",
+    tooltip_configs = "(Up/Down or j/k to navigate, Enter to toggle, Shift+Up/Down or K/J to move, Esc to apply and close)",
     configs_none    = "none",
     configs_empty   = "No .conf files in {dir}",
     configs_missing = "(missing)",
