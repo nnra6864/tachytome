@@ -11,6 +11,7 @@ local menu       = require 'src.menu'
 local notify     = require 'src.notify'
 local recovery   = require 'src.recovery'
 local ui_confirm = require 'src.ui_confirm'
+local lang       = require 'src.lang'
 
 local platform             = common.get_platform()
 local trash_ok, trash_path = common.check_trash(platform)
@@ -21,12 +22,12 @@ local function check_dependencies()
     if state.ffmpeg_ok then return end
 
     if platform == "linux" then
-        notify.show("FFmpeg Missing! Please install it via your package manager.", true, "error")
+        notify.show(lang.t("ffmpeg_missing_linux"), true, "error")
         return
     end
 
-    ui_confirm.show("FFmpeg is missing!", "Would you like to install it automatically?", function()
-        notify.show("Installing FFmpeg... Please wait (this may take a few minutes).", true)
+    ui_confirm.show(lang.t("ffmpeg_missing_title"), lang.t("ffmpeg_missing_prompt"), function()
+        notify.show(lang.t("ffmpeg_installing"), true)
         local args = {}
         if platform == "windows" then
             args = {"cmd", "/c", "winget install ffmpeg --accept-package-agreements --accept-source-agreements"}
@@ -41,14 +42,14 @@ local function check_dependencies()
             capture_stderr = true
         }, function(success, result, error)
             if result and result.status == 0 then
-                notify.show("FFmpeg installed successfully! Please restart MPV.", true)
+                notify.show(lang.t("ffmpeg_installed"), true)
             else
-                notify.show("Install failed. Check logs and install manually.", true, "error")
+                notify.show(lang.t("ffmpeg_install_failed"), true, "error")
                 print(result and result.stderr or error)
             end
         end)
     end, function()
-        notify.show("FFmpeg install skipped. Tachytome will not work.", true, "warn")
+        notify.show(lang.t("ffmpeg_install_skipped"), true, "warn")
     end)
 end
 

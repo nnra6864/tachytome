@@ -4,6 +4,7 @@ local ui_input  = require 'src.ui_input'
 local state     = require 'src.state'
 local notify    = require 'src.notify'
 local theme     = require 'src.theme'
+local lang      = require 'src.lang'
 
 local M = {}
 
@@ -45,8 +46,8 @@ function M.show(on_close)
     end
 
     local function draw()
-        local text = string.format("%s%s%sEffects%s\\N%s(Up/Down to navigate, Enter to toggle, d to edit, Esc to close)\\N\\N",
-            theme.align(7), theme.f(), theme.b(true), theme.b(false), theme.f(true))
+        local text = string.format("%s%s%s%s%s\\N%s%s\\N\\N",
+            theme.align(7), theme.f(), theme.b(true), lang.t("effects_title"), theme.b(false), theme.f(true), lang.t("tooltip_effects"))
 
         local start_idx = math.max(1, cursor - 7)
         local end_idx   = math.min(#rows, start_idx + 14)
@@ -63,7 +64,7 @@ function M.show(on_close)
                 local val = state.effects_enabled
                     and string.format("%s%s%s", theme.c("on_color"), state.opts.on_text, theme.reset())
                     or  string.format("%s%s%s", theme.c("off_color"), state.opts.off_text, theme.reset())
-                line = string.format("Enabled > %s", val)
+                line = string.format("%s > %s", lang.t("effects_enabled"), val)
             else
                 local sel    = effects.instance(row.preset.name)
                 local marker = sel
@@ -85,9 +86,9 @@ function M.show(on_close)
         state.effects_enabled = enabled
         if enabled and state.opts.lossless_cut then
             state.opts.lossless_cut = false
-            notify.show("Lossless Cut: '" .. tostring(state.opts.lossless_cut) .. "'")
+            notify.show(lang.t("notify_lossless_cut", { value = state.opts.lossless_cut }))
         end
-        notify.show("Effects: '" .. tostring(state.effects_enabled) .. "'")
+        notify.show(lang.t("notify_effects", { value = state.effects_enabled }))
     end
 
     local open_ui
@@ -100,18 +101,18 @@ function M.show(on_close)
         else
             state.effects[#state.effects + 1] = { name = name, params = params }
         end
-        notify.show("Effect set: " .. effects.label(name))
+        notify.show(lang.t("notify_effect_set", { name = effects.label(name) }))
     end
 
     prompt_params = function(p, params, idx)
         local prompts = {}
-        if p.d then prompts[#prompts + 1] = { key = "d", label = "Duration (s)", default = params.d or p.d } end
+        if p.d then prompts[#prompts + 1] = { key = "d", label = lang.t("effects_duration"), default = params.d or p.d } end
         if p.params then
             for _, prm in ipairs(p.params) do
                 local curve = effects.is_curve(prm.default)
                 prompts[#prompts + 1] = {
                     key     = prm.key,
-                    label   = curve and "Easing" or prm.key,
+                    label   = curve and lang.t("effects_easing") or prm.key,
                     curve   = curve,
                     default = params[prm.key] or prm.default
                 }
@@ -143,7 +144,7 @@ function M.show(on_close)
                 params[pr.key] = numeric and num or input
                 prompt_params(p, params, idx + 1)
             else
-                notify.show(string.format("Invalid %s, effect cancelled", pr.label), true, "warn")
+                notify.show(lang.t("warn_effect_invalid", { label = pr.label }), true, "warn")
                 open_ui()
             end
         end, tostring(pr.default), true, nil, function()
@@ -155,7 +156,7 @@ function M.show(on_close)
         for i, inst in ipairs(state.effects) do
             if inst.name == p.name then
                 table.remove(state.effects, i)
-                notify.show("Effect removed: " .. p.label)
+                notify.show(lang.t("notify_effect_removed", { name = p.label }))
                 draw()
                 return
             end

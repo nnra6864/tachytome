@@ -8,6 +8,7 @@ local notify    = require 'src.notify'
 local theme     = require 'src.theme'
 local process   = require 'src.process'
 local ui_choice = require 'src.ui_choice'
+local lang      = require 'src.lang'
 
 local M = {}
 
@@ -26,7 +27,7 @@ function M.cancel_render()
         queue.active.cancelled = true
         mp.abort_async_command(current_req)
     else
-        notify.show("No active render to cancel.", true, "warn")
+        notify.show(lang.t("warn_no_active_render"), true, "warn")
     end
 end
 
@@ -47,9 +48,9 @@ function M.toggle_pause()
     if not queue.is_rendering or not queue.active then
         queue.queue_paused = not queue.queue_paused
         if queue.queue_paused then
-            notify.show("Render queue paused.", true)
+            notify.show(lang.t("notify_queue_paused"), true)
         else
-            notify.show("Render queue resumed.", true)
+            notify.show(lang.t("notify_queue_resumed"), true)
             M.process_queue()
         end
         return
@@ -58,9 +59,9 @@ function M.toggle_pause()
     if not can_suspend then
         queue.queue_paused = not queue.queue_paused
         if queue.queue_paused then
-            notify.show("Pausing render queue: finishing current file, then holding.", true)
+            notify.show(lang.t("notify_queue_pausing"), true)
         else
-            notify.show("Render queue resumed.", true)
+            notify.show(lang.t("notify_queue_resumed"), true)
             M.process_queue()
         end
         return
@@ -72,16 +73,16 @@ function M.toggle_pause()
             queue.render_paused = false
             queue.queue_paused  = false
             queue.save()
-            notify.show("Render resumed: " .. queue.active.final_name, true)
+            notify.show(lang.t("notify_render_resumed", { name = queue.active.final_name }), true)
         else
-            notify.show("Cannot resume render.", true, "error")
+            notify.show(lang.t("error_render_resume"), true, "error")
         end
         return
     end
 
     local pid = read_active_pid()
     if not pid then
-        notify.show("Render is still starting, try again shortly.", true, "warn")
+        notify.show(lang.t("warn_render_starting"), true, "warn")
         return
     end
 
@@ -90,7 +91,7 @@ function M.toggle_pause()
     queue.render_paused     = true
     queue.queue_paused      = true
     queue.save()
-    notify.show("Render paused: " .. queue.active.final_name, true)
+    notify.show(lang.t("notify_render_paused", { name = queue.active.final_name }), true)
 end
 
 local function queue_job(job, on_complete)
@@ -98,9 +99,9 @@ local function queue_job(job, on_complete)
     queue.total_jobs = queue.total_jobs + 1
     common.save_history(state.path_history)
     if queue.is_rendering then
-        notify.show(string.format("Queued: %s", job.final_name), true)
+        notify.show(lang.t("notify_queued", { name = job.final_name }), true)
     elseif queue.queue_paused then
-        notify.show(string.format("Queued: %s (queue paused)", job.final_name), true)
+        notify.show(lang.t("notify_queued_paused", { name = job.final_name }), true)
     end
     M.process_queue()
     queue.save()
@@ -141,10 +142,10 @@ function M.process_queue()
         return (queue.total_jobs > 1) and string.format("[%d/%d] ", queue.current_job_num, queue.total_jobs) or ""
     end
 
-    progress_overlay.data = string.format("%s%s%s%sRendering %s: 0%%", theme.align(9), theme.f(true), theme.a("66"), get_queue_str(), name_no_ext)
+    progress_overlay.data = string.format("%s%s%s%s%s", theme.align(9), theme.f(true), theme.a("66"), get_queue_str(), lang.t("render_progress", { name = name_no_ext, percent = 0 }))
     progress_overlay:update()
 
-    notify.show("Render started: " .. active_job.final_name, true)
+    notify.show(lang.t("notify_render_started", { name = active_job.final_name }), true)
 
     local progress_timer = mp.add_periodic_timer(0.5, function()
         local f = io.open(progress_file, "rb")
@@ -176,7 +177,7 @@ function M.process_queue()
                 if percent then
                     if percent > 99 then percent = 99 end
                     if percent < 0 then percent = 0 end
-                    progress_overlay.data = string.format("%s%s%s%sRendering %s: %d%%", theme.align(9), theme.f(true), theme.a("66"), get_queue_str(), name_no_ext, percent)
+                    progress_overlay.data = string.format("%s%s%s%s%s", theme.align(9), theme.f(true), theme.a("66"), get_queue_str(), lang.t("render_progress", { name = name_no_ext, percent = percent }))
                     progress_overlay:update()
                 end
             end
@@ -215,7 +216,7 @@ function M.process_queue()
 
         if active_job.cancelled then
             queue.delete_temp_file(active_job.temp_file)
-            notify.show("Render cancelled: " .. active_job.final_name, true)
+            notify.show(lang.t("notify_render_stopped", { name = active_job.final_name }), true)
             reset_and_advance()
             return
         end
@@ -253,7 +254,7 @@ function M.process_queue()
         if result and result.status == 0 then
             local renamed, rename_err = common.replace_file(active_job.temp_file, active_job.output_file)
             if not renamed then
-                notify.show("Render finished but could not be moved to: " .. active_job.output_file, true, "error")
+                notify.show(lang.t("error_render_move", { path = active_job.output_file }), true, "error")
                 mp.msg.error("Rename failed (" .. tostring(rename_err) .. "), rendered file kept at: " .. active_job.temp_file)
                 reset_and_advance()
                 return
@@ -261,7 +262,7 @@ function M.process_queue()
 
             if active_job.trash_source and active_job.trash_path and active_job.input_file ~= active_job.output_file then
                 common.trash_file(active_job.input_file, active_job.trash_path, function(t_success)
-                    if not t_success then notify.show("Failed to trash original", true, "warn") end
+                    if not t_success then notify.show(lang.t("warn_trash_original"), true, "warn") end
                     finish_job()
                 end)
             else
@@ -273,7 +274,7 @@ function M.process_queue()
             failed_rec.temp_file = nil
             failed_rec.pid_file  = nil
             table.insert(queue.failed, failed_rec)
-            notify.show("Render failed: " .. active_job.final_name .. ". See console.", true, "error")
+            notify.show(lang.t("error_render_failed", { name = active_job.final_name }), true, "error")
             print(result and result.stderr or error)
             reset_and_advance()
         end
@@ -305,7 +306,7 @@ local function verify_and_queue(job, file_path, on_complete)
     end, function()
         queue_job(job, on_complete)
     end, function()
-        notify.show("Render cancelled.", true)
+        notify.show(lang.t("notify_render_cancel"), true)
         if on_complete then on_complete() end
     end)
 end
@@ -313,13 +314,13 @@ end
 function M.start(opts)
     local input_file = mp.get_property("path")
     if not input_file then
-        notify.show("No video loaded", true, "error")
+        notify.show(lang.t("error_no_video"), true, "error")
         if opts.on_complete then opts.on_complete() end
         return
     end
     local seek_in = opts.lossless_cut and common.resolve_mark_in(opts.mark_in, true, input_file) or opts.mark_in
     if opts.mark_out <= seek_in then
-        local msg = "Invalid marks: In " .. common.format_time(seek_in) .. " must be before Out " .. common.format_time(opts.mark_out)
+        local msg = lang.t("warn_invalid_marks", { mark_in = common.format_time(seek_in), mark_out = common.format_time(opts.mark_out) })
         notify.show(msg, true, "warn")
         if opts.on_complete then opts.on_complete() end
         return

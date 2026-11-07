@@ -46,7 +46,8 @@ local M = {
         start_out_duration  = 0.75,
         start_out_easing    = "ease_out_cubic",
         menu_path_separator = "/",
-        selected_menu       = "default"
+        selected_menu       = "default",
+        language            = "auto"
     },
     custom_output_name = "",
     fps_override       = nil,

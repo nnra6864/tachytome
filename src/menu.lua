@@ -1,4 +1,5 @@
 local mp      = require 'mp'
+local common  = require 'src.common'
 local state   = require 'src.state'
 local actions = require 'src.actions'
 local menus   = require 'src.menus'
@@ -6,6 +7,7 @@ local notify  = require 'src.notify'
 local render  = require 'src.render'
 local theme   = require 'src.theme'
 local easing  = require 'src.easing'
+local lang    = require 'src.lang'
 
 local M             = {}
 local menu_active   = false
@@ -28,7 +30,7 @@ local function resolve_easing(val, name)
     local fn = easing.parse(val)
     if not fn then
         fn = easing.parse("linear")
-        notify.show("unknown " .. name .. " '" .. tostring(val) .. "', using linear", false, "warn")
+        notify.show(lang.t("warn_unknown_easing", { name = name, value = tostring(val) }), false, "warn")
     end
     return fn
 end
@@ -63,192 +65,174 @@ local function v(val) return string.format("%s%s%s", theme.c("value_color"), tos
 local items = {
     {
         name      = "mark_in",
-        label_key = "mark_in",
-        label     = "Mark In",
+        label_key = "menu_mark_in",
         get_val   = function() return v(actions.get_mark_in_display()) end,
         action    = function() actions.mark(0) end,
         keep_open = true
     },
     {
         name      = "mark_out",
-        label_key = "mark_out",
-        label     = "Mark Out",
+        label_key = "menu_mark_out",
         get_val   = function() return v(actions.get_mark_out_display()) end,
         action    = function() actions.mark(1) end,
         keep_open = true
     },
     {
         name      = "goto",
-        label_key = "goto",
-        label     = "Go to",
+        label_key = "menu_goto",
         action    = function() actions.goto_prompt(M.open) end,
         keep_open = false
     },
     {
         name      = "set_mark_in",
-        label_key = "set_mark_in",
-        label     = "Set In",
+        label_key = "menu_set_mark_in",
         action    = function() actions.set_mark(0, M.open) end,
         keep_open = false
     },
     {
         name      = "set_mark_out",
-        label_key = "set_mark_out",
-        label     = "Set Out",
+        label_key = "menu_set_mark_out",
         action    = function() actions.set_mark(1, M.open) end,
         keep_open = false
     },
     {
         name      = "encoder",
-        label_key = "encoder",
-        label     = "Encoder",
+        label_key = "menu_encoder",
         get_val   = function() return v(state.opts.video_encoder) end,
         action    = function() actions.select_encoder(M.open) end,
         keep_open = false
     },
     {
         name      = "quality",
-        label_key = "quality",
-        label     = "Quality",
+        label_key = "menu_quality",
         get_val   = function() return v(state.opts.quality) end,
         action    = function() actions.set_quality(M.open) end,
         keep_open = false
     },
     {
         name      = "fps",
-        label_key = "fps",
-        label     = "FPS",
+        label_key = "menu_fps",
         get_val   = function() return v(actions.get_fps_display()) end,
         action    = function() actions.set_fps(M.open) end,
         keep_open = false
     },
     {
         name      = "preset",
-        label_key = "preset",
-        label     = "Preset",
+        label_key = "menu_preset",
         get_val   = function() return v(state.opts.preset) end,
         action    = function() actions.set_preset(M.open) end,
         keep_open = false
     },
     {
         name      = "lossless_cut",
-        label_key = "lossless_cut",
-        label     = "Lossless Cut",
+        label_key = "menu_lossless_cut",
         get_val   = function() return state.opts.lossless_cut and on(state.opts.on_text) or off(state.opts.off_text) end,
         action    = actions.toggle_lossless,
         keep_open = true
     },
     {
         name      = "accurate_cut",
-        label_key = "accurate_cut",
-        label     = "Accurate Cut",
+        label_key = "menu_accurate_cut",
         get_val   = function() return state.opts.accurate_cut and on(state.opts.on_text) or off(state.opts.off_text) end,
         action    = actions.toggle_accurate,
         keep_open = true
     },
     {
         name      = "combine_audio",
-        label_key = "combine_audio",
-        label     = "Combine Audio",
+        label_key = "menu_combine_audio",
         get_val   = function() return state.opts.combine_audio and on(state.opts.on_text) or off(state.opts.off_text) end,
         action    = actions.toggle_combine_audio,
         keep_open = true
     },
     {
         name      = "first_audio_only",
-        label_key = "first_audio_only",
-        label     = "First Audio Only",
+        label_key = "menu_first_audio_only",
         get_val   = function() return state.opts.first_audio_only and on(state.opts.on_text) or off(state.opts.off_text) end,
         action    = actions.toggle_first_audio_only,
         keep_open = true
     },
     {
         name      = "effects",
-        label_key = "effects",
-        label     = "Effects",
+        label_key = "menu_effects",
         get_val   = function() return v(actions.get_effects_display()) end,
         action    = function() actions.effects_menu(M.open) end,
         keep_open = false
     },
     {
         name      = "space_replacement",
-        label_key = "space_replacement",
-        label     = "Space Replacement",
+        label_key = "menu_space_replacement",
         get_val   = function() return v(theme.escape(actions.get_space_replacement_display())) end,
         action    = function() actions.set_space_replacement(M.open) end,
         keep_open = false
     },
     {
         name      = "path",
-        label_key = "path",
-        label     = "Path",
+        label_key = "menu_path",
         get_val   = function() return v(theme.escape(actions.get_final_path())) end,
         action    = function() actions.set_path(M.open) end,
         keep_open = false
     },
     {
         name      = "trash_source",
-        label_key = "trash_source",
-        label     = "Trash Source",
+        label_key = "menu_trash_source",
         get_val   = function() return state.opts.trash_source and on(state.opts.on_text) or off(state.opts.off_text) end,
         action    = actions.toggle_trash_source,
         keep_open = true
     },
     {
         name      = "render",
-        label_key = "render",
-        label     = "Render",
+        label_key = "menu_render",
         action    = function() actions.start_render(M.open) end,
         keep_open = false
     },
     {
         name      = "render_queue",
-        label_key = "render_queue",
-        label     = "Render Queue",
+        label_key = "menu_render_queue",
         action    = function() actions.manage_queue(M.open) end,
         keep_open = false
     },
     {
         name      = "render_pause",
-        label_key = "render_pause",
-        label     = "Pause Render",
+        label_key = "menu_render_pause",
         get_val   = function() return render.is_paused() and on(state.opts.on_text) or off(state.opts.off_text) end,
         action    = function() actions.toggle_render_pause() end,
         keep_open = true
     },
     {
         name      = "trash_source_now",
-        label_key = "trash_source_now",
-        label     = "Trash Source Now",
+        label_key = "menu_trash_source_now",
         action    = function() actions.trash_source(M.open) end,
         keep_open = false
     },
     {
         name      = "stats",
-        label_key = "stats",
-        label     = "Toggle Stats",
+        label_key = "menu_stats",
         action    = actions.toggle_stats,
         keep_open = true
     },
     {
         name      = "menu_preset",
-        label_key = "menu_preset",
-        label     = "Menu",
+        label_key = "menu_menu_preset",
         get_val   = function() return v(theme.escape(state.opts.selected_menu)) end,
         action    = function() actions.select_menu(load_menu, M.open) end,
         keep_open = false
     },
     {
+        name      = "language",
+        label_key = "menu_language",
+        get_val   = function() return v(theme.escape(state.opts.language)) end,
+        action    = function() actions.select_language(M.open) end,
+        keep_open = false
+    },
+    {
         name      = "update",
-        label_key = "update",
-        label     = "Update",
+        label_key = "menu_update",
         action    = function() actions.update(M.open) end,
         keep_open = false
     },
     {
         name      = "close",
-        label_key = "close",
-        label     = "Close",
+        label_key = "menu_close",
         action    = function() end,
         keep_open = false
     }
@@ -257,13 +241,13 @@ local items = {
 local items_by_name = {}
 for _, item in ipairs(items) do items_by_name[item.name] = item end
 
-local function text_len(s)
-    return select(2, s:gsub("[^\128-\191]", ""))
-end
-
 local function row_label(row)
-    if row.label and row.label.text ~= "" then return row.label.text end
-    if row.item then return row.item.label end
+    if row.label then
+        if row.label.key and lang.has(row.label.key) then return lang.t(row.label.key) end
+        if row.label.text ~= "" then return row.label.text end
+    end
+    if row.item then return lang.t(row.item.label_key) end
+    if lang.has("submenu_" .. row.action) then return lang.t("submenu_" .. row.action) end
     return (row.action:gsub("_", " "):gsub("^%l", string.upper))
 end
 
@@ -280,7 +264,7 @@ local function prune_shadowed(map)
         end
     end
     for _, seq in ipairs(shadowed) do
-        notify.show("menu sequence '" .. seq .. "' unreachable, key '" .. seq:match("^(.*)-[^-]*$") .. "' is bound", false, "warn")
+        notify.show(lang.t("warn_unreachable_seq", { seq = seq, prefix = seq:match("^(.*)-[^-]*$") }), false, "warn")
         local row = map[seq]
         for i = #row.keys, 1, -1 do
             if row.keys[i] == seq then table.remove(row.keys, i) end
@@ -304,7 +288,7 @@ local function build_level(tree)
                 row.item = items_by_name[row.action]
             else
                 known = false
-                notify.show("unknown menu action '" .. row.action .. "' for key '" .. table.concat(row.keys, ",") .. "'", false, "warn")
+                notify.show(lang.t("warn_unknown_action", { action = row.action, keys = table.concat(row.keys, ",") }), false, "warn")
             end
             if known then
                 rows[#rows + 1] = row
@@ -387,7 +371,7 @@ local function flash_progress(fl)
 end
 
 local function draw()
-    local title = " < Tachytome"
+    local title = " < " .. theme.escape(lang.t("menu_title"))
     for _, row in ipairs(path) do
         title = title .. " " .. theme.escape(state.opts.menu_path_separator) .. " " .. theme.escape(row_label(row))
     end
@@ -400,7 +384,7 @@ local function draw()
             local key_str = table.concat(row.keys, ",")
             local label   = row_label(row)
             if #key_str > max_key_len then max_key_len = #key_str end
-            if row.item and row.item.get_val and text_len(label) > max_label_len then max_label_len = text_len(label) end
+            if row.item and row.item.get_val and common.text_len(label) > max_label_len then max_label_len = common.text_len(label) end
         end
     end
 
@@ -430,7 +414,7 @@ local function draw()
             if dim then line = theme.a("66") .. line end
 
             if row.item and row.item.get_val then
-                local val_pad = string.rep("\\h", max_label_len - text_len(label) + 1)
+                local val_pad = string.rep("\\h", max_label_len - common.text_len(label) + 1)
                 line = line .. val_pad .. "> " .. row.item.get_val()
             end
 
@@ -441,7 +425,7 @@ local function draw()
     end
 
     if esc_back then
-        text = text .. "\\N" .. theme.f(true) .. theme.c("dim_text_color") .. "(ESC to go back)"
+        text = text .. "\\N" .. theme.f(true) .. theme.c("dim_text_color") .. theme.escape(lang.t("menu_esc_back"))
     end
 
     menu_overlay.data = text
@@ -610,7 +594,7 @@ end
 
 function M.open()
     if state.ui_owner and state.ui_owner ~= "menu" then
-        return notify.show("A Tachytome menu is already open.")
+        return notify.show(lang.t("menu_busy"))
     end
     if menu_active then M.close() return end
     menu_active    = true

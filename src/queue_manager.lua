@@ -8,6 +8,7 @@ local notify    = require 'src.notify'
 local theme     = require 'src.theme'
 local ui_input  = require 'src.ui_input'
 local ui_choice = require 'src.ui_choice'
+local lang      = require 'src.lang'
 
 local M = {}
 
@@ -16,7 +17,7 @@ function M.show(on_close)
         local new_jobs = {}
         if queue.is_rendering and queue.active then
             local active_title = queue.active.final_name
-            if queue.render_paused then active_title = active_title .. " (Paused)" end
+            if queue.render_paused then active_title = lang.t("queue_paused", { name = active_title }) end
             table.insert(new_jobs, {title = active_title, is_active = true, original_index = 0})
         end
         for i, q_job in ipairs(queue.jobs) do
@@ -58,8 +59,8 @@ function M.show(on_close)
     end
 
     local function draw()
-        local text = string.format("%s%s%sRender Queue Manager%s\\N%s(Up/Down to navigate, Enter to pause/resume, d to delete, p to change path, Esc to close)\\N\\N",
-            theme.align(7), theme.f(), theme.b(true), theme.b(false), theme.f(true))
+        local text = string.format("%s%s%s%s%s\\N%s%s\\N\\N",
+            theme.align(7), theme.f(), theme.b(true), lang.t("queue_title"), theme.b(false), theme.f(true), lang.t("tooltip_queue"))
 
         local start_idx = math.max(1, cursor - 7)
         local end_idx   = math.min(#jobs, start_idx + 14)
@@ -128,11 +129,11 @@ function M.show(on_close)
             q_job.final_name  = fname
 
             if queue.active == q_job then
-                notify.show("Active render target: " .. fname, true)
+                notify.show(lang.t("notify_active_target", { name = fname }), true)
             else
                 q_job.args[q_job.output_arg_index] = new_output
                 q_job.temp_file                    = queue.temp_path_for(new_output, q_job.temp_id)
-                notify.show("Path changed to: " .. fname, true)
+                notify.show(lang.t("notify_path_changed", { name = fname }), true)
             end
 
             common.add_to_history(state.path_history, input)
@@ -141,16 +142,16 @@ function M.show(on_close)
         end
 
         local function prompt_change_path()
-            ui_input.get_user_input("New Output Path > ", function(input)
+            ui_input.get_user_input(lang.t("prompt_new_output_path"), function(input)
                 if input == "" then
-                    notify.show("Path change cancelled.", true)
+                    notify.show(lang.t("notify_path_change_cancelled"), true)
                     open_ui()
                     return
                 end
 
                 local new_output = common.resolve_absolute_path_for(input, state.opts, q_job.input_file)
                 if new_output == "" or new_output == current_output then
-                    notify.show("Path unchanged, keeping: " .. q_job.final_name, true)
+                    notify.show(lang.t("notify_path_unchanged", { name = q_job.final_name }), true)
                     open_ui()
                     return
                 end
@@ -168,10 +169,10 @@ function M.show(on_close)
                     apply_change_path(input, new_output)
                     open_ui()
                 end, function()
-                    notify.show("Path change cancelled.", true)
+                    notify.show(lang.t("notify_path_change_cancelled"), true)
                     open_ui()
                 end)
-            end, current_output, "(Up/Down for history, Enter to confirm, Esc to cancel)", state.path_history, function()
+            end, current_output, lang.t("tooltip_history"), state.path_history, function()
                 open_ui()
             end, true)
         end
@@ -213,7 +214,7 @@ function M.show(on_close)
             else
                 table.remove(queue.jobs, job.original_index)
                 queue.total_jobs = queue.total_jobs > 0 and (queue.total_jobs - 1) or 0
-                notify.show("Removed from queue: " .. job.title, true)
+                notify.show(lang.t("notify_queue_removed", { name = job.title }), true)
                 queue.save()
             end
 
@@ -237,7 +238,7 @@ function M.show(on_close)
         jobs = rebuild_jobs()
         if #jobs == 0 then
             if on_close then on_close() end
-            return notify.show("Render queue is empty.", true, "info")
+            return notify.show(lang.t("queue_empty"), true, "info")
         end
         if cursor > #jobs then cursor = #jobs end
 

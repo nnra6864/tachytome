@@ -1,6 +1,7 @@
 local mp    = require 'mp'
 local state = require 'src.state'
 local theme = require 'src.theme'
+local lang  = require 'src.lang'
 
 local M = {}
 
@@ -35,8 +36,8 @@ function M.show(title, items, current_val, on_select, on_cancel)
     end
 
     local function draw()
-        local text = string.format("%s%s%s%s%s\\N%s(Up/Down to navigate, Enter to select, Esc to cancel)\\N\\N",
-            theme.align(7), theme.f(), theme.b(false), theme.c("text_color"), title, theme.f(false))
+        local text = string.format("%s%s%s%s%s\\N%s%s\\N\\N",
+            theme.align(7), theme.f(), theme.b(false), theme.c("text_color"), title, theme.f(false), lang.t("tooltip_list"))
 
         local start_idx = math.max(1, cursor - 7)
         local end_idx   = math.min(#items, start_idx + 14)

@@ -2,6 +2,7 @@ local notify = require 'src.notify'
 local state  = require 'src.state'
 local common = require 'src.common'
 local easing = require 'src.easing'
+local lang   = require 'src.lang'
 
 local M = {}
 
@@ -45,7 +46,7 @@ local function curve_fn(ctx, name)
     if not name or name == "" then return nil end
     local fn = easing.parse(name)
     if fn then return fn end
-    notify.show("effect '" .. ctx.effect .. "': unknown easing '" .. name .. "', using linear", false, "warn")
+    notify.show(lang.t("warn_effect_easing", { effect = ctx.effect, easing = name }), false, "warn")
     return easing.parse("linear")
 end
 
@@ -68,7 +69,7 @@ local function numeric_tween(ctx, from, to, curve)
     local a = tonumber(from)
     local b = tonumber(to)
     if a and b and ctx.d > 0 then return make_tween(ctx, a, b, curve_fn(ctx, curve)) end
-    notify.show("effect '" .. ctx.effect .. "': animation needs numeric values and a duration", false, "warn")
+    notify.show(lang.t("warn_effect_numeric", { effect = ctx.effect }), false, "warn")
     return nil
 end
 
@@ -326,7 +327,7 @@ end
 
 local function finish_effect(current)
     if #current.atoms == 0 then
-        notify.show("empty effect: " .. current.name, false, "warn")
+        notify.show(lang.t("warn_effect_empty", { name = current.name }), false, "warn")
         return
     end
     for _, atom in ipairs(current.atoms) do
@@ -380,7 +381,7 @@ local function parse_effects_file(path)
                 elseif (head == "video" or head == "audio") and #words > 1 then
                     add_atom(current, head, { content:match("^%s*" .. head .. "%s+(.+)$") })
                 else
-                    notify.show("invalid line in effect '" .. current.name .. "': " .. content, false, "warn")
+                    notify.show(lang.t("warn_effect_line", { name = current.name, line = content }), false, "warn")
                 end
             elseif head == "effect" and #words == 2 then
                 current = {
@@ -391,13 +392,13 @@ local function parse_effects_file(path)
                     atoms  = {}
                 }
             else
-                notify.show("invalid effects line: " .. content, false, "warn")
+                notify.show(lang.t("warn_effects_line", { line = content }), false, "warn")
             end
         end
     end
     f:close()
 
-    if current then notify.show("unclosed effect: " .. current.name, false, "warn") end
+    if current then notify.show(lang.t("warn_effect_unclosed", { name = current.name }), false, "warn") end
 end
 
 local function seed_from_opts()
@@ -417,7 +418,7 @@ local function seed_from_opts()
                 state.effects[#state.effects + 1] = { name = name, params = {} }
             end
         else
-            notify.show("unknown preset in effects_presets: " .. name, false, "warn")
+            notify.show(lang.t("warn_effect_unknown", { name = name }), false, "warn")
         end
     end
 end

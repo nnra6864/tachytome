@@ -1,6 +1,7 @@
 local mp    = require 'mp'
 local state = require 'src.state'
 local theme = require 'src.theme'
+local lang  = require 'src.lang'
 
 local M = {}
 
@@ -23,8 +24,9 @@ function M.show(warning, sub_text, on_yes, on_no)
         mp.remove_key_binding("conf-esc")
     end
 
-    ov.data = string.format("%s%s%s%s%s\\N%s%s\\N\\N[ y / Enter ] Yes\\N[ n / Esc ]   No",
-        theme.align(7), theme.f(), theme.c("warning_color"), warning, theme.reset(), theme.f(true), theme.escape(sub_text))
+    ov.data = string.format("%s%s%s%s%s\\N%s%s\\N\\N[ y / Enter ] %s\\N[ n / Esc ]   %s",
+        theme.align(7), theme.f(), theme.c("warning_color"), warning, theme.reset(), theme.f(true), theme.escape(sub_text),
+        theme.escape(lang.t("confirm_yes")), theme.escape(lang.t("confirm_no")))
     ov:update()
 
     local function yes() cleanup(); if on_yes then on_yes() end end

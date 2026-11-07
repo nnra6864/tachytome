@@ -3,6 +3,7 @@ local utils      = require 'mp.utils'
 local queue      = require 'src.queue'
 local notify     = require 'src.notify'
 local ui_confirm = require 'src.ui_confirm'
+local lang       = require 'src.lang'
 
 local M = {}
 
@@ -43,35 +44,35 @@ local function fail(msg, err, on_complete)
 end
 
 local function cancelled(on_complete)
-    notify.show("Update cancelled.", true)
+    notify.show(lang.t("update_cancelled"), true)
     done(on_complete)
 end
 
 local function apply_git(dir, old, new, on_complete)
-    notify.show("Updating...", true)
+    notify.show(lang.t("update_updating"), true)
     git(dir, {"reset", "--hard", "origin/" .. branch}, function(ok, _, err)
-        if not ok then return fail("Update failed: git reset error.", err, on_complete) end
-        notify.show("Updated " .. old .. " -> " .. new .. ", restart mpv to apply.", true)
+        if not ok then return fail(lang.t("update_failed_reset"), err, on_complete) end
+        notify.show(lang.t("update_done_git", { old = old, new = new }), true)
         done(on_complete)
     end)
 end
 
 local function update_git(dir, on_complete)
-    notify.show("Checking for updates...", true)
+    notify.show(lang.t("update_checking"), true)
     git(dir, {"fetch", "origin", branch}, function(ok, _, err)
-        if not ok then return fail("Update failed: git fetch error.", err, on_complete) end
+        if not ok then return fail(lang.t("update_failed_fetch"), err, on_complete) end
         git(dir, {"rev-list", "--count", "HEAD..origin/" .. branch}, function(ok_count, count, err_count)
-            if not ok_count then return fail("Update failed: git rev-list error.", err_count, on_complete) end
+            if not ok_count then return fail(lang.t("update_failed_count"), err_count, on_complete) end
             if tonumber(count) == 0 then
-                notify.show("Tachytome is already up to date.", true)
+                notify.show(lang.t("update_up_to_date"), true)
                 return done(on_complete)
             end
             git(dir, {"show", "-s", "--format=%h", "HEAD", "origin/" .. branch}, function(ok_rev, revs, err_rev)
-                if not ok_rev then return fail("Update failed: git show error.", err_rev, on_complete) end
+                if not ok_rev then return fail(lang.t("update_failed_show"), err_rev, on_complete) end
                 local old, new = revs:match("^(%S+)%s+(%S+)$")
                 old = old or "?"
                 new = new or "?"
-                ui_confirm.show("Update Tachytome?", string.format("Method: git, %s new commit(s), %s -> %s", count, old, new), function()
+                ui_confirm.show(lang.t("update_title"), lang.t("update_method_git", { count = count, old = old, new = new }), function()
                     apply_git(dir, old, new, on_complete)
                 end, function()
                     cancelled(on_complete)
@@ -82,25 +83,25 @@ local function update_git(dir, on_complete)
 end
 
 local function apply_archive(dir, on_complete)
-    notify.show("Downloading update...", true)
+    notify.show(lang.t("update_downloading"), true)
     local temp_dir = os.getenv("TEMP") or os.getenv("TMP") or "/tmp"
     local archive  = utils.join_path(temp_dir, "tachytome_update_" .. tostring(math.floor(mp.get_time() * 1000)) .. ".tar.gz")
     run({"curl", "-fsSL", "-o", archive, archive_url}, function(ok, _, err)
         if not ok then
             os.remove(archive)
-            return fail("Update failed: download error.", err, on_complete)
+            return fail(lang.t("update_failed_download"), err, on_complete)
         end
         run({"tar", "-xzf", archive, "--strip-components=1", "-C", dir}, function(ok_tar, _, err_tar)
             os.remove(archive)
-            if not ok_tar then return fail("Update failed: extract error.", err_tar, on_complete) end
-            notify.show("Updated from GitHub, restart mpv to apply.", true)
+            if not ok_tar then return fail(lang.t("update_failed_extract"), err_tar, on_complete) end
+            notify.show(lang.t("update_done_archive"), true)
             done(on_complete)
         end)
     end)
 end
 
 local function update_archive(dir, reason, on_complete)
-    ui_confirm.show("Update Tachytome?", "Method: download from GitHub (" .. reason .. ")", function()
+    ui_confirm.show(lang.t("update_title"), lang.t("update_method_archive", { reason = reason }), function()
         apply_archive(dir, on_complete)
     end, function()
         cancelled(on_complete)
@@ -109,18 +110,18 @@ end
 
 function M.run(on_complete)
     if busy then
-        notify.show("Update already in progress.", true, "warn")
+        notify.show(lang.t("update_busy"), true, "warn")
         return
     end
     if queue.is_rendering or #queue.jobs > 0 then
-        notify.show("Cannot update while renders are active or queued.", true, "warn")
+        notify.show(lang.t("update_blocked"), true, "warn")
         if on_complete then on_complete() end
         return
     end
 
     local dir = mp.get_script_directory()
     if not dir then
-        notify.show("Update failed: script directory not found.", true, "error")
+        notify.show(lang.t("update_no_dir"), true, "error")
         if on_complete then on_complete() end
         return
     end
@@ -128,8 +129,8 @@ function M.run(on_complete)
     busy = true
     git(dir, {"rev-parse", "--show-prefix"}, function(ok, prefix, _, result)
         if ok and prefix == "" then return update_git(dir, on_complete) end
-        local reason = "not a git repo"
-        if result and result.error_string == "init" then reason = "git not found" end
+        local reason = lang.t("update_reason_no_repo")
+        if result and result.error_string == "init" then reason = lang.t("update_reason_no_git") end
         update_archive(dir, reason, on_complete)
     end)
 end

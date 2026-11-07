@@ -1,6 +1,7 @@
 local mp    = require 'mp'
 local state = require 'src.state'
 local theme = require 'src.theme'
+local lang  = require 'src.lang'
 
 local M = {}
 
@@ -31,10 +32,10 @@ local function render()
     elseif type(custom_tooltip) == "string" then
         tooltip = "\\N" .. theme.f(true) .. custom_tooltip
     else
-        tooltip = "\\N" .. theme.f(true) .. "(Enter to confirm, Esc to cancel)"
+        tooltip = "\\N" .. theme.f(true) .. lang.t("tooltip_confirm")
     end
 
-    local sub_str = (current_sub_prompt ~= "") and string.format("\\N%s%sCurrent: %s", theme.f(true), theme.a("88"), theme.escape(current_sub_prompt)) or ""
+    local sub_str = (current_sub_prompt ~= "") and string.format("\\N%s%s%s", theme.f(true), theme.a("88"), lang.t("input_current", { value = theme.escape(current_sub_prompt) })) or ""
 
     overlay.data = string.format("%s%s%s%s%s%s%s_%s%s%s%s",
         theme.align(7), theme.f(), theme.c("text_color"),

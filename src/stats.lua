@@ -1,6 +1,7 @@
 local utils  = require 'mp.utils'
 local common = require 'src.common'
 local theme  = require 'src.theme'
+local lang   = require 'src.lang'
 
 local M = {}
 
@@ -49,22 +50,22 @@ function M.get_formatted_stats(stats_data, align)
     if cut_duration < 0 then cut_duration = 0 end
 
     local lines = {
-        { label = "Source Space", value = common.format_bytes(s_processed) },
-        { label = "Output Space", value = common.format_bytes(s_output) },
-        { label = "Saved Space",  value = common.format_bytes(delta_bytes) },
+        { label = lang.t("stats_source_space"), value = common.format_bytes(s_processed) },
+        { label = lang.t("stats_output_space"), value = common.format_bytes(s_output) },
+        { label = lang.t("stats_saved_space"),  value = common.format_bytes(delta_bytes) },
         { separator = true },
-        { label = "Source Time",  value = common.format_duration(s_in_dur) },
-        { label = "Output Time",  value = common.format_duration(s_out_dur) },
-        { label = "Saved Time",   value = common.format_duration(cut_duration) },
+        { label = lang.t("stats_source_time"),  value = common.format_duration(s_in_dur) },
+        { label = lang.t("stats_output_time"),  value = common.format_duration(s_out_dur) },
+        { label = lang.t("stats_saved_time"),   value = common.format_duration(cut_duration) },
         { separator = true },
-        { label = "Render Time",  value = common.format_duration(s_render) }
+        { label = lang.t("stats_render_time"),  value = common.format_duration(s_render) }
     }
 
     local max_label_len = 0
     local max_val_len   = 0
     for _, item in ipairs(lines) do
         if not item.separator then
-            if #item.label > max_label_len then max_label_len = #item.label end
+            if common.text_len(item.label) > max_label_len then max_label_len = common.text_len(item.label) end
             if #item.value > max_val_len then max_val_len = #item.value end
         end
     end
@@ -82,7 +83,7 @@ function M.get_formatted_stats(stats_data, align)
             console_str = console_str .. dynamic_separator .. "\n"
             osd_str     = osd_str     .. dynamic_separator .. "\\N"
         else
-            local pad_len = (max_label_len - #item.label) + (max_val_len - #item.value) + 1
+            local pad_len = (max_label_len - common.text_len(item.label)) + (max_val_len - #item.value) + 1
             local console_pad = string.rep(" ", pad_len)
 
             local osd_pad_len_l = 0
@@ -91,10 +92,10 @@ function M.get_formatted_stats(stats_data, align)
             local osd_pad_v     = ""
 
             if align ~= 3 and align ~= 6 and align ~= 9 then
-                osd_pad_len_l = (max_label_len - #item.label) + (max_val_len - #item.value) + 1
+                osd_pad_len_l = (max_label_len - common.text_len(item.label)) + (max_val_len - #item.value) + 1
                 osd_pad_l     = string.rep("\\h", osd_pad_len_l)
             elseif align ~= 1 and align ~= 4 and align ~= 7 then
-                osd_pad_len_v = (max_label_len - #item.label) + (max_val_len - #item.value) + 1
+                osd_pad_len_v = (max_label_len - common.text_len(item.label)) + (max_val_len - #item.value) + 1
                 osd_pad_v     = string.rep("\\h", osd_pad_len_v)
             end
 

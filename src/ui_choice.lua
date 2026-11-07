@@ -1,6 +1,7 @@
 local mp    = require 'mp'
 local state = require 'src.state'
 local theme = require 'src.theme'
+local lang  = require 'src.lang'
 
 local M = {}
 
@@ -49,10 +50,10 @@ function M.show(title, body, choices, esc_index, on_pick)
 end
 
 function M.show_exists(display_name, on_rename, on_overwrite, on_cancel)
-    M.show("Warning: File already exists!", theme.escape(display_name), {
-        { key = "1", label = "Rename" },
-        { key = "2", label = "Overwrite" },
-        { key = "3", label = "Cancel" }
+    M.show(lang.t("exists_title"), theme.escape(display_name), {
+        { key = "1", label = lang.t("choice_rename") },
+        { key = "2", label = lang.t("choice_overwrite") },
+        { key = "3", label = lang.t("choice_cancel") }
     }, 3, function(idx)
         if idx == 1 then
             if on_rename then on_rename() end

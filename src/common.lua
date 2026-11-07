@@ -230,6 +230,10 @@ function M.resolve_absolute_path_for(custom, opts, input_path)
     return resolve_absolute_path_base(custom, opts, input_path)
 end
 
+function M.text_len(s)
+    return select(2, s:gsub("[^\128-\191]", ""))
+end
+
 function M.format_bytes(bytes)
     if not bytes or bytes == 0 then return "0B" end
     if bytes < 1024 then return bytes .. "B" end
