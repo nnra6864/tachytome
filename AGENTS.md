@@ -13,12 +13,11 @@ managing multiple pending/active renders.
 1. **One task at a time.** Implement exactly one TODO item (see `TODO.md`),
    then stop and wait for input before starting the next — even if the next
    item looks small or related — unless explicitly told to continue.
-2. **Never write README, docs, or other human-facing prose.** That's left to
-   the human. If a change would normally need documenting, leave a
-   `TODO:` comment marking where it should go instead of writing it
-   yourself.
-3. **Never commit.** Leave all `git add`/`git commit`/`git push` actions to
-   the human. Your job ends at working, reviewable code.
+2. **Document your changes.** Update the README and the builtin config
+   comments to cover what you add or change, rather than leaving `TODO:`
+   comments for the human.
+3. **Commit as you go.** Commit each self-contained step once it works,
+   following the existing commit message style. Don't push.
 
 ## Technical directives
 - **API lookups:** Do not guess standard APIs. Always look up latest info.
