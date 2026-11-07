@@ -302,12 +302,16 @@ local function build_level(tree)
     end
     prune_shadowed(map)
 
-    local level = { rows = {}, map = map }
-    local sep   = false
+    local level   = { rows = {}, map = map }
+    local sep     = false
+    local visible = 0
     for _, row in ipairs(rows) do
         if row.separator then
-            sep = #level.rows > 0
+            sep = visible > 0
+        elseif #row.keys > 0 and row.hidden then
+            level.rows[#level.rows + 1] = row
         elseif #row.keys > 0 then
+            visible = visible + 1
             if sep then level.rows[#level.rows + 1] = { separator = true } end
             sep = false
             level.rows[#level.rows + 1] = row
@@ -384,7 +388,7 @@ local function draw()
     local max_label_len = 0
 
     for _, row in ipairs(active_rows) do
-        if not row.separator and #row.keys > 0 then
+        if not row.separator and not row.hidden and #row.keys > 0 then
             local key_str = table.concat(row.keys, ",")
             local label   = row_label(row)
             if #key_str > max_key_len then max_key_len = #key_str end
@@ -395,7 +399,7 @@ local function draw()
     for _, row in ipairs(active_rows) do
         if row.separator then
             text = text .. "\\N"
-        elseif #row.keys > 0 then
+        elseif #row.keys > 0 and not row.hidden then
             local label   = row_label(row)
             local key_str = table.concat(row.keys, ",")
             local key_pad = string.rep("\\h", max_key_len - #key_str)
@@ -469,7 +473,7 @@ local function start_cascade()
     local stagger = math.max(0, state.opts.start_stagger)
     local i = 0
     for _, row in ipairs(active_rows) do
-        if not row.separator and #row.keys > 0 then
+        if not row.separator and not row.hidden and #row.keys > 0 then
             start_flash(row, i * stagger, start_spec)
             i = i + 1
         end

@@ -227,7 +227,11 @@ menu mine {
 | `menu <name> {`           | Starts a menu, closed with `}`.                                                 |
 | `<keys> <action>`         | Bind a key to an action. Chain keys with `-`, e.g. `v-e`, to make nested binds. |
 | `<keys> <action> <label>` | Same, with a custom label.                                                      |
+| `hide <keys> <action>`    | Bind a key to an action without showing it in the menu list.                    |
 | empty line                | Separator.                                                                      |
+
+Hidden items keep working from their keys.<br>
+A hidden submenu, e.g. `hide s-s settings {`, still opens and shows its items, only its row is gone from the parent list.
 
 Labels starting with `@` are [translation](#translations) keys, e.g. `@menu_set_mark_in Set In`, with the rest used as the fallback.<br>
 Use `@@` for a label that starts with `@`.
@@ -243,6 +247,7 @@ menu nested {
     s-i set_mark_in
     add x mark_in
     t none
+    s-s hide
 }
 ```
 
@@ -252,7 +257,9 @@ menu nested {
 | `<keys> <action>`     | Rebind an item, it keeps its place.<br>New items go at the end.     |
 | `add <keys> <action>` | Add another key to an item, shown as `i,x -> Mark In`.              |
 | `<keys> none`         | Unbind a key, `ignore` works too.                                   |
+| `<keys> hide`         | Hide the item bound to a key from the list, its keys keep working.  |
 
+- `hide` also works on patch lines and together with `add`, e.g. `add hide x mark_in` adds a key and hides the item.
 - A menu with the same name as a builtin one replaces it.
 - A single line `menu <keys> <action>` outside of any block patches whichever menu is selected.
 - If a key is bound on its own, any nested binds starting with it are unreachable and will be ignored with a warning.

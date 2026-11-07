@@ -31,32 +31,44 @@ local function parse_label(text)
 end
 
 local function parse_entry(line, where)
-    local text = line
-    local add  = false
-    local body = text:match("^add%s+(%S+%s+%S+.*)$")
-    if body then
-        add  = true
-        text = body
+    local text       = line
+    local add        = false
+    local hide       = false
+    local word, body = text:match("^(%S+)%s+(%S+%s+%S+.*)$")
+    while (word == "add" and not add) or (word == "hide" and not hide) do
+        if word == "add" then add = true else hide = true end
+        text       = body
+        word, body = text:match("^(%S+)%s+(%S+%s+%S+.*)$")
     end
 
     local seq, action, label = text:match("^(%S+)%s+(%S+)%s*(.-)$")
     local unbind             = action == "none" or action == "ignore"
-    if not seq or not valid_seq(seq) or text:find("{$") or (unbind and (add or label ~= "")) then
+    local hide_seq           = action == "hide"
+    if not seq or not valid_seq(seq) or text:find("{$") or ((unbind or hide_seq) and (add or hide or label ~= "")) then
         warn(lang.t("warn_invalid_menu_line", { where = where, line = line }))
         return nil
     end
 
     return {
-        seq    = seq,
-        action = not unbind and action or nil,
-        add    = add,
-        label  = parse_label(label)
+        seq      = seq,
+        action   = not unbind and not hide_seq and action or nil,
+        add      = add,
+        hide     = hide,
+        hide_seq = hide_seq,
+        label    = parse_label(label)
     }
 end
 
 local function parse_submenu(line, where)
+    local hide = false
+    local body = line:match("^hide%s+(%S+%s+%S+.*)$")
+    if body then
+        hide = true
+        line = body
+    end
+
     local seq, id, label = line:match("^(%S+)%s+(%S+)%s*(.-)%s*{$")
-    if not seq or seq == "add" or not valid_seq(seq) or id == "none" or id == "ignore" then
+    if not seq or seq == "add" or seq == "hide" or not valid_seq(seq) or id == "none" or id == "ignore" or id == "hide" then
         warn(lang.t("warn_invalid_submenu_line", { where = where, line = line }))
         return nil
     end
@@ -65,6 +77,7 @@ local function parse_submenu(line, where)
         seq     = seq,
         action  = id,
         add     = false,
+        hide    = hide,
         label   = parse_label(label),
         entries = {}
     }
@@ -137,6 +150,16 @@ local function unbind(rows, seq)
     end
 end
 
+local function hide(rows, seq)
+    for _, row in ipairs(rows) do
+        if row.keys then
+            for _, key in ipairs(row.keys) do
+                if key == seq then row.hidden = true end
+            end
+        end
+    end
+end
+
 local function collect(rows, action, submenu, found)
     for _, row in ipairs(rows) do
         if not row.separator then
@@ -163,6 +186,9 @@ local function apply(rows, entries, patch, name)
     for _, entry in ipairs(entries) do
         if entry.separator then
             pending_sep = true
+        elseif entry.hide_seq then
+            hide(rows, entry.seq)
+            pending_sep = false
         else
             local row   = nil
             local level = rows
@@ -177,10 +203,11 @@ local function apply(rows, entries, patch, name)
                     row.keys = { entry.seq }
                 end
                 if entry.label then row.label = entry.label end
+                if entry.hide then row.hidden = true end
                 if entry.entries then apply(row.rows, entry.entries, true, name) end
             elseif entry.action then
                 if pending_sep and #rows > 0 then rows[#rows + 1] = { separator = true } end
-                local new = { keys = { entry.seq }, action = entry.action, label = entry.label }
+                local new = { keys = { entry.seq }, action = entry.action, label = entry.label, hidden = entry.hide }
                 if entry.entries then
                     new.rows = {}
                     apply(new.rows, entry.entries, false, name)
