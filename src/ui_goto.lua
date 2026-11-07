@@ -171,17 +171,19 @@ end
 
 local function apply_input(t)
     if current_place then
-        local seconds = t.seconds
+        local seconds  = t.seconds
+        local duration = mp.get_property_number("duration")
         if t.kind == "delta" then
             seconds = mp.get_property_number("time-pos", 0) + t.seconds
         elseif t.kind == "percent" then
-            local duration = mp.get_property_number("duration")
             if not (duration and duration > 0) then
                 notify.show("Cannot jump by percent: duration unknown.", true, "warn")
                 return
             end
             seconds = duration * t.value / 100
         end
+        if seconds < 0 then seconds = 0 end
+        if duration and duration > 0 and seconds > duration then seconds = duration end
         if current_place == 0 then
             state.mark_in = seconds
             notify.show("In: " .. common.format_time(seconds))
