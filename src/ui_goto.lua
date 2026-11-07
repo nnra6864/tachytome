@@ -40,7 +40,7 @@ local function render()
         )
     end
 
-    local line = edit.render(layers, theme.align(7) .. theme.f() .. theme.c("text_color") .. current_title .. " > ", input, cursor)
+    local line = edit.render(layers, theme.align(7) .. theme.f() .. theme.c("text_color"), current_title .. " > ", input, cursor)
     overlay.data = string.format("%s%s%s\\N%s%s", line, theme.reset(), options_str, theme.f(true), current_tooltip)
     overlay:update()
 end

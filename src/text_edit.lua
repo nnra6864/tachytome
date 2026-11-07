@@ -86,14 +86,11 @@ local function color(key)
     return theme.c(state.opts[key] ~= "" and key or "value_color")
 end
 
-local function glow(prefix)
-    local tags = theme.glow(prefix)
-    return tags ~= "" and tags or "{\\bord0}{\\shad0}{\\blur0}"
-end
+local no_glow = "{\\bord0}{\\shad0}{\\blur0}"
 
-local function layer(prefix, before, glyph, glow_prefix, color_key, after)
-    return string.format("%s%s%s%s%s%s%s%s%s",
-        theme.a("FF"), prefix, before, theme.a("00"), glow(glow_prefix), color(color_key), theme.escape(glyph), theme.a("FF"), after
+local function layer(head, prompt, before, glyph, glow, color_key, after)
+    return string.format("%s%s%s%s%s%s%s%s%s%s",
+        head, theme.a("FF"), prompt, before, theme.a("00"), glow ~= "" and glow or no_glow, color(color_key), theme.escape(glyph), theme.a("FF"), after
     )
 end
 
@@ -118,15 +115,15 @@ function M.remove_layers(layers)
     layers.char:remove()
 end
 
-function M.render(layers, prefix, text, pos)
+function M.render(layers, head, prompt, text, pos)
     local before = theme.escape(text:sub(1, pos))
     local under  = pos < #text and text:sub(pos + 1, char_end(text, pos)) or ""
     local after  = theme.escape(text:sub(pos + #under + 1))
-    local cursor = layer(prefix, before, state.opts.cursor_char, "cursor_", "cursor_color", after)
-    local char   = (under ~= "" and not under:find("^%s$")) and layer(prefix, before, under, "cursor_text_", "cursor_text_color", after) or nil
+    local cursor = layer(head, prompt, before, state.opts.cursor_char, theme.glow("cursor_"), "cursor_color", after)
+    local char   = (under ~= "" and not under:find("^%s$")) and layer(head, prompt, before, under, no_glow, "cursor_text_color", after) or nil
     set_layer(layers.cursor, cursor)
     set_layer(layers.char, char)
-    return string.format("%s%s%s", prefix, theme.c("value_color"), theme.escape(text))
+    return string.format("%s%s%s%s", head, prompt, theme.c("value_color"), theme.escape(text))
 end
 
 return M

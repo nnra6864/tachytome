@@ -44,7 +44,7 @@ local function render()
     local preview     = current_preview and current_preview(buffer) or ""
     local preview_str = (preview ~= "") and string.format("\\N%s%s%s%s", theme.f(true), theme.c("value_color"), lang.t("input_expanded", { value = theme.escape(preview) }), theme.reset()) or ""
 
-    local line = edit.render(layers, theme.align(7) .. theme.f() .. theme.c("text_color") .. current_prompt, buffer, cursor)
+    local line = edit.render(layers, theme.align(7) .. theme.f() .. theme.c("text_color"), current_prompt, buffer, cursor)
     overlay.data = string.format("%s%s%s%s%s", line, theme.reset(), preview_str, tooltip, sub_str)
     overlay:update()
 end
