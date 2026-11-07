@@ -76,7 +76,7 @@ function M.show(on_close)
             state.opts.lossless_cut = false
             notify.show(lang.t("value_set", { label = lang.t("menu_lossless_cut"), value = lang.t("value_off") }))
         end
-        notify.show(lang.t("value_set", { label = lang.t("menu_effects"), value = lang.t(enabled and "value_on" or "value_off") }))
+        notify.show(lang.t("value_set", { label = lang.t("menu_effects"), value = lang.t(enabled and "effects_on" or "effects_off") }))
     end
 
     local open_ui

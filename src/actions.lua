@@ -272,7 +272,7 @@ function M.toggle_lossless()
         end
         if state.effects_enabled then
             state.effects_enabled = false
-            notify_set("effects", on_off(false))
+            notify_set("effects", lang.t("effects_off"))
         end
     end
     notify_set("lossless_cut", on_off(state.opts.lossless_cut))
@@ -300,7 +300,7 @@ function M.get_effects_display()
         if counts[label] > 1 and p then label = lang.t("effects_duplicate", { label = label, file = p.file }) end
         parts[#parts + 1] = label
     end
-    if #parts == 0 then return lang.t(state.effects_enabled and "value_none" or "value_off") end
+    if #parts == 0 then return lang.t(state.effects_enabled and "value_none" or "effects_off") end
     local selected = table.concat(parts, ", ")
     return state.effects_enabled and selected or lang.t("effects_off_list", { list = selected })
 end
