@@ -125,11 +125,10 @@ menu mine {
   - A literal label starting with `@` is written as `@@`.
   - With no label at all, the item's or submenu's own translation key is
     used (as before).
-  - [?] User translations: for user-invented keys like `@my_stuff` to
-    translate, the user needs a place to define them. Allow extra/override
-    translation files in the user's mpv dir (e.g.
-    `~~/script-opts/tachytome-lang/sr.conf`), and switch all translation
-    files to a plain `key=text` format instead of Lua?
+  - `@key` only resolves against the built-in translation files; there are
+    no user translation files. The built-in files should cover common words
+    (e.g. `settings`), and anything else falls back to the label text. New
+    keys come in through PRs.
 
 ## 5. Submenus
 - A menu line can open a submenu: one row in the parent
