@@ -1,4 +1,5 @@
-local state = require 'src.state'
+local common = require 'src.common'
+local state  = require 'src.state'
 
 local M = {}
 
@@ -68,9 +69,16 @@ function M.glow()
     return string.format("{\\bord%s}{\\blur%s}{\\3c&HFFFFFF&}", tostring(size), tostring(blur))
 end
 
+local platform_fonts = { windows = "Consolas", macos = "Menlo" }
+
+local function font()
+    if state.opts.font ~= "" then return state.opts.font end
+    return platform_fonts[common.get_platform()] or "monospace"
+end
+
 function M.f(small)
     local size = small and state.opts.small_font_size or state.opts.font_size
-    return string.format("{\\fnmonospace}{\\fs%d}%s", size, M.glow())
+    return string.format("{\\fn%s}{\\fs%d}%s", font(), size, M.glow())
 end
 
 function M.a(alpha_hex)

@@ -21,6 +21,7 @@ local M = {
         show_stats_screen   = true,
         show_stats_terminal = true,
         stats_osd_time      = 8,
+        font                = "",
         font_size           = 16,
         small_font_size     = 10,
         glow_size           = 2.5,
