@@ -6,6 +6,13 @@ question that needs an answer before that item starts.
 ## 1. Cursor movement in text inputs
 - Applies to every text input: the generic input (`ui_input`, e.g. Path,
   Quality) and the Go To prompt (`ui_goto`).
+- First make the OSD font reliably monospace: `theme.f` asks for the
+  family `monospace`, a fontconfig alias that likely doesn't resolve with
+  libass' DirectWrite (Windows) and CoreText (macOS) providers. Look up how
+  mpv/libass resolve it, then add a `font` option to the builtin conf whose
+  default picks a monospace family per platform (e.g. `monospace` on
+  Linux/BSD, Consolas on Windows, Menlo on macOS). The menu's column
+  padding relies on this too.
 - Keys:
   - Left/Right move the cursor by one character.
   - Home/End jump to the start/end of the text.
