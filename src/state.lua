@@ -45,6 +45,7 @@ local M = {
         start_in_easing     = "ease_out_sine",
         start_out_duration  = 0.75,
         start_out_easing    = "ease_out_cubic",
+        menu_path_separator = "/",
         selected_menu       = "default"
     },
     custom_output_name = "",

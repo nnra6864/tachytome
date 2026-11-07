@@ -53,6 +53,22 @@ local function parse_entry(line, where)
     }
 end
 
+local function parse_submenu(line, where)
+    local seq, id, label = line:match("^(%S+)%s+(%S+)%s*(.-)%s*{$")
+    if not seq or seq == "add" or not valid_seq(seq) or id == "none" or id == "ignore" then
+        warn("invalid submenu line at " .. where .. ": " .. line)
+        return nil
+    end
+
+    return {
+        seq     = seq,
+        action  = id,
+        add     = false,
+        label   = parse_label(label),
+        entries = {}
+    }
+end
+
 local function finish(current, defined)
     if defined[current.name] then
         warn("menu '" .. current.name .. "' redefined at " .. current.where)
@@ -64,22 +80,31 @@ end
 
 local function parse_lines(lines)
     local defined = {}
-    local current = nil
+    local stack   = {}
     for _, ln in ipairs(lines) do
-        local text = ln.text
+        local text    = ln.text
+        local current = stack[#stack]
         if current then
             if text == "}" then
-                finish(current, defined)
-                current = nil
+                stack[#stack] = nil
+                if #stack == 0 then finish(current, defined) end
             elseif text == "" then
                 current.entries[#current.entries + 1] = { separator = true }
             elseif text:find("^base%s") then
                 local base = text:match("^base%s+(%S+)$")
-                if base then
+                if base and #stack == 1 then
                     current.base = base
                 else
                     warn("invalid base line at " .. ln.where .. ": " .. text)
                 end
+            elseif text:find("{$") then
+                local entry = parse_submenu(text, ln.where)
+                if entry then
+                    current.entries[#current.entries + 1] = entry
+                else
+                    entry = { entries = {} }
+                end
+                stack[#stack + 1] = entry
             else
                 local entry = parse_entry(text, ln.where)
                 if entry then current.entries[#current.entries + 1] = entry end
@@ -88,7 +113,7 @@ local function parse_lines(lines)
             local name = text:match("^menu%s+([^%s{]+)%s*{$")
             local body = text:match("^menu%s+(.+)$")
             if name then
-                current = { name = name, base = nil, entries = {}, where = ln.where }
+                stack[1] = { name = name, base = nil, entries = {}, where = ln.where }
             elseif body then
                 local entry = parse_entry(body, ln.where)
                 if entry then flats[#flats + 1] = entry end
@@ -98,7 +123,7 @@ local function parse_lines(lines)
         end
     end
 
-    if current then warn("unclosed menu '" .. current.name .. "' at " .. current.where) end
+    if stack[1] then warn("unclosed menu '" .. stack[1].name .. "' at " .. stack[1].where) end
 end
 
 local function unbind(rows, seq)
@@ -111,18 +136,25 @@ local function unbind(rows, seq)
     end
 end
 
-local function find_row(rows, action, name)
-    local found = nil
+local function collect(rows, action, submenu, found)
     for _, row in ipairs(rows) do
-        if row.action == action then
-            if found then
-                warn("menu '" .. name .. "': action '" .. action .. "' is on several rows, patching the first")
-                break
+        if not row.separator then
+            if row.action == action and (not submenu or row.rows) then
+                found[#found + 1] = { row = row, level = rows }
             end
-            found = row
+            if row.rows then collect(row.rows, action, submenu, found) end
         end
     end
     return found
+end
+
+local function find_row(rows, action, submenu, name)
+    local found = collect(rows, action, submenu, {})
+    if #found > 1 then
+        warn("menu '" .. name .. "': action '" .. action .. "' is on several rows, patching the first")
+    end
+    if found[1] then return found[1].row, found[1].level end
+    return nil, rows
 end
 
 local function apply(rows, entries, patch, name)
@@ -131,20 +163,28 @@ local function apply(rows, entries, patch, name)
         if entry.separator then
             pending_sep = true
         else
-            unbind(rows, entry.seq)
-            if entry.action then
-                local row = (patch or entry.add) and find_row(rows, entry.action, name) or nil
-                if row then
-                    if entry.add then
-                        row.keys[#row.keys + 1] = entry.seq
-                    else
-                        row.keys = { entry.seq }
-                    end
-                    if entry.label then row.label = entry.label end
+            local row   = nil
+            local level = rows
+            if entry.action and (patch or entry.add) then
+                row, level = find_row(rows, entry.action, entry.entries ~= nil, name)
+            end
+            unbind(level, entry.seq)
+            if row then
+                if entry.add then
+                    row.keys[#row.keys + 1] = entry.seq
                 else
-                    if pending_sep and #rows > 0 then rows[#rows + 1] = { separator = true } end
-                    rows[#rows + 1] = { keys = { entry.seq }, action = entry.action, label = entry.label }
+                    row.keys = { entry.seq }
                 end
+                if entry.label then row.label = entry.label end
+                if entry.entries then apply(row.rows, entry.entries, true, name) end
+            elseif entry.action then
+                if pending_sep and #rows > 0 then rows[#rows + 1] = { separator = true } end
+                local new = { keys = { entry.seq }, action = entry.action, label = entry.label }
+                if entry.entries then
+                    new.rows = {}
+                    apply(new.rows, entry.entries, false, name)
+                end
+                rows[#rows + 1] = new
             end
             pending_sep = false
         end
@@ -157,7 +197,8 @@ local function normalize(rows)
         if row.separator then
             if #out > 0 and not out[#out].separator then out[#out + 1] = row end
         elseif #row.keys > 0 then
-            out[#out + 1] = row
+            if row.rows then row.rows = normalize(row.rows) end
+            if not row.rows or #row.rows > 0 then out[#out + 1] = row end
         end
     end
     if #out > 0 and out[#out].separator then out[#out] = nil end

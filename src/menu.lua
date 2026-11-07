@@ -10,9 +10,12 @@ local easing  = require 'src.easing'
 local M             = {}
 local menu_active   = false
 local menu_overlay  = mp.create_osd_overlay("ass-events")
+local root_level    = { rows = {}, map = {} }
+local path          = {}
 local active_rows   = {}
 local active_map    = {}
 local active_prefix = ""
+local resume_row    = nil
 local bound_names   = {}
 local esc_back      = false
 local flashes       = {}
@@ -260,15 +263,16 @@ end
 
 local function row_label(row)
     if row.label and row.label.text ~= "" then return row.label.text end
-    return row.item.label
+    if row.item then return row.item.label end
+    return (row.action:gsub("_", " "):gsub("^%l", string.upper))
 end
 
-local function prune_shadowed()
+local function prune_shadowed(map)
     local shadowed = {}
-    for seq in pairs(active_map) do
+    for seq in pairs(map) do
         local prefix = seq:match("^(.*)-[^-]*$")
         while prefix do
-            if active_map[prefix] then
+            if map[prefix] then
                 shadowed[#shadowed + 1] = seq
                 break
             end
@@ -277,44 +281,83 @@ local function prune_shadowed()
     end
     for _, seq in ipairs(shadowed) do
         notify.show("menu sequence '" .. seq .. "' unreachable, key '" .. seq:match("^(.*)-[^-]*$") .. "' is bound", false, "warn")
-        local row = active_map[seq]
+        local row = map[seq]
         for i = #row.keys, 1, -1 do
             if row.keys[i] == seq then table.remove(row.keys, i) end
         end
-        active_map[seq] = nil
+        map[seq] = nil
     end
 end
 
-load_menu = function()
+local function build_level(tree)
     local rows = {}
-    active_map = {}
-    for _, row in ipairs(menus.active()) do
+    local map  = {}
+    for _, row in ipairs(tree) do
         if row.separator then
             rows[#rows + 1] = row
-        elseif items_by_name[row.action] then
-            row.item = items_by_name[row.action]
-            rows[#rows + 1] = row
-            for _, seq in ipairs(row.keys) do active_map[seq] = row end
         else
-            notify.show("unknown menu action '" .. row.action .. "' for key '" .. table.concat(row.keys, ",") .. "'", false, "warn")
+            local known = true
+            if row.rows then
+                row.level = build_level(row.rows)
+                known     = #row.level.rows > 0
+            elseif items_by_name[row.action] then
+                row.item = items_by_name[row.action]
+            else
+                known = false
+                notify.show("unknown menu action '" .. row.action .. "' for key '" .. table.concat(row.keys, ",") .. "'", false, "warn")
+            end
+            if known then
+                rows[#rows + 1] = row
+                for _, seq in ipairs(row.keys) do map[seq] = row end
+            end
         end
     end
-    prune_shadowed()
+    prune_shadowed(map)
 
-    active_rows    = {}
-    local sep      = false
-    local remapped = nil
+    local level = { rows = {}, map = map }
+    local sep   = false
     for _, row in ipairs(rows) do
         if row.separator then
-            sep = #active_rows > 0
+            sep = #level.rows > 0
         elseif #row.keys > 0 then
-            if sep then active_rows[#active_rows + 1] = { separator = true } end
+            if sep then level.rows[#level.rows + 1] = { separator = true } end
             sep = false
-            active_rows[#active_rows + 1] = row
-            if pending_row and not remapped and row.action == pending_row.action then remapped = row end
+            level.rows[#level.rows + 1] = row
         end
     end
-    if pending_row then pending_row = remapped end
+    return level
+end
+
+local function find_path(level, action, trail)
+    for _, row in ipairs(level.rows) do
+        if row.item and row.action == action then return row, trail end
+        if row.level then
+            trail[#trail + 1] = row
+            local found = find_path(row.level, action, trail)
+            if found then return found, trail end
+            trail[#trail] = nil
+        end
+    end
+    return nil, nil
+end
+
+local function sync_level()
+    local level   = #path > 0 and path[#path].level or root_level
+    active_rows   = level.rows
+    active_map    = level.map
+    active_prefix = ""
+end
+
+load_menu = function()
+    root_level = build_level(menus.active())
+    path       = {}
+    if resume_row then
+        local found, trail = find_path(root_level, resume_row.action, {})
+        if pending_row then pending_row = found end
+        resume_row = found
+        path       = trail or {}
+    end
+    sync_level()
 end
 
 load_menu()
@@ -344,7 +387,11 @@ local function flash_progress(fl)
 end
 
 local function draw()
-    local text = string.format("%s%s%s%s < Tachytome > %s\\N\\N", theme.align(7), theme.f(), theme.b(true), theme.c("text_color"), theme.b(false))
+    local title = " < Tachytome"
+    for _, row in ipairs(path) do
+        title = title .. " " .. theme.escape(state.opts.menu_path_separator) .. " " .. theme.escape(row_label(row))
+    end
+    local text = string.format("%s%s%s%s%s > %s\\N\\N", theme.align(7), theme.f(), theme.b(true), theme.c("text_color"), title, theme.b(false))
     local max_key_len   = 0
     local max_label_len = 0
 
@@ -353,7 +400,7 @@ local function draw()
             local key_str = table.concat(row.keys, ",")
             local label   = row_label(row)
             if #key_str > max_key_len then max_key_len = #key_str end
-            if row.item.get_val and text_len(label) > max_label_len then max_label_len = text_len(label) end
+            if row.item and row.item.get_val and text_len(label) > max_label_len then max_label_len = text_len(label) end
         end
     end
 
@@ -382,7 +429,7 @@ local function draw()
 
             if dim then line = theme.a("66") .. line end
 
-            if row.item.get_val then
+            if row.item and row.item.get_val then
                 local val_pad = string.rep("\\h", max_label_len - text_len(label) + 1)
                 line = line .. val_pad .. "> " .. row.item.get_val()
             end
@@ -393,7 +440,7 @@ local function draw()
         end
     end
 
-    if active_prefix ~= "" and esc_back then
+    if esc_back then
         text = text .. "\\N" .. theme.f(true) .. theme.c("dim_text_color") .. "(ESC to go back)"
     end
 
@@ -480,8 +527,14 @@ local function cancel_prefix()
 end
 
 local function go_back()
-    if active_prefix == "" then return end
-    active_prefix = active_prefix:match("^(.*)-[^-]*$") or ""
+    if active_prefix ~= "" then
+        active_prefix = active_prefix:match("^(.*)-[^-]*$") or ""
+    elseif #path > 0 then
+        table.remove(path)
+        sync_level()
+    else
+        return
+    end
     bind_level()
     draw()
 end
@@ -497,19 +550,31 @@ local function bind_key(key, name, fn)
 end
 
 fire = function(row)
+    if row.level then
+        path[#path + 1] = row
+        sync_level()
+        bind_level()
+        draw()
+        return
+    end
     local item = row.item
     if not item then return end
-    if not item.keep_open then M.close() end
+    if not item.keep_open then
+        M.close()
+        resume_row = row
+    end
     if flash_spec.total > 0 then pending_row = row end
     item.action()
     if menu_active then
         pending_row   = nil
+        resume_row    = nil
         active_prefix = ""
         bind_level()
         start_flash(row, nil, flash_spec)
         draw()
     elseif not state.ui_owner then
         pending_row = nil
+        resume_row  = nil
     end
 end
 
@@ -520,11 +585,11 @@ bind_level = function()
     for key in pairs(continuations) do
         bind_key(key, "menu-" .. key, function() handle_key(key) end)
     end
+    if (active_prefix ~= "" or #path > 0) and not continuations["ESC"] then
+        bind_key("ESC", "menu-back", go_back)
+        esc_back = true
+    end
     if active_prefix ~= "" then
-        if not continuations["ESC"] then
-            bind_key("ESC", "menu-back", go_back)
-            esc_back = true
-        end
         for key in pairs(level_keys("")) do
             if not continuations[key] and key ~= "ESC" then
                 bind_key(key, "menu-root-" .. key, cancel_prefix)
@@ -550,7 +615,9 @@ function M.open()
     if menu_active then M.close() return end
     menu_active    = true
     state.ui_owner = "menu"
-    active_prefix  = ""
+    if not resume_row then path = {} end
+    resume_row     = nil
+    sync_level()
     mp.set_osd_ass(0, 0, "")
     mp.osd_message("", 0)
     bind_level()
