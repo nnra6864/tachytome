@@ -54,9 +54,9 @@ question that needs an answer before that item starts.
   it edits the line that currently wins, rather than always the main conf.
 
 ## 5. Several effects configs
-- Effect preset files in `~~/script-opts/tachytome/` ending in `.fx` are
+- Effect preset files in `~~/script-opts/tachytome/` ending in `.eff` are
   auto detected, and their presets are merged.
-- The generated builtin one becomes `default.fx` (migrated from
+- The generated builtin one becomes `default.eff` (migrated from
   `effects.conf` like the earlier config dir move).
 - When two files define the same preset name, the last file
   (alphabetical) wins with a warning.
