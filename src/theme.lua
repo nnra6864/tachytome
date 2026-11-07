@@ -25,6 +25,12 @@ function M.c(key)
     return string.format("{\\c%s}", hex(color))
 end
 
+function M.invert(key)
+    local r, g, b = channels(state.opts[key] or state.opts.text_color)
+    if not r then return "{\\c&H000000&}" end
+    return string.format("{\\c&H%02X%02X%02X&}", 255 - b, 255 - g, 255 - r)
+end
+
 function M.mix(ha, hb, t)
     local ar, ag, ab = channels(ha)
     local br, bg, bb = channels(hb)

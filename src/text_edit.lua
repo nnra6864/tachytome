@@ -82,15 +82,21 @@ function M.remove_bindings(prefix)
     for _, b in ipairs(bindings) do mp.remove_key_binding(prefix .. "-" .. b.name) end
 end
 
-local function color(key)
-    return theme.c(state.opts[key] ~= "" and key or "value_color")
+local function cursor_key()
+    return state.opts.cursor_color ~= "" and "cursor_color" or "value_color"
 end
 
-local no_glow = "{\\bord0}{\\shad0}{\\blur0}"
+local function text_color()
+    if state.opts.cursor_text_color ~= "" then return theme.c("cursor_text_color") end
+    return theme.invert(cursor_key())
+end
 
-local function layer(head, prompt, before, glyph, glow, color_key, after)
+local no_glow       = "{\\bord0}{\\shad0}{\\blur0}{\\be0}"
+local cursor_glyphs = { bar = "▏", underline = "▁", block = "█" }
+
+local function layer(head, prompt, before, glyph, glow, color, after)
     return string.format("%s%s%s%s%s%s%s%s%s%s",
-        head, theme.a("FF"), prompt, before, theme.a("00"), glow ~= "" and glow or no_glow, color(color_key), theme.escape(glyph), theme.a("FF"), after
+        head, theme.a("FF"), prompt, before, theme.a("00"), glow ~= "" and glow or no_glow, color, theme.escape(glyph), theme.a("FF"), after
     )
 end
 
@@ -119,8 +125,9 @@ function M.render(layers, head, prompt, text, pos)
     local before = theme.escape(text:sub(1, pos))
     local under  = pos < #text and text:sub(pos + 1, char_end(text, pos)) or ""
     local after  = theme.escape(text:sub(pos + #under + 1))
-    local cursor = layer(head, prompt, before, state.opts.cursor_char, theme.glow("cursor_"), "cursor_color", after)
-    local char   = (under ~= "" and not under:find("^%s$")) and layer(head, prompt, before, under, no_glow, "cursor_text_color", after) or nil
+    local block  = state.opts.cursor_style == "block"
+    local cursor = layer(head, prompt, before, cursor_glyphs[state.opts.cursor_style] or cursor_glyphs.bar, theme.glow("cursor_"), theme.c(cursor_key()), after)
+    local char   = (block and under ~= "" and not under:find("^%s$")) and layer(head, prompt, before, under, no_glow, text_color(), after) or nil
     set_layer(layers.cursor, cursor)
     set_layer(layers.char, char)
     return string.format("%s%s%s%s", head, prompt, theme.c("value_color"), theme.escape(text))

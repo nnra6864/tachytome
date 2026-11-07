@@ -186,8 +186,9 @@ This is done to avoid global bind conflicts.
 | ctrl+Backspace       | Delete Word | Delete the word before the cursor.      |
 
 Words end at whitespace and separators like `-`, `_`, `/`, `\`, `.`, `,`, `:`, `;` and brackets, e.g. ctrl+Backspace on `~/Videos/my_clip` leaves `~/Videos/my_`.<br>
-The cursor is a line by default, set `cursor_char` to any character, e.g. `_` or `█`, to change it.<br>
-It's drawn above the text, with the character under it drawn on top again, see the `cursor_` options in the [builtin config](./tachytome.conf) for its colors and glow.
+The cursor is a bar by default, set `cursor_style` to `bar`, `underline` or `block` to change it.<br>
+It's drawn above the text, the block also redraws the character under it on top, in the inverse of the cursor color by default.<br>
+See the `cursor_` options in the [builtin config](./tachytome.conf) for its colors and glow.
 
 #### Path
 
