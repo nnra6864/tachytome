@@ -27,9 +27,6 @@ question that needs an answer before that item starts.
   - a bare `[` or `]` means that mark itself
 - Works in every prompt that uses the parser: Go To, Set In, Set Out
   (item 3). This allows things like Set Out `[+30s` (a 30s clip from In).
-- `[`/`]` replaces the earlier `~` idea: it covers both marks, works the
-  same in every prompt, and reads like "start/end".
-- [?] Confirm `[`/`]` over `~`.
 
 ## 3. Set In / Set Out prompts
 - New menu actions `set_mark_in` / `set_mark_out`. They open the same input
@@ -81,17 +78,16 @@ question that needs an answer before that item starts.
   - `key action` (action already in the base): rebinds that item; its old
     key(s) are replaced and its position stays the same
   - `add key action`: adds an extra key to the existing item, keeping the
-    old ones
+    old ones, shown as `i,x -> Mark In` like today
   - `key none` / `key ignore`: unbinds that key (the item disappears when no
     keys are left)
   - `key action` (action not in the base): appended at the end; to place it
     mid-menu, write the full menu without `base`
-- Each action appears at most once per menu tree, so "rebind action" is
-  never ambiguous. More keys for one item go through `add`, and show as
-  `i,x -> Mark In` like today. This replaces the earlier "an action listed
-  twice shows twice".
 - `add` is a keyword rather than a `+` prefix because `+` is itself a
   bindable key.
+- The same action may appear on several rows; each row is its own item.
+  When a patch's `key action` matches an action that's on several rows, it
+  rebinds the first one (in menu order) and warns that it's ambiguous.
 - Existing features to keep: flat one-line rebinds on the active menu
   (same patch rules), nested dash sequences, shadowed-sequence warnings.
 
@@ -117,8 +113,23 @@ menu mine {
 ```
 - The label is optional, and is everything after the action, spaces allowed.
   `#` can't appear in a label because it starts a comment.
-- [?] Switch the outer block from `menu X ... end` to `menu X { ... }` so it
-  matches submenus (item 5)?
+- Menu blocks use braces, `menu X { ... }`, to match submenus (item 5); no
+  `end`.
+- Translated labels in the config: a label starting with `@key` uses that
+  translation key, and the rest of the label is the fallback when the
+  current language doesn't define it.
+  ```
+  s-i set_mark_in @set_in_short Set In
+  s   mine        @my_stuff My Stuff {
+  ```
+  - A literal label starting with `@` is written as `@@`.
+  - With no label at all, the item's or submenu's own translation key is
+    used (as before).
+  - [?] User translations: for user-invented keys like `@my_stuff` to
+    translate, the user needs a place to define them. Allow extra/override
+    translation files in the user's mpv dir (e.g.
+    `~~/script-opts/tachytome-lang/sr.conf`), and switch all translation
+    files to a plain `key=text` format instead of Lua?
 
 ## 5. Submenus
 - A menu line can open a submenu: one row in the parent
@@ -140,11 +151,10 @@ menu mine {
 - Patching from item 4 works across the whole tree: actions are unique per
   menu tree, so `base` + `key action` finds the item even inside a
   submenu.
-- [?] Should submenus coexist with dash sequences (`v-e`)? Sequences keep
-  everything visible and highlight matches; submenus collapse into one row.
-  Recommendation: keep both.
-- [?] Should the builtin menus put `language` and `menu_preset` into a
-  `Settings` submenu?
+- Submenus coexist with dash sequences (`v-e`): sequences keep everything
+  visible and highlight matches; submenus collapse into one row.
+- The builtin menus put `language` and `menu_preset` into a `Settings`
+  submenu. The human will reorganize the rest.
 
 ## 6. Translations + language option
 - `language` option, default `auto` (item 7), plus a menu item to change it
