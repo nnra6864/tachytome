@@ -263,6 +263,7 @@ See the `default` menu in the [builtin config](./tachytome.conf) for the full li
 #### Translations
 
 Every UI string comes from a language file in the [`lang`](./lang) dir, e.g. `lang/en.lua`.<br>
+Ships with English (`en`) and Serbian (`sr`, Latin script).<br>
 Pick one with the `language` option, or switch it from the menu with `l`, which saves it to your config.<br>
 `auto`, the default, detects the system language on every start, any other value forces that language.
 
