@@ -3,46 +3,7 @@
 Items are ordered for implementation, one at a time. `[?]` marks an open
 question that needs an answer before that item starts.
 
-## 1. Space only where it makes sense in text input
-- `ui_input.get_user_input` is the shared text input (quality, FPS, space
-  replacement, path, effect params, queue "New Output Path").
-- Add an option to it for whether space can be typed. Default: off.
-- Turn it on for:
-  - the output path (`actions.set_path`)
-  - the queue's "New Output Path" (`queue_manager`)
-  - Space Replacement (`actions.set_space_replacement`), which must accept a
-    literal space character
-- With space off, space falls through to mpv (pause/play while typing),
-  like in Go To.
-- Effect params are fine without space: `bezier(0.22,1,0.36,1)` already
-  parses without spaces.
-
-## 2. Mark-relative time input
-- In the shared Go To parser, a leading mark character makes the time
-  relative to a mark instead of to the current playback position:
-  - `+5s` / `-1m30s` / `+10f` / `+2%`: relative to the current position (as
-    today)
-  - `[+5s` / `[-10f` / `[+2%`: relative to the In mark
-  - `]+5s` / `]-10f` / `]+2%`: relative to the Out mark
-  - a bare `[` or `]` means that mark itself
-- Works in every prompt that uses the parser: Go To, Set In, Set Out
-  (item 3). This allows things like Set Out `[+30s` (a 30s clip from In).
-
-## 3. Set In / Set Out prompts
-- New menu actions `set_mark_in` / `set_mark_out`. They open the same input
-  and parser as Go To, but set the mark instead of seeking.
-- No `i`/`o` shortcuts in these prompts.
-- User's `nested` keymap (`~~/script-opts/tachytome.conf`, outside the
-  repo):
-  - bind `s-i` -> `set_mark_in`, `s-o` -> `set_mark_out`
-  - move `stats` from `s` to `s-s`
-- The builtin `nested` keymap must match the user's `nested` keymap exactly.
-- Builtin `default` keymap: `ctrl+i` -> `set_mark_in`,
-  `ctrl+o` -> `set_mark_out` (`I`/`O` are taken).
-  - Note: in terminal-only output (`--vo=tct`) `ctrl+i` arrives as `TAB`;
-    the normal video window is fine.
-
-## 4. Menu overhaul (replaces "keymap")
+## 1. Menu overhaul (replaces "keymap")
 - The app only defines the available items and what they do: name, label
   translation key, `get_val`, action, `keep_open`. No order, keys, or
   separators in Lua (drop `registry` order/separators from `menu.lua` and the
@@ -56,11 +17,33 @@ question that needs an answer before that item starts.
   `keymap` blocks or `selected_keymap`. Update the user's own conf to the
   new syntax.
 - A new menu item switches the menu preset at runtime. A manual switch is
-  saved to the user conf, the same way as the language (item 6).
+  saved to the user conf, the same way as the language (item 3).
 - Separators: an empty line inside a menu block. This works because
   Tachytome already reads the conf file line by line itself (`keymap.lua`
   `parse_conf`). Several empty lines in a row count as one separator.
   Comment-only lines are not separators.
+
+### Config directory
+- User configs move from `~~/script-opts/` into `~~/script-opts/tachytome/`:
+  - `~~/script-opts/tachytome.conf` -> `~~/script-opts/tachytome/tachytome.conf`
+  - `~~/script-opts/tachytome-effects.conf` -> `~~/script-opts/tachytome/effects.conf`
+- Future user files go in the same dir.
+- `mp.options.read_options` only reads `~~/script-opts/<identifier>.conf`,
+  and the identifier is also the `--script-opts=<identifier>-key=value`
+  prefix, so don't point it into the subdir. Instead:
+  - Tachytome parses the builtin and user conf files itself (needed anyway
+    for the layering above).
+  - Then it calls `read_options(opts, "tachytome")` as before. With no
+    `~~/script-opts/tachytome.conf` left, this only applies
+    `--script-opts=tachytome-...` command-line overrides, which keep working
+    and stay on top.
+- Migration on start:
+  - If an old file exists and its new counterpart doesn't, move it into the
+    new dir.
+  - Move it unchanged; don't comment out an existing user config.
+  - If both exist, use the new one and warn that the old one is ignored.
+- Update every path that points at the old locations (`common.ensure_default_conf`,
+  `state.lua`, `effects.lua`, the `effects_enabled` comment in the conf).
 
 ### Generated user conf
 - On first start, `common.ensure_default_conf` generates the user conf as
@@ -113,7 +96,7 @@ menu mine {
 ```
 - The label is optional, and is everything after the action, spaces allowed.
   `#` can't appear in a label because it starts a comment.
-- Menu blocks use braces, `menu X { ... }`, to match submenus (item 5); no
+- Menu blocks use braces, `menu X { ... }`, to match submenus (item 2); no
   `end`.
 - Translated labels in the config: a label starting with `@key` uses that
   translation key, and the rest of the label is the fallback when the
@@ -129,8 +112,10 @@ menu mine {
     no user translation files. The built-in files should cover common words
     (e.g. `settings`), and anything else falls back to the label text. New
     keys come in through PRs.
+  - Until item 3 exists there are no translation files; `@key` then always
+    uses the fallback text, but the syntax is parsed now.
 
-## 5. Submenus
+## 2. Submenus
 - A menu line can open a submenu: one row in the parent
   (`s -> Settings`); pressing its key shows only that submenu's items.
 - Submenus can nest. `ESC` goes back one level (as with sequences today).
@@ -147,16 +132,15 @@ menu mine {
   - An optional label goes between the id and `{`, like for items:
     `s settings Podešavanja {`.
   - A line ending in `{` opens a submenu; `}` alone on a line closes it.
-- Patching from item 4 works across the whole tree: actions are unique per
-  menu tree, so `base` + `key action` finds the item even inside a
-  submenu.
+- Patching from item 1 works across the whole tree, so `base` +
+  `key action` finds the item even inside a submenu.
 - Submenus coexist with dash sequences (`v-e`): sequences keep everything
   visible and highlight matches; submenus collapse into one row.
 - The builtin menus put `language` and `menu_preset` into a `Settings`
   submenu. The human will reorganize the rest.
 
-## 6. Translations + language option
-- `language` option, default `auto` (item 7), plus a menu item to change it
+## 3. Translations + language option
+- `language` option, default `auto` (item 4), plus a menu item to change it
   at runtime.
 - Every UI string is translatable: menu labels, submenu labels, prompts,
   tooltips, notifications, stats screen, Go To hints.
@@ -171,7 +155,7 @@ menu mine {
     builtin conf, at the very top of the user conf
 - The same write-back is used for the menu preset (`selected_menu`).
 
-## 7. Detect the language on every start
+## 4. Detect the language on every start
 - `language=auto` (the default) detects the language on every start; any
   other value forces that language.
 - mpv has no UI language option or property (`alang`/`slang`/`vlang` are
