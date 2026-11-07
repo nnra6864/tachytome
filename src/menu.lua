@@ -125,6 +125,13 @@ local items = {
         keep_open = false
     },
     {
+        name      = "keyframes",
+        label_key = "menu_keyframes",
+        get_val   = function() return v(actions.get_keyframes_display()) end,
+        action    = function() actions.set_keyframes(M.open) end,
+        keep_open = false
+    },
+    {
         name      = "preset",
         label_key = "menu_preset",
         get_val   = function() return v(state.opts.preset) end,

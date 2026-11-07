@@ -10,6 +10,7 @@ return {
     menu_encoder           = "Encoder",
     menu_quality           = "Quality",
     menu_fps               = "FPS",
+    menu_keyframes         = "Keyframes",
     menu_preset            = "Preset",
     menu_lossless_cut      = "Lossless Cut",
     menu_accurate_cut      = "Accurate Cut",
@@ -104,6 +105,12 @@ return {
     notify_fps_source    = "FPS (source): {fps}",
     notify_fps           = "FPS: {fps}",
     warn_invalid_fps     = "Invalid FPS, keeping: {fps}",
+
+    keyframes_default      = "Encoder default",
+    prompt_keyframes       = "Keyframe Interval (frames, or seconds with s) > ",
+    notify_keyframes       = "Keyframe Interval: {value}",
+    notify_keyframes_reset = "Keyframe Interval reset to encoder default",
+    warn_invalid_keyframes = "Invalid Keyframe Interval, keeping: {value}",
 
     notify_lossless_cut     = "Lossless Cut: '{value}'",
     notify_accurate_cut     = "Accurate Cut: '{value}'",

@@ -10,6 +10,7 @@ return {
     menu_encoder           = "Enkoder",
     menu_quality           = "Kvalitet",
     menu_fps               = "FPS",
+    menu_keyframes         = "Ključni frejmovi",
     menu_preset            = "Preset",
     menu_lossless_cut      = "Rez bez gubitaka",
     menu_accurate_cut      = "Precizan rez",
@@ -102,6 +103,12 @@ return {
     notify_fps_source    = "FPS (izvor): {fps}",
     notify_fps           = "FPS: {fps}",
     warn_invalid_fps     = "Neispravan FPS, zadržava se: {fps}",
+
+    keyframes_default      = "Podrazumevano za enkoder",
+    prompt_keyframes       = "Interval ključnih frejmova (frejmovi, ili sekunde sa s) > ",
+    notify_keyframes       = "Interval ključnih frejmova: {value}",
+    notify_keyframes_reset = "Interval ključnih frejmova resetovan na podrazumevani za enkoder",
+    warn_invalid_keyframes = "Neispravan interval ključnih frejmova, zadržava se: {value}",
 
     notify_lossless_cut     = "Rez bez gubitaka: '{value}'",
     notify_accurate_cut     = "Precizan rez: '{value}'",

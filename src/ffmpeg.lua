@@ -49,6 +49,19 @@ local function parse_fps(value)
     return nil
 end
 
+local function keyframe_frames(value, fps)
+    if type(value) ~= "string" or value == "" then return nil end
+    local secs = value:match("^([%d%.]+)s$")
+    if secs then
+        secs = tonumber(secs)
+        if not secs or not fps or fps <= 0 then return nil end
+        return math.max(1, math.floor(secs * fps + 0.5))
+    end
+    local frames = tonumber(value:match("^%d+$"))
+    if frames and frames > 0 then return frames end
+    return nil
+end
+
 local function deselect_extra_audio(args, audio_count)
     for i = 1, audio_count - 1 do
         table.insert(args, "-map") table.insert(args, string.format("-0:a:%d", i))
@@ -272,6 +285,11 @@ function M.build_args(opts, input_file, output_file, creation_time)
         else
             local hw_args = { "-c:v", "libsvtav1", "-preset", tostring(opts.preset), "-crf", quality_str, "-pix_fmt", "yuv420p10le", "-svtav1-params", "tune=0:scd=1", "-metadata", "TACHYTOME_PRESET=" .. tostring(opts.preset) }
             for _, v in ipairs(hw_args) do table.insert(args, v) end
+        end
+
+        local gop = keyframe_frames(opts.keyframe_interval, out_fps)
+        if gop then
+            table.insert(args, "-g") table.insert(args, tostring(gop))
         end
 
         if opts.combine_audio then

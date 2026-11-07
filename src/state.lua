@@ -8,6 +8,7 @@ local M = {
         video_encoder       = "av1",
         quality             = 35,
         preset              = 4,
+        keyframe_interval   = "",
         accurate_cut        = true,
         combine_audio       = false,
         combined_audio_name = "Combined",

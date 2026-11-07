@@ -138,6 +138,32 @@ function M.set_fps(on_complete)
     end, M.get_fps_display(), true, nil, on_complete)
 end
 
+local function valid_keyframe_interval(val)
+    local num = tonumber(val:match("^%d+$") or val:match("^([%d%.]+)s$"))
+    return num ~= nil and num > 0
+end
+
+function M.get_keyframes_display()
+    if state.opts.keyframe_interval == "" then return lang.t("keyframes_default") end
+    return state.opts.keyframe_interval
+end
+
+function M.set_keyframes(on_complete)
+    ui_input.get_user_input(lang.t("prompt_keyframes"), function(input)
+        input = input:lower()
+        if input == "" then
+            state.opts.keyframe_interval = ""
+            notify.show(lang.t("notify_keyframes_reset"))
+        elseif valid_keyframe_interval(input) then
+            state.opts.keyframe_interval = input
+            notify.show(lang.t("notify_keyframes", { value = input }))
+        else
+            notify.show(lang.t("warn_invalid_keyframes", { value = M.get_keyframes_display() }), true, "warn")
+        end
+        if on_complete then on_complete() end
+    end, M.get_keyframes_display(), true, nil, on_complete)
+end
+
 function M.select_encoder(on_complete)
     local encoders = { "av1", "nv_av1", "amd_av1", "intel_av1", "h265", "nv_h265", "amd_h265", "intel_h265", "h264", "nv_h264", "amd_h264", "intel_h264" }
 
@@ -346,6 +372,7 @@ function M.start_render(on_complete)
         quality             = state.opts.quality,
         preset              = state.opts.preset,
         fps_override        = state.fps_override,
+        keyframe_interval   = state.opts.keyframe_interval,
         effects             = state.effects_enabled and effects.snapshot() or nil,
         combine_audio       = state.opts.combine_audio,
         combined_audio_name = state.opts.combined_audio_name,

@@ -232,6 +232,7 @@ local function adopt_orphan_queue(file)
                 quality             = it.quality,
                 preset              = it.preset,
                 fps_override        = it.fps_override,
+                keyframe_interval   = it.keyframe_interval,
                 effects             = it.effects,
                 lossless_cut        = it.lossless_cut,
                 accurate_cut        = it.accurate_cut,

@@ -342,6 +342,7 @@ function M.start(opts)
         quality             = opts.quality,
         preset              = opts.preset,
         fps_override        = opts.fps_override,
+        keyframe_interval   = opts.keyframe_interval,
         effects             = opts.effects,
         lossless_cut        = opts.lossless_cut,
         accurate_cut        = opts.accurate_cut,

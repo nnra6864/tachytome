@@ -135,6 +135,7 @@ This is done to avoid global bind conflicts.
 | q       | Quality           | Set the video encoder quality parameter.                                                                      |
 | P       | Preset            | Set the video encoder preset parameter.                                                                       |
 | F       | FPS               | Set the FPS of the video.                                                                                     |
+| k       | Keyframes         | Set the keyframe interval, e.g. `120` frames or `2s`.<br>Empty uses the encoder default.                      |
 | l       | Lossless Cut      | Toggle the lossless cut option.                                                                               |
 | a       | Accurate Cut      | Toggle accurate cut.<br>Makes cuts millisecond precise, but may cause a slight delay before rendering starts. |
 | <hr>    | <hr>              | <hr>                                                                                                          |
