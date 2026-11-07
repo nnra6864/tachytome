@@ -169,6 +169,21 @@ local function has_configs_line(path)
     return false
 end
 
+local function needs_default(main)
+    for _, line in ipairs(read_lines(main)) do
+        if line:sub(1, 8) == "configs=" then
+            for _, c in ipairs((parse_configs(line:sub(9)))) do
+                if c.name == "default" and c.enabled then return true end
+            end
+            break
+        end
+    end
+    for _, file in ipairs(utils.readdir(common.get_conf_dir(), "files") or {}) do
+        if file:match("%.conf$") and not reserved[file] then return false end
+    end
+    return true
+end
+
 local function ensure_main_conf()
     local main    = utils.join_path(common.get_conf_dir(), "tachytome.conf")
     local default = M.config_path("default")
@@ -192,15 +207,17 @@ local function ensure_main_conf()
             mp.msg.warn("Failed to move config " .. source .. ": " .. tostring(err))
             return main
         end
-    elseif common.file_exists(legacy) then
-        mp.msg.warn("Ignoring old config " .. legacy .. ", using " .. main)
-    elseif not common.file_exists(default) and not common.file_exists(main) then
-        common.ensure_default_conf("tachytome.conf", "default.conf", true)
     end
 
     if source == main or not common.file_exists(main) then
         write_lines(main, { "configs=default" }, "configs")
         mp.msg.info("Generated config at: " .. main)
+    end
+
+    if not common.file_exists(default) and needs_default(main) then
+        common.ensure_default_conf("tachytome.conf", "default.conf", true)
+    elseif common.file_exists(legacy) then
+        mp.msg.warn("Ignoring old config " .. legacy .. ", using " .. main)
     end
     return main
 end

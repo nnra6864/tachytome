@@ -229,6 +229,8 @@ The builtin config contains detailed explanations of all the settings, I would h
 
 `mpv/script-opts/tachytome/tachytome.conf` is generated too, containing only `configs=default`, which picks the [configs](#configs) that get used.
 
+A deleted `default.conf` is generated again on start when `default` is enabled in `configs`, or when there are no other `.conf` files next to `tachytome.conf`.
+
 > [!NOTE]
 > Older versions used `mpv/script-opts/tachytome.conf` and `mpv/script-opts/tachytome-effects.conf`.<br>
 > These get moved to `mpv/script-opts/tachytome/default.conf` and `mpv/script-opts/tachytome/default.eff` on start, with a new `tachytome.conf` sourcing `default`.<br>
