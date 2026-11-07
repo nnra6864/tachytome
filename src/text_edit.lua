@@ -92,7 +92,7 @@ function M.render(prefix, text, pos)
     local after  = theme.escape(text:sub(pos + #under + 1))
     local line   = string.format("%s%s%s%s█%s%s", prefix, theme.c("value_color"), before, cursor_color(), theme.c("value_color"), after)
     if under == "" or under:find("^%s$") then return line, nil end
-    local top = string.format("%s%s%s{\\1a&H00&}%s%s%s%s", theme.a("FF"), prefix, before, theme.c("cursor_text_color"), theme.escape(under), theme.a("FF"), after)
+    local top = string.format("%s%s%s{\\1a&H00&\\bord0\\shad0\\blur0}%s%s%s%s", theme.a("FF"), prefix, before, theme.c("cursor_text_color"), theme.escape(under), theme.a("FF"), after)
     return line, top
 end
 
