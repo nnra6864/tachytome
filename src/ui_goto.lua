@@ -12,7 +12,7 @@ local current_callback = nil
 local current_options  = {}
 
 local key_mappings   = {}
-local standard_chars = "0123456789:.dhmsf%+-"
+local standard_chars = "0123456789:.dhmsf%+-[]"
 for i = 1, #standard_chars do
     local c = standard_chars:sub(i, i)
     key_mappings[c] = c
@@ -104,6 +104,15 @@ local function parse_and_seek()
     local str = input:lower():gsub("%s+", "")
     if str == "" then cleanup(); return end
 
+    -- TODO: document the [ and ] mark prefixes in README Go To > Prefix
+    local base  = nil
+    local first = str:sub(1, 1)
+    if first == "[" or first == "]" then
+        local actions = require 'src.actions'
+        base = first == "[" and actions.get_resolved_mark_in() or state.mark_out
+        str  = str:sub(2)
+    end
+
     local relative = false
     local sign     = 1
     if str:sub(1, 1) == '+' then
@@ -114,17 +123,23 @@ local function parse_and_seek()
         sign     = -1
         str      = str:sub(2)
     end
-    if str == "" then cleanup(); return end
+    if str == "" then
+        if base then seek_to(base, false) end
+        cleanup()
+        return
+    end
 
     if str:sub(-1) == '%' then
         local num = tonumber(str:sub(1, -2))
         if num then
-            if relative then
+            if base or relative then
                 local duration = mp.get_property_number("duration")
-                if duration and duration > 0 then
-                    seek_to(sign * duration * num / 100, true)
-                else
+                if not (duration and duration > 0) then
                     notify.show("Cannot jump by percent: duration unknown.", true, "warn")
+                elseif base then
+                    seek_to(base + sign * duration * num / 100, false)
+                else
+                    seek_to(sign * duration * num / 100, true)
                 end
             else
                 mp.commandv("seek", num, "absolute-percent")
@@ -135,14 +150,24 @@ local function parse_and_seek()
         if num then
             local fps = mp.get_property_number("container-fps") or mp.get_property_number("container-fps-approx")
             if fps and fps > 0 then
-                seek_to(sign * num / fps, relative, true)
+                if base then
+                    seek_to(base + sign * num / fps, false, true)
+                else
+                    seek_to(sign * num / fps, relative, true)
+                end
             else
                 notify.show("Cannot jump frames: FPS unknown.", true, "warn")
             end
         end
     else
         local seconds = parse_duration(str)
-        if seconds then seek_to(sign * seconds, relative) end
+        if seconds then
+            if base then
+                seek_to(base + sign * seconds, false)
+            else
+                seek_to(sign * seconds, relative)
+            end
+        end
     end
 
     cleanup()
