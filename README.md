@@ -154,6 +154,7 @@ This is done to avoid global bind conflicts.
 | s       | Stats             | Display Tachytome stats.                                                                                      |
 | <hr>    | <hr>              | <hr>                                                                                                          |
 | m       | Menu              | Switch the menu, saved to your config.<br>Learn more about [Custom Menus](#custom-menus).                     |
+| l       | Language          | Switch the UI language, saved to your config.<br>Learn more about [Translations](#translations).              |
 | U       | Update            | Update Tachytome using git, falls back to the GitHub archive.<br>Restart mpv after updating.                  |
 | Esc     | Close             | Close the currently active menu.                                                                              |
 
@@ -228,7 +229,7 @@ menu mine {
 | `<keys> <action> <label>` | Same, with a custom label.                                                      |
 | empty line                | Separator.                                                                      |
 
-Labels starting with `@` are translation keys, e.g. `@set_in Set In`, with the rest used as the fallback.<br>
+Labels starting with `@` are [translation](#translations) keys, e.g. `@menu_set_mark_in Set In`, with the rest used as the fallback.<br>
 Use `@@` for a label that starts with `@`.
 
 ##### Base
@@ -258,6 +259,27 @@ menu nested {
 
 Actions are named after menu items in snake_case, e.g. `mark_in`, `goto`, `render_queue`, `trash_source_now`.<br>
 See the `default` menu in the [builtin config](./tachytome.conf) for the full list.
+
+#### Translations
+
+Every UI string comes from a language file in the [`lang`](./lang) dir, e.g. `lang/en.lua`.<br>
+Pick one with the `language` option, or switch it from the menu with `l`, which saves it to your config.<br>
+`auto` uses English for now.
+
+A language file returns a flat table of keys and their text:
+
+```lua
+return {
+    menu_mark_in     = "Mark In",
+    submenu_settings = "Settings",
+    notify_mark_in   = "In: {time}"
+}
+```
+
+- Keys missing from a language fall back to [English](./lang/en.lua), so a translation can be partial.
+- `{name}` placeholders get replaced with values, keep them as they are, their order can change.
+- Submenus are labeled by `submenu_<id>`, e.g. `submenu_video`, or their id when there's no such key.
+- To add a language, copy `lang/en.lua` to `lang/<code>.lua` and translate the text.
 
 ### Recovery
 
