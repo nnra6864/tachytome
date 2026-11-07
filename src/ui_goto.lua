@@ -11,7 +11,7 @@ local input            = ""
 local current_callback = nil
 local current_options  = {}
 
-local key_mappings   = { ["SPACE"] = " " }
+local key_mappings   = {}
 local standard_chars = "0123456789:.dhmsf%+-"
 for i = 1, #standard_chars do
     local c = standard_chars:sub(i, i)
