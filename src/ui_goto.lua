@@ -4,17 +4,22 @@ local notify = require 'src.notify'
 local state  = require 'src.state'
 local theme  = require 'src.theme'
 local lang   = require 'src.lang'
+local edit   = require 'src.text_edit'
 
 local M = {}
 
 local overlay          = mp.create_osd_overlay("ass-events")
+local cursor_overlay   = mp.create_osd_overlay("ass-events")
 local active           = false
 local input            = ""
+local cursor           = 0
 local current_callback = nil
 local current_options  = {}
 local current_place    = nil
 local current_title    = ""
 local current_tooltip  = ""
+
+cursor_overlay.z = 1
 
 local key_mappings   = {}
 local standard_chars = "0123456789:.dhmsf%+-[]"
@@ -37,11 +42,15 @@ local function render()
         )
     end
 
-    overlay.data = string.format("%s%s%s%s > %s%s%s_%s%s%s\\N%s%s",
-        theme.align(7), theme.f(), theme.c("text_color"),
-        current_title, theme.c("value_color"), input, theme.a("FF"), theme.a("00"), theme.reset(), options_str, theme.f(true), current_tooltip
-    )
+    local line, top = edit.render(theme.align(7) .. theme.f() .. theme.c("text_color") .. current_title .. " > ", input, cursor)
+    overlay.data = string.format("%s%s%s\\N%s%s", line, theme.reset(), options_str, theme.f(true), current_tooltip)
     overlay:update()
+    if top then
+        cursor_overlay.data = top
+        cursor_overlay:update()
+    else
+        cursor_overlay:remove()
+    end
 end
 
 local function cleanup()
@@ -49,7 +58,8 @@ local function cleanup()
     active         = false
     state.ui_owner = nil
     overlay:remove()
-    mp.remove_key_binding("goto-bs")
+    cursor_overlay:remove()
+    edit.remove_bindings("goto")
     mp.remove_key_binding("goto-enter")
     mp.remove_key_binding("goto-esc")
     for key, _ in pairs(key_mappings) do mp.remove_key_binding("goto-char-" .. key) end
@@ -213,16 +223,13 @@ local function parse_and_apply()
     cleanup()
 end
 
-local function add_char(c)
-    input = input .. c
+local function apply_edit(fn)
+    input, cursor = fn(input, cursor)
     render()
 end
 
-local function backspace()
-    if #input > 0 then
-        input = input:sub(1, -2)
-        render()
-    end
+local function add_char(c)
+    apply_edit(function(t, p) return edit.insert(t, p, c) end)
 end
 
 local function run_option(opt)
@@ -240,6 +247,7 @@ function M.show(on_complete, options, place)
     active           = true
     state.ui_owner   = "goto"
     input            = ""
+    cursor           = 0
     current_callback = on_complete
     current_place    = place
     current_title    = lang.t(place == 0 and "goto_set_in" or place == 1 and "goto_set_out" or "goto_title")
@@ -253,7 +261,7 @@ function M.show(on_complete, options, place)
     mp.osd_message("", 0)
     render()
 
-    mp.add_forced_key_binding("BS", "goto-bs", backspace, {repeatable=true})
+    edit.add_bindings("goto", apply_edit)
     mp.add_forced_key_binding("ENTER", "goto-enter", parse_and_apply)
     mp.add_forced_key_binding("ESC", "goto-esc", cleanup)
 

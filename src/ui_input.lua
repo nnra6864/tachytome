@@ -2,18 +2,23 @@ local mp    = require 'mp'
 local state = require 'src.state'
 local theme = require 'src.theme'
 local lang  = require 'src.lang'
+local edit  = require 'src.text_edit'
 
 local M = {}
 
 local overlay                 = mp.create_osd_overlay("ass-events")
+local cursor_overlay          = mp.create_osd_overlay("ass-events")
 local active                  = false
 local buffer                  = ""
+local cursor                  = 0
 local current_prompt          = ""
 local current_sub_prompt      = ""
 local current_callback        = nil
 local current_cancel_callback = nil
 local custom_tooltip          = nil
 local current_preview         = nil
+
+cursor_overlay.z = 1
 
 local history      = {}
 local history_idx  = 1
@@ -41,15 +46,24 @@ local function render()
     local preview     = current_preview and current_preview(buffer) or ""
     local preview_str = (preview ~= "") and string.format("\\N%s%s%s%s", theme.f(true), theme.c("value_color"), lang.t("input_expanded", { value = theme.escape(preview) }), theme.reset()) or ""
 
-    overlay.data = string.format("%s%s%s%s%s%s%s_%s%s%s%s%s",
-        theme.align(7), theme.f(), theme.c("text_color"),
-        current_prompt, theme.c("value_color"), theme.escape(buffer), theme.a("FF"), theme.a("00"), theme.reset(), preview_str, tooltip, sub_str
-    )
+    local line, top = edit.render(theme.align(7) .. theme.f() .. theme.c("text_color") .. current_prompt, buffer, cursor)
+    overlay.data = string.format("%s%s%s%s%s", line, theme.reset(), preview_str, tooltip, sub_str)
     overlay:update()
+    if top then
+        cursor_overlay.data = top
+        cursor_overlay:update()
+    else
+        cursor_overlay:remove()
+    end
+end
+
+local function remove_overlays()
+    overlay:remove()
+    cursor_overlay:remove()
 end
 
 local function cleanup_bindings()
-    mp.remove_key_binding("osd-input-bs")
+    edit.remove_bindings("osd-input")
     mp.remove_key_binding("osd-input-enter")
     mp.remove_key_binding("osd-input-esc")
     mp.remove_key_binding("osd-input-up")
@@ -64,7 +78,7 @@ local function cancel()
     if not active then return end
     active         = false
     state.ui_owner = nil
-    overlay:remove()
+    remove_overlays()
     cleanup_bindings()
     if current_cancel_callback then pcall(current_cancel_callback) end
 end
@@ -74,23 +88,21 @@ local function confirm()
     local res      = buffer
     active         = false
     state.ui_owner = nil
-    overlay:remove()
+    remove_overlays()
     cleanup_bindings()
     if current_callback then pcall(current_callback, res) end
 end
 
-local function add_char(c)
-    buffer = buffer .. c
-    if history_idx <= #history then history_idx = #history + 1 end
+local function apply_edit(fn)
+    local text, pos = fn(buffer, cursor)
+    if text ~= buffer and history_idx <= #history then history_idx = #history + 1 end
+    buffer = text
+    cursor = pos
     render()
 end
 
-local function backspace()
-    if #buffer > 0 then
-        buffer = buffer:sub(1, -2)
-        if history_idx <= #history then history_idx = #history + 1 end
-        render()
-    end
+local function add_char(c)
+    apply_edit(function(t, p) return edit.insert(t, p, c) end)
 end
 
 local function history_up()
@@ -99,6 +111,7 @@ local function history_up()
     if history_idx > 1 then
         history_idx = history_idx - 1
         buffer = history[history_idx]
+        cursor = #buffer
         render()
     end
 end
@@ -112,6 +125,7 @@ local function history_down()
         else
             buffer = history[history_idx]
         end
+        cursor = #buffer
         render()
     end
 end
@@ -127,6 +141,7 @@ function M.get_user_input(prompt, callback, sub_prompt, tooltip_override, histor
     custom_tooltip          = tooltip_override
     current_preview         = preview
     buffer                  = ""
+    cursor                  = 0
 
     history      = history_list or {}
     history_idx  = #history + 1
@@ -136,7 +151,7 @@ function M.get_user_input(prompt, callback, sub_prompt, tooltip_override, histor
     mp.osd_message("", 0)
     render()
 
-    mp.add_forced_key_binding("BS", "osd-input-bs", backspace, {repeatable=true})
+    edit.add_bindings("osd-input", apply_edit)
     mp.add_forced_key_binding("ENTER", "osd-input-enter", confirm)
     mp.add_forced_key_binding("ESC", "osd-input-esc", cancel)
     mp.add_forced_key_binding("UP", "osd-input-up", history_up, {repeatable=true})

@@ -175,12 +175,25 @@ This is done to avoid global bind conflicts.
 | o       | Go To Out | Go to Mark Out, no Enter required. |
 | Enter   | Go To     | Go to the typed in location.       |
 
+#### Text Inputs (Path, Quality, Go To etc.)
+
+| Keybind              | Action      | Description                             |
+|----------------------|-------------|-----------------------------------------|
+| Left/Right           | Move        | Move the cursor by one character.       |
+| ctrl+Left/ctrl+Right | Move Word   | Move the cursor by one word.            |
+| Home/End             | Start/End   | Jump to the start or end of the text.   |
+| Backspace            | Delete      | Delete the character before the cursor. |
+| ctrl+Backspace       | Delete Word | Delete the word before the cursor.      |
+
+Words end at whitespace and separators like `-`, `_`, `/`, `\`, `.`, `,`, `:`, `;` and brackets, e.g. ctrl+Backspace on `~/Videos/my_clip` leaves `~/Videos/my_`.<br>
+The cursor is drawn as a block, colored with the `cursor_color` and `cursor_text_color` options.
+
 #### Path
 
-| Keybind     | Action   | Description                      |
-|-------------|----------|----------------------------------|
-| Up/ctrl+k   | Previous | Select previous item in history. |
-| Down/ctrl+j | Next     | Select next item in history.     |
+| Keybind     | Action   | Description                                              |
+|-------------|----------|----------------------------------------------------------|
+| Up/ctrl+k   | Previous | Select previous item in history, cursor goes to its end. |
+| Down/ctrl+j | Next     | Select next item in history, cursor goes to its end.     |
 
 #### Lists (Render Queue, Preset etc.)
 
