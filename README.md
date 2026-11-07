@@ -200,7 +200,11 @@ d script-binding tachytome/trash
 ```
 Replace `t`, `g` and `d` with keys of your choice.
 
+<!-- TODO: config moved to `mpv/script-opts/tachytome/tachytome.conf` and `mpv/script-opts/tachytome/effects.conf` (old files are migrated on start), the generated user conf is a fully commented copy of the builtin one -->
+
 #### Custom Keymaps
+
+<!-- TODO: rewrite for menus: `menu <name> { ... }` blocks, `selected_menu`, empty line = separator, `base` patching (`key action` rebinds, `add key action`, `key none`), optional labels with `@key fallback` / `@@`, user blocks replace builtin ones, `menu_preset` item saves `selected_menu` to the user conf -->
 
 Binds inside the Tachytome menu are fully configurable through keymaps in `tachytome.conf`.<br>
 Pick the active one with `selected_keymap`, which can be `builtin`, `default`, or the name of any keymap you define.

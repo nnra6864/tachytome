@@ -1,5 +1,5 @@
-local options = require 'mp.options'
-local common  = require 'src.common'
+local common = require 'src.common'
+local conf   = require 'src.conf'
 
 local M = {
     opts = {
@@ -45,9 +45,8 @@ local M = {
         start_in_easing     = "ease_out_sine",
         start_out_duration  = 0.75,
         start_out_easing    = "ease_out_cubic",
-        selected_keymap     = "builtin"
+        selected_menu       = "default"
     },
-    conf_path          = nil,
     custom_output_name = "",
     fps_override       = nil,
     effects_enabled    = false,
@@ -60,8 +59,7 @@ local M = {
     ui_owner           = nil
 }
 
-M.conf_path = common.ensure_default_conf("tachytome.conf")
-options.read_options(M.opts, "tachytome")
+conf.read_options(M.opts)
 M.path_history = common.read_history()
 
 return M

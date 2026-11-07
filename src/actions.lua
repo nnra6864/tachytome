@@ -13,6 +13,8 @@ local theme         = require 'src.theme'
 local ui_goto       = require 'src.ui_goto'
 local ui_effects    = require 'src.ui_effects'
 local updater       = require 'src.updater'
+local conf          = require 'src.conf'
+local menus         = require 'src.menus'
 
 local M = {}
 
@@ -350,6 +352,18 @@ end
 
 function M.update(on_complete)
     updater.run(on_complete)
+end
+
+function M.select_menu(on_select, on_complete)
+    ui_list.show("Select Menu", menus.names(), state.opts.selected_menu, function(name)
+        if name ~= state.opts.selected_menu then
+            state.opts.selected_menu = name
+            conf.write_option("selected_menu", name)
+            if on_select then on_select() end
+        end
+        notify.show("Menu set to: " .. name)
+        if on_complete then on_complete() end
+    end, on_complete)
 end
 
 return M

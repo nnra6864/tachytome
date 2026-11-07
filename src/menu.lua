@@ -1,7 +1,7 @@
 local mp      = require 'mp'
 local state   = require 'src.state'
 local actions = require 'src.actions'
-local keymap  = require 'src.keymap'
+local menus   = require 'src.menus'
 local notify  = require 'src.notify'
 local render  = require 'src.render'
 local theme   = require 'src.theme'
@@ -10,14 +10,16 @@ local easing  = require 'src.easing'
 local M             = {}
 local menu_active   = false
 local menu_overlay  = mp.create_osd_overlay("ass-events")
+local active_rows   = {}
 local active_map    = {}
 local active_prefix = ""
 local bound_names   = {}
 local esc_back      = false
 local flashes       = {}
 local flash_timer   = nil
-local pending_name  = nil
+local pending_row   = nil
 local flash_frame   = 0.003
+local load_menu
 
 local function resolve_easing(val, name)
     local fn = easing.parse(val)
@@ -55,184 +57,211 @@ local function off(val) return string.format("%s%s%s", theme.c("off_color"), tos
 local function on(val) return string.format("%s%s%s", theme.c("on_color"),   tostring(val), theme.reset()) end
 local function v(val) return string.format("%s%s%s", theme.c("value_color"), tostring(val), theme.reset()) end
 
-local registry = {
+local items = {
     {
-        name = "mark_in",
-        label = "Mark In",
-        get_val = function() return v(actions.get_mark_in_display()) end,
-        action = function() actions.mark(0) end,
+        name      = "mark_in",
+        label_key = "mark_in",
+        label     = "Mark In",
+        get_val   = function() return v(actions.get_mark_in_display()) end,
+        action    = function() actions.mark(0) end,
         keep_open = true
     },
     {
-        name = "mark_out",
-        label = "Mark Out",
-        get_val = function() return v(actions.get_mark_out_display()) end,
-        action = function() actions.mark(1) end,
+        name      = "mark_out",
+        label_key = "mark_out",
+        label     = "Mark Out",
+        get_val   = function() return v(actions.get_mark_out_display()) end,
+        action    = function() actions.mark(1) end,
         keep_open = true
     },
     {
-        name = "goto",
-        label = "Go to",
-        action = function() actions.goto_prompt(M.open) end,
+        name      = "goto",
+        label_key = "goto",
+        label     = "Go to",
+        action    = function() actions.goto_prompt(M.open) end,
         keep_open = false
     },
     -- TODO: document Set In and Set Out and their binds in the README menu table
     {
-        name = "set_mark_in",
-        label = "Set In",
-        action = function() actions.set_mark(0, M.open) end,
+        name      = "set_mark_in",
+        label_key = "set_mark_in",
+        label     = "Set In",
+        action    = function() actions.set_mark(0, M.open) end,
         keep_open = false
     },
     {
-        name = "set_mark_out",
-        label = "Set Out",
-        action = function() actions.set_mark(1, M.open) end,
-        keep_open = false
-    },
-
-    { separator = true },
-    {
-        name = "encoder",
-        label = "Encoder",
-        get_val = function() return v(state.opts.video_encoder) end,
-        action = function() actions.select_encoder(M.open) end,
+        name      = "set_mark_out",
+        label_key = "set_mark_out",
+        label     = "Set Out",
+        action    = function() actions.set_mark(1, M.open) end,
         keep_open = false
     },
     {
-        name = "quality",
-        label = "Quality",
-        get_val = function() return v(state.opts.quality) end,
-        action = function() actions.set_quality(M.open) end,
+        name      = "encoder",
+        label_key = "encoder",
+        label     = "Encoder",
+        get_val   = function() return v(state.opts.video_encoder) end,
+        action    = function() actions.select_encoder(M.open) end,
         keep_open = false
     },
     {
-        name = "fps",
-        label = "FPS",
-        get_val = function() return v(actions.get_fps_display()) end,
-        action = function() actions.set_fps(M.open) end,
+        name      = "quality",
+        label_key = "quality",
+        label     = "Quality",
+        get_val   = function() return v(state.opts.quality) end,
+        action    = function() actions.set_quality(M.open) end,
         keep_open = false
     },
     {
-        name = "preset",
-        label = "Preset",
-        get_val = function() return v(state.opts.preset) end,
-        action = function() actions.set_preset(M.open) end,
+        name      = "fps",
+        label_key = "fps",
+        label     = "FPS",
+        get_val   = function() return v(actions.get_fps_display()) end,
+        action    = function() actions.set_fps(M.open) end,
         keep_open = false
     },
     {
-        name = "lossless_cut",
-        label = "Lossless Cut",
-        get_val = function() return state.opts.lossless_cut and on(state.opts.on_text) or off(state.opts.off_text) end,
-        action = actions.toggle_lossless,
+        name      = "preset",
+        label_key = "preset",
+        label     = "Preset",
+        get_val   = function() return v(state.opts.preset) end,
+        action    = function() actions.set_preset(M.open) end,
+        keep_open = false
+    },
+    {
+        name      = "lossless_cut",
+        label_key = "lossless_cut",
+        label     = "Lossless Cut",
+        get_val   = function() return state.opts.lossless_cut and on(state.opts.on_text) or off(state.opts.off_text) end,
+        action    = actions.toggle_lossless,
         keep_open = true
     },
     {
-        name = "accurate_cut",
-        label = "Accurate Cut",
-        get_val = function() return state.opts.accurate_cut and on(state.opts.on_text) or off(state.opts.off_text) end,
-        action = actions.toggle_accurate,
-        keep_open = true
-    },
-
-    { separator = true },
-    {
-        name = "combine_audio",
-        label = "Combine Audio",
-        get_val = function() return state.opts.combine_audio and on(state.opts.on_text) or off(state.opts.off_text) end,
-        action = actions.toggle_combine_audio,
+        name      = "accurate_cut",
+        label_key = "accurate_cut",
+        label     = "Accurate Cut",
+        get_val   = function() return state.opts.accurate_cut and on(state.opts.on_text) or off(state.opts.off_text) end,
+        action    = actions.toggle_accurate,
         keep_open = true
     },
     {
-        name = "first_audio_only",
-        label = "First Audio Only",
-        get_val = function() return state.opts.first_audio_only and on(state.opts.on_text) or off(state.opts.off_text) end,
-        action = actions.toggle_first_audio_only,
-        keep_open = true
-    },
-
-    { separator = true },
-    {
-        name = "effects",
-        label = "Effects",
-        get_val = function() return v(actions.get_effects_display()) end,
-        action = function() actions.effects_menu(M.open) end,
-        keep_open = false
-    },
-
-    { separator = true },
-    {
-        name = "space_replacement",
-        label = "Space Replacement",
-        get_val = function() return v(theme.escape(actions.get_space_replacement_display())) end,
-        action = function() actions.set_space_replacement(M.open) end,
-        keep_open = false
-    },
-    {
-        name = "path",
-        label = "Path",
-        get_val = function() return v(theme.escape(actions.get_final_path())) end,
-        action = function() actions.set_path(M.open) end,
-        keep_open = false
-    },
-    {
-        name = "trash_source",
-        label = "Trash Source",
-        get_val = function() return state.opts.trash_source and on(state.opts.on_text) or off(state.opts.off_text) end,
-        action = actions.toggle_trash_source,
-        keep_open = true
-    },
-
-    { separator = true },
-    {
-        name = "render",
-        label = "Render",
-        action = function() actions.start_render(M.open) end,
-        keep_open = false
-    },
-    {
-        name = "render_queue",
-        label = "Render Queue",
-        action = function() actions.manage_queue(M.open) end,
-        keep_open = false
-    },
-    {
-        name = "render_pause",
-        label = "Pause Render",
-        get_val = function() return render.is_paused() and on(state.opts.on_text) or off(state.opts.off_text) end,
-        action = function() actions.toggle_render_pause() end,
+        name      = "combine_audio",
+        label_key = "combine_audio",
+        label     = "Combine Audio",
+        get_val   = function() return state.opts.combine_audio and on(state.opts.on_text) or off(state.opts.off_text) end,
+        action    = actions.toggle_combine_audio,
         keep_open = true
     },
     {
-        name = "trash_source_now",
-        label = "Trash Source Now",
-        action = function() actions.trash_source(M.open) end,
-        keep_open = false
-    },
-    {
-        name = "stats",
-        label = "Toggle Stats",
-        action = actions.toggle_stats,
+        name      = "first_audio_only",
+        label_key = "first_audio_only",
+        label     = "First Audio Only",
+        get_val   = function() return state.opts.first_audio_only and on(state.opts.on_text) or off(state.opts.off_text) end,
+        action    = actions.toggle_first_audio_only,
         keep_open = true
     },
-
-    { separator = true },
     {
-        name = "update",
-        label = "Update",
-        action = function() actions.update(M.open) end,
+        name      = "effects",
+        label_key = "effects",
+        label     = "Effects",
+        get_val   = function() return v(actions.get_effects_display()) end,
+        action    = function() actions.effects_menu(M.open) end,
         keep_open = false
     },
     {
-        name = "close",
-        label = "Close",
-        action = function() end,
+        name      = "space_replacement",
+        label_key = "space_replacement",
+        label     = "Space Replacement",
+        get_val   = function() return v(theme.escape(actions.get_space_replacement_display())) end,
+        action    = function() actions.set_space_replacement(M.open) end,
+        keep_open = false
+    },
+    {
+        name      = "path",
+        label_key = "path",
+        label     = "Path",
+        get_val   = function() return v(theme.escape(actions.get_final_path())) end,
+        action    = function() actions.set_path(M.open) end,
+        keep_open = false
+    },
+    {
+        name      = "trash_source",
+        label_key = "trash_source",
+        label     = "Trash Source",
+        get_val   = function() return state.opts.trash_source and on(state.opts.on_text) or off(state.opts.off_text) end,
+        action    = actions.toggle_trash_source,
+        keep_open = true
+    },
+    {
+        name      = "render",
+        label_key = "render",
+        label     = "Render",
+        action    = function() actions.start_render(M.open) end,
+        keep_open = false
+    },
+    {
+        name      = "render_queue",
+        label_key = "render_queue",
+        label     = "Render Queue",
+        action    = function() actions.manage_queue(M.open) end,
+        keep_open = false
+    },
+    {
+        name      = "render_pause",
+        label_key = "render_pause",
+        label     = "Pause Render",
+        get_val   = function() return render.is_paused() and on(state.opts.on_text) or off(state.opts.off_text) end,
+        action    = function() actions.toggle_render_pause() end,
+        keep_open = true
+    },
+    {
+        name      = "trash_source_now",
+        label_key = "trash_source_now",
+        label     = "Trash Source Now",
+        action    = function() actions.trash_source(M.open) end,
+        keep_open = false
+    },
+    {
+        name      = "stats",
+        label_key = "stats",
+        label     = "Toggle Stats",
+        action    = actions.toggle_stats,
+        keep_open = true
+    },
+    {
+        name      = "menu_preset",
+        label_key = "menu_preset",
+        label     = "Menu",
+        get_val   = function() return v(theme.escape(state.opts.selected_menu)) end,
+        action    = function() actions.select_menu(load_menu, M.open) end,
+        keep_open = false
+    },
+    {
+        name      = "update",
+        label_key = "update",
+        label     = "Update",
+        action    = function() actions.update(M.open) end,
+        keep_open = false
+    },
+    {
+        name      = "close",
+        label_key = "close",
+        label     = "Close",
+        action    = function() end,
         keep_open = false
     }
 }
 
-local defs_by_name = {}
-for _, def in ipairs(registry) do
-    if not def.separator then defs_by_name[def.name] = def end
+local items_by_name = {}
+for _, item in ipairs(items) do items_by_name[item.name] = item end
+
+local function text_len(s)
+    return select(2, s:gsub("[^\128-\191]", ""))
+end
+
+local function row_label(row)
+    if row.label and row.label.text ~= "" then return row.label.text end
+    return row.item.label
 end
 
 local function prune_shadowed()
@@ -248,24 +277,48 @@ local function prune_shadowed()
         end
     end
     for _, seq in ipairs(shadowed) do
-        notify.show("keymap sequence '" .. seq .. "' unreachable, key '" .. seq:match("^(.*)-[^-]*$") .. "' is bound", false, "warn")
+        notify.show("menu sequence '" .. seq .. "' unreachable, key '" .. seq:match("^(.*)-[^-]*$") .. "' is bound", false, "warn")
+        local row = active_map[seq]
+        for i = #row.keys, 1, -1 do
+            if row.keys[i] == seq then table.remove(row.keys, i) end
+        end
         active_map[seq] = nil
     end
 end
 
-local function load_keymap()
+load_menu = function()
+    local rows = {}
     active_map = {}
-    for seq, action in pairs(keymap.active()) do
-        if defs_by_name[action] then
-            active_map[seq] = action
+    for _, row in ipairs(menus.active()) do
+        if row.separator then
+            rows[#rows + 1] = row
+        elseif items_by_name[row.action] then
+            row.item = items_by_name[row.action]
+            rows[#rows + 1] = row
+            for _, seq in ipairs(row.keys) do active_map[seq] = row end
         else
-            notify.show("unknown keymap action '" .. action .. "' for key '" .. seq .. "'", false, "warn")
+            notify.show("unknown menu action '" .. row.action .. "' for key '" .. table.concat(row.keys, ",") .. "'", false, "warn")
         end
     end
     prune_shadowed()
+
+    active_rows    = {}
+    local sep      = false
+    local remapped = nil
+    for _, row in ipairs(rows) do
+        if row.separator then
+            sep = #active_rows > 0
+        elseif #row.keys > 0 then
+            if sep then active_rows[#active_rows + 1] = { separator = true } end
+            sep = false
+            active_rows[#active_rows + 1] = row
+            if pending_row and not remapped and row.action == pending_row.action then remapped = row end
+        end
+    end
+    if pending_row then pending_row = remapped end
 end
 
-load_keymap()
+load_menu()
 
 local function seq_matches(seq)
     if active_prefix == "" then return false end
@@ -292,60 +345,52 @@ local function flash_progress(fl)
 end
 
 local function draw()
-    local seqs_by_action = {}
-    for seq, action in pairs(active_map) do
-        seqs_by_action[action] = seqs_by_action[action] or {}
-        seqs_by_action[action][#seqs_by_action[action] + 1] = seq
-    end
-    for _, seqs in pairs(seqs_by_action) do table.sort(seqs) end
-
     local text = string.format("%s%s%s%s < Tachytome > %s\\N\\N", theme.align(7), theme.f(), theme.b(true), theme.c("text_color"), theme.b(false))
     local max_key_len   = 0
     local max_label_len = 0
 
-    for _, def in ipairs(registry) do
-        if not def.separator and seqs_by_action[def.name] then
-            local key_str = table.concat(seqs_by_action[def.name], ",")
+    for _, row in ipairs(active_rows) do
+        if not row.separator and #row.keys > 0 then
+            local key_str = table.concat(row.keys, ",")
+            local label   = row_label(row)
             if #key_str > max_key_len then max_key_len = #key_str end
-            if def.get_val and #def.label > max_label_len then max_label_len = #def.label end
+            if row.item.get_val and text_len(label) > max_label_len then max_label_len = text_len(label) end
         end
     end
 
-    for _, def in ipairs(registry) do
-        if def.separator then
+    for _, row in ipairs(active_rows) do
+        if row.separator then
             text = text .. "\\N"
-        else
-            local seqs = seqs_by_action[def.name]
-            if seqs then
-                local key_str = table.concat(seqs, ",")
-                local key_pad = string.rep("\\h", max_key_len - #key_str)
-                local base    = theme.c("text_color")
-                local fl      = flashes[def.name]
-                if fl then
-                    local p = flash_progress(fl)
-                    if p > 0 then base = theme.mix(state.opts.text_color, state.opts.flash_color, p) end
-                end
-                local key_txt = nil
-                local matched = false
-                for _, seq in ipairs(seqs) do
-                    key_txt = key_txt and key_txt .. base .. "," .. render_seq(seq, base) or render_seq(seq, base)
-                    if seq_matches(seq) then matched = true end
-                end
-
-                local line = string.format("%s%s%s -> %s", key_pad, key_txt, base, def.label)
-                local dim  = active_prefix ~= "" and not matched
-
-                if dim then line = theme.a("66") .. line end
-
-                if def.get_val then
-                    local val_pad = string.rep("\\h", max_label_len - #def.label + 1)
-                    line = line .. val_pad .. "> " .. def.get_val()
-                end
-
-                if dim then line = line .. theme.a("00") end
-
-                text = text .. line .. "\\N"
+        elseif #row.keys > 0 then
+            local label   = row_label(row)
+            local key_str = table.concat(row.keys, ",")
+            local key_pad = string.rep("\\h", max_key_len - #key_str)
+            local base    = theme.c("text_color")
+            local fl      = flashes[row]
+            if fl then
+                local p = flash_progress(fl)
+                if p > 0 then base = theme.mix(state.opts.text_color, state.opts.flash_color, p) end
             end
+            local key_txt = nil
+            local matched = false
+            for _, seq in ipairs(row.keys) do
+                key_txt = key_txt and key_txt .. base .. "," .. render_seq(seq, base) or render_seq(seq, base)
+                if seq_matches(seq) then matched = true end
+            end
+
+            local line = string.format("%s%s%s -> %s", key_pad, key_txt, base, theme.escape(label))
+            local dim  = active_prefix ~= "" and not matched
+
+            if dim then line = theme.a("66") .. line end
+
+            if row.item.get_val then
+                local val_pad = string.rep("\\h", max_label_len - text_len(label) + 1)
+                line = line .. val_pad .. "> " .. row.item.get_val()
+            end
+
+            if dim then line = line .. theme.a("00") end
+
+            text = text .. line .. "\\N"
         end
     end
 
@@ -367,8 +412,8 @@ end
 
 local function flash_tick()
     local now = mp.get_time()
-    for name, fl in pairs(flashes) do
-        if now >= fl.at + fl.spec.total then flashes[name] = nil end
+    for row, fl in pairs(flashes) do
+        if now >= fl.at + fl.spec.total then flashes[row] = nil end
     end
     if not next(flashes) and flash_timer then
         flash_timer:kill()
@@ -377,9 +422,9 @@ local function flash_tick()
     if menu_active then draw() end
 end
 
-local function start_flash(name, delay, spec)
+local function start_flash(row, delay, spec)
     if spec.total <= 0 then return end
-    flashes[name] = { at = mp.get_time() + (delay or 0), spec = spec }
+    flashes[row] = { at = mp.get_time() + (delay or 0), spec = spec }
     if not flash_timer then
         flash_timer = mp.add_periodic_timer(flash_frame, flash_tick)
     end
@@ -387,13 +432,11 @@ end
 
 local function start_cascade()
     if start_spec.total <= 0 then return end
-    local bound = {}
-    for _, action in pairs(active_map) do bound[action] = true end
     local stagger = math.max(0, state.opts.start_stagger)
     local i = 0
-    for _, def in ipairs(registry) do
-        if not def.separator and bound[def.name] then
-            start_flash(def.name, i * stagger, start_spec)
+    for _, row in ipairs(active_rows) do
+        if not row.separator and #row.keys > 0 then
+            start_flash(row, i * stagger, start_spec)
             i = i + 1
         end
     end
@@ -421,9 +464,9 @@ local fire
 
 local function handle_key(key)
     local seq = active_prefix == "" and key or active_prefix .. "-" .. key
-    local act = active_map[seq]
-    if act then
-        fire(act)
+    local row = active_map[seq]
+    if row then
+        fire(row)
     else
         active_prefix = seq
         bind_level()
@@ -454,20 +497,20 @@ local function bind_key(key, name, fn)
     bound_names[#bound_names + 1] = name
 end
 
-fire = function(act)
-    local def = defs_by_name[act]
-    if not def then return end
-    if not def.keep_open then M.close() end
-    if flash_spec.total > 0 then pending_name = act end
-    def.action()
+fire = function(row)
+    local item = row.item
+    if not item then return end
+    if not item.keep_open then M.close() end
+    if flash_spec.total > 0 then pending_row = row end
+    item.action()
     if menu_active then
-        pending_name = nil
+        pending_row   = nil
         active_prefix = ""
         bind_level()
-        start_flash(act, nil, flash_spec)
+        start_flash(row, nil, flash_spec)
         draw()
     elseif not state.ui_owner then
-        pending_name = nil
+        pending_row = nil
     end
 end
 
@@ -512,9 +555,9 @@ function M.open()
     mp.set_osd_ass(0, 0, "")
     mp.osd_message("", 0)
     bind_level()
-    if pending_name then
-        start_flash(pending_name, nil, flash_spec)
-        pending_name = nil
+    if pending_row then
+        start_flash(pending_row, nil, flash_spec)
+        pending_row = nil
     else
         start_cascade()
     end

@@ -91,26 +91,63 @@ function M.ensure_dir(path)
     end
 end
 
-function M.ensure_default_conf(name)
-    local opts_dir  = mp.command_native({"expand-path", "~~/script-opts"})
-    local conf_path = utils.join_path(opts_dir, name)
+function M.get_conf_dir()
+    return mp.command_native({"expand-path", "~~/script-opts/tachytome"})
+end
 
-    local f = io.open(conf_path, "r")
-    if f then
-        f:close()
-        return conf_path
+function M.file_exists(path)
+    local f = io.open(path, "r")
+    if not f then return false end
+    f:close()
+    return true
+end
+
+local function migrate_conf(legacy_name, conf_path)
+    local legacy_path = utils.join_path(mp.command_native({"expand-path", "~~/script-opts"}), legacy_name)
+    if not M.file_exists(legacy_path) then return end
+
+    if M.file_exists(conf_path) then
+        mp.msg.warn("Ignoring old config " .. legacy_path .. ", using " .. conf_path)
+        return
     end
+
+    M.ensure_dir(M.get_conf_dir())
+    local ok, err = os.rename(legacy_path, conf_path)
+    if ok then
+        mp.msg.info("Moved config " .. legacy_path .. " to " .. conf_path)
+    else
+        mp.msg.warn("Failed to move config " .. legacy_path .. ": " .. tostring(err))
+    end
+end
+
+local function comment_out(content)
+    local lines = {}
+    for line in (content .. "\n"):gmatch("(.-)\n") do
+        lines[#lines + 1] = line:find("%S") and "#" .. line or line
+    end
+    if lines[#lines] == "" then lines[#lines] = nil end
+    return table.concat(lines, "\n") .. "\n"
+end
+
+function M.ensure_default_conf(builtin_name, name, commented)
+    local conf_dir  = M.get_conf_dir()
+    local conf_path = utils.join_path(conf_dir, name)
+
+    migrate_conf(builtin_name, conf_path)
+    if M.file_exists(conf_path) then return conf_path end
 
     local script_dir = mp.get_script_directory()
     if not script_dir then return conf_path end
 
-    local rf = io.open(utils.join_path(script_dir, name), "r")
+    local rf = io.open(utils.join_path(script_dir, builtin_name), "r")
     if not rf then return conf_path end
 
     local conf_content = rf:read("*all")
     rf:close()
 
-    M.ensure_dir(opts_dir)
+    if commented then conf_content = comment_out(conf_content) end
+
+    M.ensure_dir(conf_dir)
     local wf = io.open(conf_path, "w")
     if wf then
         wf:write(conf_content)
