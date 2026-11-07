@@ -172,9 +172,11 @@ function M.show(on_close)
                     notify.show(lang.t("notify_path_change_cancelled"), true)
                     open_ui()
                 end)
-            end, current_output, lang.t("tooltip_history"), state.path_history, function()
+            end, common.display_path(current_output, q_job.input_file), lang.t("tooltip_history"), state.path_history, function()
                 open_ui()
-            end, true)
+            end, true, function(input)
+                return common.resolve_absolute_path_for(input, state.opts, q_job.input_file)
+            end)
         end
 
         prompt_change_path()

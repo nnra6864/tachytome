@@ -271,7 +271,7 @@ function M.set_space_replacement(on_complete)
     ui_input.get_user_input(lang.t("prompt_space_replacement"), function(input)
         state.opts.space_replacement = input
         notify.show(lang.t("notify_space_replacement", { value = input }))
-        notify.show(lang.t("notify_target", { path = M.get_final_path() }))
+        notify.show(lang.t("notify_target", { path = M.get_final_path_display() }))
         if on_complete then on_complete() end
     end, state.opts.space_replacement, true, nil, on_complete, true)
 end
@@ -287,6 +287,10 @@ function M.get_final_path()
     return common.resolve_absolute_path(state.custom_output_name, state.opts)
 end
 
+function M.get_final_path_display()
+    return common.display_path(M.get_final_path(), mp.get_property("path"))
+end
+
 function M.get_resolved_mark_in()
     return common.resolve_mark_in(state.mark_in, state.opts.lossless_cut, mp.get_property("path"))
 end
@@ -300,20 +304,23 @@ function M.get_mark_out_display()
 end
 
 function M.set_path(on_complete)
-    local display_path = state.custom_output_name ~= "" and state.custom_output_name or M.get_final_path()
+    local display_path = state.custom_output_name ~= "" and state.custom_output_name or M.get_final_path_display()
     local binds        = lang.t("tooltip_history")
+    local function preview(input)
+        return common.resolve_absolute_path(input, state.opts)
+    end
 
     ui_input.get_user_input(lang.t("prompt_output_path"), function(input)
         if input ~= "" then
             state.custom_output_name = input
             common.add_to_history(state.path_history, input)
-            notify.show(lang.t("notify_target", { path = M.get_final_path() }))
+            notify.show(lang.t("notify_target", { path = M.get_final_path_display() }))
         else
             state.custom_output_name = ""
             notify.show(lang.t("notify_path_reset"))
         end
         if on_complete then on_complete() end
-    end, display_path, binds, state.path_history, on_complete, true)
+    end, display_path, binds, state.path_history, on_complete, true, preview)
 end
 
 function M.start_render(on_complete)

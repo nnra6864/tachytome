@@ -13,6 +13,7 @@ local current_sub_prompt      = ""
 local current_callback        = nil
 local current_cancel_callback = nil
 local custom_tooltip          = nil
+local current_preview         = nil
 
 local history      = {}
 local history_idx  = 1
@@ -37,9 +38,12 @@ local function render()
 
     local sub_str = (current_sub_prompt ~= "") and string.format("\\N%s%s%s", theme.f(true), theme.a("88"), lang.t("input_current", { value = theme.escape(current_sub_prompt) })) or ""
 
-    overlay.data = string.format("%s%s%s%s%s%s%s_%s%s%s%s",
+    local preview     = current_preview and current_preview(buffer) or ""
+    local preview_str = (preview ~= "") and string.format("\\N%s%s%s%s", theme.f(true), theme.c("value_color"), lang.t("input_expanded", { value = theme.escape(preview) }), theme.reset()) or ""
+
+    overlay.data = string.format("%s%s%s%s%s%s%s_%s%s%s%s%s",
         theme.align(7), theme.f(), theme.c("text_color"),
-        current_prompt, theme.c("value_color"), theme.escape(buffer), theme.a("FF"), theme.a("00"), theme.reset(), tooltip, sub_str
+        current_prompt, theme.c("value_color"), theme.escape(buffer), theme.a("FF"), theme.a("00"), theme.reset(), preview_str, tooltip, sub_str
     )
     overlay:update()
 end
@@ -112,7 +116,7 @@ local function history_down()
     end
 end
 
-function M.get_user_input(prompt, callback, sub_prompt, tooltip_override, history_list, on_cancel, allow_space)
+function M.get_user_input(prompt, callback, sub_prompt, tooltip_override, history_list, on_cancel, allow_space, preview)
     if active then return end
     active                  = true
     state.ui_owner          = "input"
@@ -121,6 +125,7 @@ function M.get_user_input(prompt, callback, sub_prompt, tooltip_override, histor
     current_callback        = callback
     current_cancel_callback = on_cancel
     custom_tooltip          = tooltip_override
+    current_preview         = preview
     buffer                  = ""
 
     history      = history_list or {}

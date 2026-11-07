@@ -61,6 +61,7 @@ return {
     tooltip_seek    = "(Enter to seek, Esc to cancel)",
     tooltip_set     = "(Enter to set, Esc to cancel)",
     input_current   = "Current: {value}",
+    input_expanded  = "-> {value}",
 
     confirm_yes      = "Yes",
     confirm_no       = "No",

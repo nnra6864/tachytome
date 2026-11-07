@@ -168,7 +168,7 @@ local items = {
     {
         name      = "path",
         label_key = "menu_path",
-        get_val   = function() return v(theme.escape(actions.get_final_path())) end,
+        get_val   = function() return v(theme.escape(actions.get_final_path_display())) end,
         action    = function() actions.set_path(M.open) end,
         keep_open = false
     },

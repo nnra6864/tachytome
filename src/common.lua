@@ -230,6 +230,36 @@ function M.resolve_absolute_path_for(custom, opts, input_path)
     return resolve_absolute_path_base(custom, opts, input_path)
 end
 
+local function path_under(path, dir, windows)
+    if not dir or dir == "" then return nil end
+    dir = dir:gsub("[/\\]+$", "")
+    local head = path:sub(1, #dir)
+    if windows then
+        head = head:gsub("/", "\\"):lower()
+        dir  = dir:gsub("/", "\\"):lower()
+    end
+    local rest = path:sub(#dir + 1)
+    if head ~= dir or not rest:match("^[/\\]") then return nil end
+    return rest
+end
+
+function M.display_path(path, input_path)
+    if not path or path == "" then return "" end
+    local windows    = M.get_platform() == "windows"
+    local home       = os.getenv(windows and "USERPROFILE" or "HOME")
+    local input_dir  = (input_path and input_path ~= "") and utils.split_path(input_path) or nil
+    local best       = path
+    local candidates = {
+        { prefix = ".", rest = path_under(path, input_dir, windows) },
+        { prefix = "~", rest = path_under(path, home, windows) },
+    }
+    for _, c in ipairs(candidates) do
+        if c.rest and M.text_len(c.prefix .. c.rest) < M.text_len(best) then best = c.prefix .. c.rest end
+    end
+    if windows then best = best:gsub("/", "\\") end
+    return best
+end
+
 function M.text_len(s)
     return select(2, s:gsub("[^\128-\191]", ""))
 end

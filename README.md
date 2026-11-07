@@ -397,6 +397,16 @@ Config includes the `output_dir` option which you can set to the path you most c
 | ./CutClip  | /path-to-source/CutClip.mkv    |
 | ../CutClip | ~/Videos/CutClip.mkv           |
 
+#### Display
+
+To keep the menu narrow, paths are shown in their shortest form:
+- under the source file's directory as `./Repo/Funny/MyClip.mkv`
+- under the home directory as `~/Videos/Tachytome/MyClip.mkv` (`~\Videos\...` on Windows)
+- whichever of the two is shorter when both apply, otherwise the full path
+
+While typing a path, the fully expanded path is shown below the input and updates as you type.<br>
+This only affects what is displayed, ffmpeg and the render queue always use the full path.
+
 
 ## Contributing
 
