@@ -102,8 +102,7 @@ function M.file_exists(path)
     return true
 end
 
-local function migrate_conf(legacy_name, conf_path)
-    local legacy_path = utils.join_path(mp.command_native({"expand-path", "~~/script-opts"}), legacy_name)
+function M.migrate_file(legacy_path, conf_path)
     if not M.file_exists(legacy_path) then return end
 
     if M.file_exists(conf_path) then
@@ -118,6 +117,10 @@ local function migrate_conf(legacy_name, conf_path)
     else
         mp.msg.warn("Failed to move config " .. legacy_path .. ": " .. tostring(err))
     end
+end
+
+local function migrate_conf(legacy_name, conf_path)
+    M.migrate_file(utils.join_path(mp.command_native({"expand-path", "~~/script-opts"}), legacy_name), conf_path)
 end
 
 local function comment_out(content)

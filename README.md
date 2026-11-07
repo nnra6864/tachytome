@@ -209,8 +209,8 @@ The builtin config contains detailed explanations of all the settings, I would h
 
 > [!NOTE]
 > Older versions used `mpv/script-opts/tachytome.conf` and `mpv/script-opts/tachytome-effects.conf`.<br>
-> These get moved to `mpv/script-opts/tachytome/default.conf` and `mpv/script-opts/tachytome/effects.conf` on start, with a new `tachytome.conf` sourcing `default`.<br>
-> A `tachytome/tachytome.conf` without a `configs=` line is moved to `default.conf` the same way.
+> These get moved to `mpv/script-opts/tachytome/default.conf` and `mpv/script-opts/tachytome/default.eff` on start, with a new `tachytome.conf` sourcing `default`.<br>
+> A `tachytome/tachytome.conf` without a `configs=` line is moved to `default.conf` the same way, and a `tachytome/effects.conf` to `default.eff`.
 
 To access exposed Tachytome functions, add the following to your `mpv/input.conf`:
 ```
@@ -383,8 +383,11 @@ Their current values are listed right below the input.
 Tachytome offers a powerful effects and presets engine.<br>
 These are extremely useful for adding transitions such as video/audio fade and blur.
 
-Effects are defined in `mpv/script-opts/tachytome/effects.conf`.<br>
+Effects are defined in `.eff` files in `mpv/script-opts/tachytome/`, starting with the generated `default.eff`.<br>
 You can find an example config with every option explained [here](./tachytome-effects.conf).
+
+- Every `.eff` file in the dir is read in alphabetical order, e.g. `default.eff` then `stream.eff`, and their presets are merged.
+- When two files define the same preset name, the one from the later file wins with a warning.
 
 ```
 effect blur_fade

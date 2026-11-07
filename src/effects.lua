@@ -1,3 +1,4 @@
+local utils  = require 'mp.utils'
 local notify = require 'src.notify'
 local state  = require 'src.state'
 local common = require 'src.common'
@@ -36,6 +37,10 @@ end
 local function upsert(preset)
     local idx = preset_index(preset.name)
     if idx then
+        local previous = presets[idx].file
+        if previous ~= preset.file then
+            notify.show(lang.t("warn_effect_overridden", { name = preset.name, file = preset.file, previous = previous }), false, "warn")
+        end
         presets[idx] = preset
     else
         presets[#presets + 1] = preset
@@ -336,7 +341,7 @@ local function finish_effect(current)
     upsert(current)
 end
 
-local function parse_effects_file(path)
+local function parse_effects_file(path, file)
     local f = io.open(path, "r")
     if not f then return end
 
@@ -388,6 +393,7 @@ local function parse_effects_file(path)
                     name   = words[2],
                     label  = words[2],
                     anchor = "start",
+                    file   = file,
                     params = {},
                     atoms  = {}
                 }
@@ -429,7 +435,19 @@ function M.seed()
     seed_from_opts()
 end
 
-parse_effects_file(common.ensure_default_conf("tachytome-effects.conf", "effects.conf"))
+local function load_presets()
+    local dir   = common.get_conf_dir()
+    local files = {}
+    common.migrate_file(utils.join_path(dir, "effects.conf"), utils.join_path(dir, "default.eff"))
+    common.ensure_default_conf("tachytome-effects.conf", "default.eff")
+    for _, file in ipairs(utils.readdir(dir, "files") or {}) do
+        if file:match("%.eff$") then files[#files + 1] = file end
+    end
+    table.sort(files)
+    for _, file in ipairs(files) do parse_effects_file(utils.join_path(dir, file), file) end
+end
+
+load_presets()
 seed_from_opts()
 
 function M.label(name)
