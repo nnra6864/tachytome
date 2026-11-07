@@ -161,7 +161,7 @@ function M.set_keyframes(on_complete)
             notify.show(lang.t("warn_invalid_keyframes", { value = M.get_keyframes_display() }), true, "warn")
         end
         if on_complete then on_complete() end
-    end, M.get_keyframes_display(), true, nil, on_complete)
+    end, M.get_keyframes_display(), true, nil, on_complete, nil, nil, lang.t("hint_keyframes"))
 end
 
 function M.select_encoder(on_complete)

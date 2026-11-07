@@ -107,7 +107,8 @@ return {
     warn_invalid_fps     = "Invalid FPS, keeping: {fps}",
 
     keyframes_default      = "Encoder default",
-    prompt_keyframes       = "Keyframe Interval (frames, or seconds with s) > ",
+    prompt_keyframes       = "Keyframe Interval > ",
+    hint_keyframes         = "Frames, e.g. 120, or seconds with an s, e.g. 2s",
     notify_keyframes       = "Keyframe Interval: {value}",
     notify_keyframes_reset = "Keyframe Interval reset to encoder default",
     warn_invalid_keyframes = "Invalid Keyframe Interval, keeping: {value}",

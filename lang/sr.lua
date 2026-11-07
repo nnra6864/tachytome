@@ -105,7 +105,8 @@ return {
     warn_invalid_fps     = "Neispravan FPS, zadržava se: {fps}",
 
     keyframes_default      = "Podrazumevano za enkoder",
-    prompt_keyframes       = "Interval ključnih frejmova (frejmovi, ili sekunde sa s) > ",
+    prompt_keyframes       = "Interval ključnih frejmova > ",
+    hint_keyframes         = "Frejmovi, npr. 120, ili sekunde sa s, npr. 2s",
     notify_keyframes       = "Interval ključnih frejmova: {value}",
     notify_keyframes_reset = "Interval ključnih frejmova resetovan na podrazumevani za enkoder",
     warn_invalid_keyframes = "Neispravan interval ključnih frejmova, zadržava se: {value}",
