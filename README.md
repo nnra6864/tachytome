@@ -111,7 +111,7 @@ This is done to avoid global bind conflicts.
 - `g` and `i`/`o` to make sure mark in and out are good.
 - `p` to set the name of your video.
 - `Enter` to start the render.
-- `r` to access the render queue.
+- `r` then `q` to access the render queue.
 
 ### Keymap
 
@@ -123,42 +123,63 @@ This is done to avoid global bind conflicts.
 
 #### Menu
 
-| Keybind | Action            | Description                                                                                                   |
-|---------|-------------------|---------------------------------------------------------------------------------------------------------------|
-| i       | Mark In           | Mark the start of the video.                                                                                  |
-| o       | Mark Out          | Mark the end of the video.                                                                                    |
-| g       | Go To             | Go to a precise location in the video.<br>Learn more about [Go To](#go-to).                                   |
-| ctrl+i  | Set In            | Type in the Mark In, same input as [Go To](#go-to).                                                           |
-| ctrl+o  | Set Out           | Type in the Mark Out, same input as [Go To](#go-to).                                                          |
-| <hr>    | <hr>              | <hr>                                                                                                          |
-| e       | Encoder           | Set the video encoder.                                                                                        |
-| q       | Quality           | Set the video encoder quality parameter.                                                                      |
-| P       | Preset            | Set the video encoder preset parameter.                                                                       |
-| F       | FPS               | Set the FPS of the video.                                                                                     |
-| k       | Keyframes         | Set the keyframe interval, e.g. `120` frames or `2s`.<br>Empty uses the encoder default.                      |
-| l       | Lossless Cut      | Toggle the lossless cut option.                                                                               |
-| a       | Accurate Cut      | Toggle accurate cut.<br>Makes cuts millisecond precise, but may cause a slight delay before rendering starts. |
-| <hr>    | <hr>              | <hr>                                                                                                          |
-| c       | Combine Audio     | Toggle the combine audio option.                                                                              |
-| A       | First Audio Only  | Toggle the first audio only option.                                                                           |
-| <hr>    | <hr>              | <hr>                                                                                                          |
-| E       | Effects           | Select the effects applied to the output.<br>Learn more about [Effects](#effects).                            |
-| <hr>    | <hr>              | <hr>                                                                                                          |
-| _       | Space Replacement | Set the character to replace spaces with.                                                                     |
-| p       | Path              | Set Output path.<br>Learn more about [Path](#path).                                                           |
-| t       | Trash Source      | Toggle trashing of the source file on render completion.                                                      |
-| <hr>    | <hr>              | <hr>                                                                                                          |
-| Enter   | Render            | Start the render of the output file.                                                                          |
-| r       | Render Queue      | Open the render queue menu.                                                                                   |
-| R       | Pause Render      | Pause the current render and render queue.<br>Can only pause the render queue on Windows.                     |
-| d       | Trash Source Now  | Trash the source file.                                                                                        |
-| s       | Stats             | Toggle the Tachytome stats overlay.                                                                           |
-| <hr>    | <hr>              | <hr>                                                                                                          |
-| m       | Menu              | Switch the menu, saved to your config.<br>Learn more about [Custom Menus](#custom-menus).                     |
-| c       | Configs           | Enable, disable and reorder extra configs.<br>Learn more about [Configs](#configs).                           |
-| l       | Language          | Switch the UI language, saved to your config.<br>Learn more about [Translations](#translations).              |
-| U       | Update            | Update Tachytome using git, falls back to the GitHub archive.<br>Restart mpv after updating.                  |
-| Esc     | Close             | Close the currently active menu.                                                                              |
+The `default` menu groups related items into the Video, Audio and Settings submenus.<br>
+Keys like `s-i` are pressed one after another, `s` then `i`.<br>
+Esc steps back out of a partially typed key or a submenu, the title shows where you are, e.g. `< Tachytome / Video >`.<br>
+The `simple` menu keeps every item on a single level, switch to it with `s-s` `m` or `selected_menu=simple`.
+
+| Keybind | Action            | Description                                                                                  |
+|---------|-------------------|----------------------------------------------------------------------------------------------|
+| g       | Go To             | Go to a precise location in the video.<br>Learn more about [Go To](#go-to).                  |
+| i       | Mark In           | Mark the start of the video.                                                                 |
+| o       | Mark Out          | Mark the end of the video.                                                                   |
+| s-i     | Set In            | Type in the Mark In, same input as [Go To](#go-to).                                          |
+| s-o     | Set Out           | Type in the Mark Out, same input as [Go To](#go-to).                                         |
+| <hr>    | <hr>              | <hr>                                                                                         |
+| v       | Video             | Open the [Video](#video) submenu.                                                            |
+| a       | Audio             | Open the [Audio](#audio) submenu.                                                            |
+| e       | Effects           | Select the effects applied to the output.<br>Learn more about [Effects](#effects).           |
+| <hr>    | <hr>              | <hr>                                                                                         |
+| p       | Path              | Set Output path.<br>Learn more about [Path](#path).                                          |
+| _       | Space Replacement | Set the character to replace spaces with.                                                    |
+| t       | Trash Source      | Toggle trashing of the source file on render completion.                                     |
+| <hr>    | <hr>              | <hr>                                                                                         |
+| Enter   | Render            | Start the render of the output file.                                                         |
+| r-q     | Render Queue      | Open the render queue menu.                                                                  |
+| r-p     | Pause Render      | Pause the current render and render queue.<br>Can only pause the render queue on Windows.    |
+| d       | Trash Source Now  | Trash the source file.                                                                       |
+| <hr>    | <hr>              | <hr>                                                                                         |
+| s-s     | Settings          | Open the [Settings](#settings) submenu.                                                      |
+| Esc     | Close             | Close the currently active menu.                                                             |
+
+##### Video
+
+| Keybind | Action       | Description                                                                                                   |
+|---------|--------------|---------------------------------------------------------------------------------------------------------------|
+| e       | Encoder      | Set the video encoder.                                                                                        |
+| q       | Quality      | Set the video encoder quality parameter.                                                                      |
+| f       | FPS          | Set the FPS of the video.                                                                                     |
+| k       | Keyframes    | Set the keyframe interval, e.g. `120` frames or `2s`.<br>Empty uses the encoder default.                      |
+| p       | Preset       | Set the video encoder preset parameter.                                                                       |
+| l       | Lossless Cut | Toggle the lossless cut option.                                                                               |
+| a       | Accurate Cut | Toggle accurate cut.<br>Makes cuts millisecond precise, but may cause a slight delay before rendering starts. |
+
+##### Audio
+
+| Keybind | Action           | Description                         |
+|---------|------------------|-------------------------------------|
+| c       | Combine Audio    | Toggle the combine audio option.    |
+| f       | First Audio Only | Toggle the first audio only option. |
+
+##### Settings
+
+| Keybind | Action   | Description                                                                                      |
+|---------|----------|--------------------------------------------------------------------------------------------------|
+| s       | Stats    | Toggle the Tachytome stats overlay.                                                              |
+| m       | Menu     | Switch the menu, saved to your config.<br>Learn more about [Custom Menus](#custom-menus).        |
+| c       | Configs  | Enable, disable and reorder extra configs.<br>Learn more about [Configs](#configs).              |
+| l       | Language | Switch the UI language, saved to your config.<br>Learn more about [Translations](#translations). |
+| U       | Update   | Update Tachytome using git, falls back to the GitHub archive.<br>Restart mpv after updating.     |
 
 #### Render Queue
 
@@ -210,6 +231,14 @@ See the `cursor_` options in the [builtin config](./tachytome.conf) for its colo
 | Down/j      | Navigate Down | Navigates to item below. |
 
 Inputs like the Path prompt use ctrl+k/ctrl+j instead, since plain letters are typed into the input.
+
+#### Effects List
+
+| Keybind | Action | Description                                 |
+|---------|--------|---------------------------------------------|
+| Enter   | Toggle | Select or deselect the preset.              |
+| d       | Edit   | Edit the duration and params of the preset. |
+| Esc     | Close  | Close the list.                             |
 
 #### Configs List
 
@@ -282,6 +311,7 @@ menu mine {
 | `<keys> <action>`         | Bind a key to an action. Chain keys with `-`, e.g. `v-e`, to make nested binds. |
 | `<keys> <action> <label>` | Same, with a custom label.                                                      |
 | `hide <keys> <action>`    | Bind a key to an action without showing it in the menu list.                    |
+| `<keys> <id> {`           | Starts a [submenu](#submenus), closed with `}`.                                 |
 | empty line                | Separator.                                                                      |
 
 Hidden items keep working from their keys.<br>
@@ -289,6 +319,32 @@ A hidden submenu, e.g. `hide s-s settings {`, still opens and shows its items, o
 
 Labels starting with `@` are [translation](#translations) keys, e.g. `@menu_set_mark_in Set In`, with the rest used as the fallback.<br>
 Use `@@` for a label that starts with `@`.
+
+##### Submenus
+
+A line ending in `{` opens a submenu, its items go inside and it's closed with `}`:
+
+```
+menu mine {
+    i mark_in
+
+    v video {
+        e encoder
+        q quality
+    }
+    s-s settings Options {
+        m menu_preset
+        x extras {
+            s stats
+        }
+    }
+}
+```
+
+- The key opens the submenu, Esc goes back to the parent.
+- The id names the submenu, e.g. `video`, so it can be patched and [translated](#translations), an optional label follows it, e.g. `Options`.
+- Submenus nest, the menu title shows the path, e.g. `< Tachytome / Options / Extras >`, joined with `menu_path_separator`.
+- Submenus without any bound items are dropped from the list.
 
 ##### Base
 
@@ -314,6 +370,16 @@ menu nested {
 | `<keys> hide`         | Hide the item bound to a key from the list, its keys keep working.  |
 
 - `hide` also works on patch lines and together with `add`, e.g. `add hide x mark_in` adds a key and hides the item.
+- Patching an action finds it anywhere in the tree, e.g. `Q quality` rebinds Quality inside the Video submenu, keeping it there.
+- `<keys> <id> {` patches an existing submenu, rebinding its key, the lines inside patch its items:
+  ```
+  v-v video {
+      Q quality
+      x none
+  }
+  ```
+- `<keys> none` and `<keys> hide` only affect keys of the level they are on, use a submenu block to reach keys inside it.
+- When an action appears more than once in the tree, the first one is patched with a warning.
 - A menu with the same name as a builtin one replaces it.
 - A single line `menu <keys> <action>` outside of any block patches whichever menu is selected.
 - If a key is bound on its own, any nested binds starting with it are unreachable and will be ignored with a warning.
@@ -347,7 +413,7 @@ return {
 
 - Keys missing from a language fall back to [English](./lang/en.lua), so a translation can be partial.
 - `{name}` placeholders get replaced with values, keep them as they are, their order can change.
-- Submenus are labeled by `submenu_<id>`, e.g. `submenu_video`, or their id when there's no such key.
+- Submenus are labeled by `submenu_<id>`, e.g. `submenu_video`, or their capitalized id when there's no such key, e.g. `my_stuff` shows as `My stuff`.
 - Menu item labels, `menu_<action>`, are reused as the titles of the screens they open and in their notifications, e.g. `Quality: 30`.
 - Key tooltips are built from `key_hint`, e.g. `{keys} to {action}`, and one `key_<action>` per action, e.g. `key_navigate`.
 - To add a language, copy `lang/en.lua` to `lang/<code>.lua` and translate the text.
