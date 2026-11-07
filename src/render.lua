@@ -317,8 +317,10 @@ function M.start(opts)
         if opts.on_complete then opts.on_complete() end
         return
     end
-    if opts.mark_out <= opts.mark_in then
-        notify.show("Invalid marks", true, "error")
+    local seek_in = opts.lossless_cut and common.resolve_mark_in(opts.mark_in, true, input_file) or opts.mark_in
+    if opts.mark_out <= seek_in then
+        local msg = "Invalid marks: In " .. common.format_time(seek_in) .. " must be before Out " .. common.format_time(opts.mark_out)
+        notify.show(msg, true, "warn")
         if opts.on_complete then opts.on_complete() end
         return
     end
