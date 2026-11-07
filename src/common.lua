@@ -306,6 +306,12 @@ function M.nearest_keyframe_at_or_before(file, t)
     return list[lo]
 end
 
+function M.resolve_mark_in(mark, lossless, file)
+    if not lossless then return mark end
+    if not file then return mark end
+    return M.nearest_keyframe_at_or_before(file, mark) or mark
+end
+
 function M.trash_file(file_path, trash_path, callback)
     if not file_path then
         if callback then callback(false) end

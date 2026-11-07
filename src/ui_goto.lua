@@ -108,9 +108,11 @@ local function parse_input(str)
     -- TODO: document the [ and ] mark prefixes in README Go To > Prefix
     local base  = nil
     local first = str:sub(1, 1)
-    if first == "[" or first == "]" then
-        local actions = require 'src.actions'
-        base = first == "[" and actions.get_resolved_mark_in() or state.mark_out
+    if first == "[" then
+        base = common.resolve_mark_in(state.mark_in, state.opts.lossless_cut, mp.get_property("path"))
+        str  = str:sub(2)
+    elseif first == "]" then
+        base = state.mark_out
         str  = str:sub(2)
     end
 

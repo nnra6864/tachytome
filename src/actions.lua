@@ -285,15 +285,7 @@ function M.get_final_path()
 end
 
 function M.get_resolved_mark_in()
-    local raw = state.mark_in
-    if not state.opts.lossless_cut then return raw end
-
-    local file = mp.get_property("path")
-    if not file then return raw end
-
-    local resolved = common.nearest_keyframe_at_or_before(file, raw)
-    if resolved then return resolved end
-    return raw
+    return common.resolve_mark_in(state.mark_in, state.opts.lossless_cut, mp.get_property("path"))
 end
 
 function M.get_mark_in_display()
