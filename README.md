@@ -128,6 +128,8 @@ This is done to avoid global bind conflicts.
 | i       | Mark In           | Mark the start of the video.                                                                                  |
 | o       | Mark Out          | Mark the end of the video.                                                                                    |
 | g       | Go To             | Go to a precise location in the video.<br>Learn more about [Go To](#go-to).                                   |
+| ctrl+i  | Set In            | Type in the Mark In, same input as [Go To](#go-to).                                                           |
+| ctrl+o  | Set Out           | Type in the Mark Out, same input as [Go To](#go-to).                                                          |
 | <hr>    | <hr>              | <hr>                                                                                                          |
 | e       | Encoder           | Set the video encoder.                                                                                        |
 | q       | Quality           | Set the video encoder quality parameter.                                                                      |
@@ -151,9 +153,9 @@ This is done to avoid global bind conflicts.
 | d       | Trash Source Now  | Trash the source file.                                                                                        |
 | s       | Stats             | Display Tachytome stats.                                                                                      |
 | <hr>    | <hr>              | <hr>                                                                                                          |
+| m       | Menu              | Switch the menu, saved to your config.<br>Learn more about [Custom Menus](#custom-menus).                     |
+| U       | Update            | Update Tachytome using git, falls back to the GitHub archive.<br>Restart mpv after updating.                  |
 | Esc     | Close             | Close the currently active menu.                                                                              |
-
-<!-- TODO: document Update (U) above Close, git first with GitHub archive fallback, restart mpv after -->
 
 #### Render Queue
 
@@ -187,10 +189,14 @@ This is done to avoid global bind conflicts.
 
 ### Config
 
-You can configure Tachytome with the `mpv/script-opts/tachytome.conf` file.<br>
-It should get automatically generated on the first launch.<br>
-You can find that same example config [here](./tachytome.conf).<br>
-The example config contains detailed explanations of all the settings, I would highly suggest reading it.
+You can configure Tachytome with the `mpv/script-opts/tachytome/tachytome.conf` file.<br>
+It should get automatically generated on the first launch, with every line commented out.<br>
+Uncomment and change only what you need, everything else uses the [builtin config](./tachytome.conf).<br>
+The builtin config contains detailed explanations of all the settings, I would highly suggest reading it.
+
+> [!NOTE]
+> Older versions used `mpv/script-opts/tachytome.conf` and `mpv/script-opts/tachytome-effects.conf`.<br>
+> These get moved into `mpv/script-opts/tachytome/` on start.
 
 To access exposed Tachytome functions, add the following to your `mpv/input.conf`:
 ```
@@ -200,39 +206,58 @@ d script-binding tachytome/trash
 ```
 Replace `t`, `g` and `d` with keys of your choice.
 
-<!-- TODO: config moved to `mpv/script-opts/tachytome/tachytome.conf` and `mpv/script-opts/tachytome/effects.conf` (old files are migrated on start), the generated user conf is a fully commented copy of the builtin one -->
+#### Custom Menus
 
-#### Custom Keymaps
-
-<!-- TODO: rewrite for menus: `menu <name> { ... }` blocks, `selected_menu`, empty line = separator, `base` patching (`key action` rebinds, `add key action`, `key none`), optional labels with `@key fallback` / `@@`, user blocks replace builtin ones, `menu_preset` item saves `selected_menu` to the user conf -->
-
-Binds inside the Tachytome menu are fully configurable through keymaps in `tachytome.conf`.<br>
-Pick the active one with `selected_keymap`, which can be `builtin`, `default`, or the name of any keymap you define.
+The Tachytome menu is fully configurable through menus in `tachytome.conf`.<br>
+Pick the active one with `selected_menu`, or switch it from the menu with `m`.
 
 ```
-keymap my_keymap
+menu mine {
+    i   mark_in
+    o   mark_out
+    s-i set_mark_in Set In
+
+    v-e encoder
+}
+```
+
+| Line                      | Meaning                                                                         |
+|---------------------------|---------------------------------------------------------------------------------|
+| `menu <name> {`           | Starts a menu, closed with `}`.                                                 |
+| `<keys> <action>`         | Bind a key to an action. Chain keys with `-`, e.g. `v-e`, to make nested binds. |
+| `<keys> <action> <label>` | Same, with a custom label.                                                      |
+| empty line                | Separator.                                                                      |
+
+Labels starting with `@` are translation keys, e.g. `@set_in Set In`, with the rest used as the fallback.<br>
+Use `@@` for a label that starts with `@`.
+
+##### Base
+
+Use `base` to build a menu on top of another one, the lines below then patch it:
+
+```
+menu nested {
     base default
 
-    r render
-    v-e encoder
-    d ignore
-end
+    s-i set_mark_in
+    add x mark_in
+    t none
+}
 ```
 
-| Line              | Meaning                                                                                       |
-|-------------------|-----------------------------------------------------------------------------------------------|
-| `keymap <name>`   | Starts a keymap, closed with `end`.                                                           |
-| `base <name>`     | Start from another keymap's binds instead of an empty one.                                    |
-| `<keys> <action>` | Bind a key to an action. Chain keys with `-`, e.g. `v-e`, to make nested binds.               |
-| `<keys> ignore`   | Unbind a key inherited from the base, `none` works too.                                       |
+| Line                  | Meaning                                                             |
+|-----------------------|---------------------------------------------------------------------|
+| `base <name>`         | Start from another menu instead of an empty one.                    |
+| `<keys> <action>`     | Rebind an item, it keeps its place.<br>New items go at the end.     |
+| `add <keys> <action>` | Add another key to an item, shown as `i,x -> Mark In`.              |
+| `<keys> none`         | Unbind a key, `ignore` works too.                                   |
 
-- `builtin` is the hardcoded keymap and can't be redefined.
-- `default` always builds on top of `builtin`, so you can use it to tweak just a few binds.
-- A single line `keymap <keys> <action>` outside of any block rebinds on top of whichever keymap is selected.
+- A menu with the same name as a builtin one replaces it.
+- A single line `menu <keys> <action>` outside of any block patches whichever menu is selected.
 - If a key is bound on its own, any nested binds starting with it are unreachable and will be ignored with a warning.
 
 Actions are named after menu items in snake_case, e.g. `mark_in`, `goto`, `render_queue`, `trash_source_now`.<br>
-See the `default` keymap in the [example config](./tachytome.conf) for the full list.
+See the `default` menu in the [builtin config](./tachytome.conf) for the full list.
 
 ### Recovery
 
@@ -291,7 +316,7 @@ Their current values are listed right below the input.
 Tachytome offers a powerful effects and presets engine.<br>
 These are extremely useful for adding transitions such as video/audio fade and blur.
 
-Effects are defined in `mpv/script-opts/tachytome-effects.conf`.<br>
+Effects are defined in `mpv/script-opts/tachytome/effects.conf`.<br>
 You can find an example config with every option explained [here](./tachytome-effects.conf).
 
 ```

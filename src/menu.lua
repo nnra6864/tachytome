@@ -81,7 +81,6 @@ local items = {
         action    = function() actions.goto_prompt(M.open) end,
         keep_open = false
     },
-    -- TODO: document Set In and Set Out and their binds in the README menu table
     {
         name      = "set_mark_in",
         label_key = "set_mark_in",
