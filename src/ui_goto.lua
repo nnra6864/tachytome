@@ -59,20 +59,25 @@ local function seek_to(seconds, relative, exact)
     mp.commandv("osd-bar", "seek", seconds, mode)
 end
 
-local function scaled(str, factor)
-    local num = tonumber(str)
-    return num and num * factor
+local unit_factors = { ms = 0.001, s = 1, m = 60, h = 3600, d = 86400 }
+
+local function parse_compound(str)
+    local total = 0
+    local pos   = 1
+    while pos <= #str do
+        local num, unit, next_pos = str:match("^([%d%.]+)(%a*)()", pos)
+        if not num then return nil end
+        local value  = tonumber(num)
+        local factor = unit == "" and 1 or unit_factors[unit]
+        if not value or not factor then return nil end
+        total = total + value * factor
+        pos   = next_pos
+    end
+    return total
 end
 
 local function parse_duration(str)
     if str == "" then return nil end
-
-    if str:sub(-2) == 'ms' then return scaled(str:sub(1, -3), 0.001) end
-    if str:sub(-1) == 's'  then return scaled(str:sub(1, -2), 1) end
-    if str:sub(-1) == 'm'  then return scaled(str:sub(1, -2), 60) end
-    if str:sub(-1) == 'h'  then return scaled(str:sub(1, -2), 3600) end
-    if str:sub(-1) == 'd'  then return scaled(str:sub(1, -2), 86400) end
-    if str:sub(-1) == 'f'  then return nil end
 
     if str:find(":") then
         local parts = {}
@@ -92,7 +97,7 @@ local function parse_duration(str)
         return h * 3600 + m * 60 + s
     end
 
-    return tonumber(str)
+    return parse_compound(str)
 end
 
 local function parse_and_seek()
