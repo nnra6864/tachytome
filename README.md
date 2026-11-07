@@ -154,6 +154,7 @@ This is done to avoid global bind conflicts.
 | s       | Stats             | Display Tachytome stats.                                                                                      |
 | <hr>    | <hr>              | <hr>                                                                                                          |
 | m       | Menu              | Switch the menu, saved to your config.<br>Learn more about [Custom Menus](#custom-menus).                     |
+| c       | Configs           | Enable, disable and reorder extra configs.<br>Learn more about [Configs](#configs).                           |
 | l       | Language          | Switch the UI language, saved to your config.<br>Learn more about [Translations](#translations).              |
 | U       | Update            | Update Tachytome using git, falls back to the GitHub archive.<br>Restart mpv after updating.                  |
 | Esc     | Close             | Close the currently active menu.                                                                              |
@@ -188,6 +189,15 @@ This is done to avoid global bind conflicts.
 | Up/ctrl+k   | Navigate Up   | Navigates to item above. |
 | Down/ctrl+j | Navigate Down | Navigates to item below. |
 
+#### Configs List
+
+| Keybind      | Action    | Description                                 |
+|--------------|-----------|---------------------------------------------|
+| Enter        | Toggle    | Enable or disable the config.               |
+| Shift+Up/K   | Move Up   | Move the config up, before the one above.   |
+| Shift+Down/J | Move Down | Move the config down, after the one below.  |
+| Esc          | Close     | Save the changes to your config and reload. |
+
 ### Config
 
 You can configure Tachytome with the `mpv/script-opts/tachytome/tachytome.conf` file.<br>
@@ -206,6 +216,22 @@ g script-binding tachytome/goto
 d script-binding tachytome/trash
 ```
 Replace `t`, `g` and `d` with keys of your choice.
+
+#### Configs
+
+`mpv/script-opts/tachytome/` can hold more `.conf` files, e.g. `work.conf` and `stream.conf`, picked with the `configs` option in `tachytome.conf`:
+```
+configs=work,stream,!old
+```
+
+- Configs are named without `.conf`, later ones override earlier ones.
+- `!name` disables a config while keeping its place in the list.
+- Lines in `tachytome.conf` above the `configs=` line apply before the configs, lines below it override them.
+- Configs can set options and define [menus](#custom-menus), `configs` itself only works in `tachytome.conf`.
+- `.conf` files in the dir that aren't listed show up as disabled.
+- Switch them from the menu with `c` in Settings, which writes the `configs=` line and reloads options and menus.<br>
+  Options changed from the menu during the session are reset to the config values on reload.
+- Switching the menu or language from the menu saves it to whichever file sets it, e.g. `work.conf` when it's the one that wins.
 
 #### Custom Menus
 

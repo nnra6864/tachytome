@@ -5,10 +5,14 @@ local common = require 'src.common'
 local M = {
     builtin_path = utils.join_path(mp.get_script_directory() or "", "tachytome.conf"),
     user_path    = nil,
-    menu_lines   = { builtin = {}, user = {} }
+    menu_lines   = {},
+    configs      = {}
 }
 
 local identifier = "tachytome"
+local reserved   = { ["tachytome.conf"] = true, ["effects.conf"] = true }
+local defaults   = nil
+local origins    = {}
 
 local function typeconv(default, val)
     if type(default) == "boolean" then
@@ -20,7 +24,7 @@ local function typeconv(default, val)
     return val
 end
 
-local function set_opt(opts, key, val, where)
+local function set_opt(opts, key, val, where, origin)
     if opts[key] == nil then
         mp.msg.warn(where .. " unknown key '" .. key .. "', ignoring")
         return
@@ -31,15 +35,65 @@ local function set_opt(opts, key, val, where)
         return
     end
     opts[key] = conv
+    if origin then origins[key] = origin end
 end
 
-local function parse_file(path, name, opts)
-    local menu_lines = {}
-    local f = io.open(path, "r")
-    if not f then return menu_lines end
+function M.config_path(name)
+    return utils.join_path(common.get_conf_dir(), name .. ".conf")
+end
 
-    local depth = 0
-    local n     = 0
+local function parse_configs(val)
+    local list = {}
+    local seen = {}
+    for entry in val:gmatch("[^,]+") do
+        local name    = entry:match("^%s*(.-)%s*$")
+        local enabled = name:sub(1, 1) ~= "!"
+        if not enabled then name = name:sub(2):match("^%s*(.-)$") end
+        name = name:gsub("%.conf$", "")
+        if name ~= "" and not seen[name] and not reserved[name .. ".conf"] then
+            seen[name]      = true
+            list[#list + 1] = { name = name, enabled = enabled, exists = common.file_exists(M.config_path(name)) }
+        end
+    end
+    return list, seen
+end
+
+local function discover_configs(list, seen)
+    local found = {}
+    for _, file in ipairs(utils.readdir(common.get_conf_dir(), "files") or {}) do
+        local name = file:match("^(.+)%.conf$")
+        if name and not reserved[file] and not seen[name] then found[#found + 1] = name end
+    end
+    table.sort(found)
+    for _, name in ipairs(found) do
+        list[#list + 1] = { name = name, enabled = false, exists = true }
+    end
+    return list
+end
+
+local parse_file
+
+local function load_configs(val, where, opts, chunks)
+    local list, seen = parse_configs(val)
+    for _, c in ipairs(list) do
+        if c.enabled and c.exists then
+            parse_file(M.config_path(c.name), c.name .. ".conf", opts, chunks, "config")
+        elseif c.enabled then
+            mp.msg.warn(where .. " config '" .. c.name .. "' not found at " .. M.config_path(c.name))
+        end
+    end
+    M.configs = discover_configs(list, seen)
+end
+
+parse_file = function(path, name, opts, chunks, mode)
+    local menu_lines = {}
+    chunks[#chunks + 1] = menu_lines
+    local f = io.open(path, "r")
+    if not f then return end
+
+    local depth        = 0
+    local n            = 0
+    local configs_seen = false
     for raw in f:lines() do
         n = n + 1
         local line    = raw:gsub("\r$", "")
@@ -51,7 +105,19 @@ local function parse_file(path, name, opts)
 
         local eq = line:find("=", 1, true)
         if depth == 0 and eq and line:sub(1, 1) ~= "#" and not content:find("^menu%s") then
-            set_opt(opts, line:sub(1, eq - 1), line:sub(eq + 1), where)
+            local key = line:sub(1, eq - 1)
+            if key ~= "configs" then
+                set_opt(opts, key, line:sub(eq + 1), where, mode ~= "builtin" and { path = path, line = n } or nil)
+            elseif mode == "config" then
+                mp.msg.warn(where .. " configs only works in " .. M.user_path .. ", ignoring")
+            elseif mode == "main" and configs_seen then
+                mp.msg.warn(where .. " configs already set, ignoring")
+            elseif mode == "main" then
+                configs_seen = true
+                load_configs(line:sub(eq + 1), where, opts, chunks)
+                menu_lines          = {}
+                chunks[#chunks + 1] = menu_lines
+            end
         elseif content ~= "" or not line:find("%S") then
             menu_lines[#menu_lines + 1] = { text = content, where = where }
             if content:find("{$") then
@@ -62,7 +128,8 @@ local function parse_file(path, name, opts)
         end
     end
     f:close()
-    return menu_lines
+
+    if mode == "main" and not configs_seen then M.configs = discover_configs({}, {}) end
 end
 
 local function apply_script_opts(opts)
@@ -75,9 +142,18 @@ local function apply_script_opts(opts)
 end
 
 function M.read_options(opts)
-    M.user_path          = common.ensure_default_conf("tachytome.conf", "tachytome.conf", true)
-    M.menu_lines.builtin = parse_file(M.builtin_path, "tachytome.conf (builtin)", opts)
-    M.menu_lines.user    = parse_file(M.user_path, M.user_path, opts)
+    if defaults then
+        for key, val in pairs(defaults) do opts[key] = val end
+    else
+        defaults = {}
+        for key, val in pairs(opts) do defaults[key] = val end
+    end
+    origins      = {}
+    M.menu_lines = {}
+    M.configs    = {}
+    M.user_path  = common.ensure_default_conf("tachytome.conf", "tachytome.conf", true)
+    parse_file(M.builtin_path, "tachytome.conf (builtin)", opts, M.menu_lines, "builtin")
+    parse_file(M.user_path, M.user_path, opts, M.menu_lines, "main")
     apply_script_opts(opts)
 end
 
@@ -88,6 +164,18 @@ local function read_lines(path)
     for line in f:lines() do lines[#lines + 1] = line:gsub("\r$", "") end
     f:close()
     return lines
+end
+
+local function write_lines(path, lines, key)
+    common.ensure_dir(common.get_conf_dir())
+    local f = io.open(path, "w")
+    if not f then
+        mp.msg.warn("Failed to write " .. key .. " to " .. path)
+        return false
+    end
+    f:write(table.concat(lines, "\n") .. "\n")
+    f:close()
+    return true
 end
 
 local function builtin_block(key)
@@ -104,36 +192,60 @@ local function builtin_block(key)
     return {}
 end
 
+local function find_line(lines, key, hint)
+    local prefix = key .. "="
+    if hint and lines[hint] and lines[hint]:sub(1, #prefix) == prefix then return hint end
+    for i = #lines, 1, -1 do
+        if lines[i]:sub(1, #prefix) == prefix then return i end
+    end
+    return nil
+end
+
 function M.write_option(key, val)
     if not M.user_path then return false end
-    local entry = key .. "=" .. tostring(val)
+    local entry  = key .. "=" .. tostring(val)
+    local origin = origins[key]
+    local path   = origin and origin.path or M.user_path
+    local lines  = read_lines(path)
+    local idx    = find_line(lines, key, origin and origin.line)
+
+    if idx then
+        lines[idx]   = entry
+        origins[key] = { path = path, line = idx }
+        return write_lines(path, lines, key)
+    end
+
+    path  = M.user_path
+    lines = read_lines(path)
+    local block = builtin_block(key)
+    block[#block + 1] = entry
+    block[#block + 1] = ""
+    for i = #block, 1, -1 do table.insert(lines, 1, block[i]) end
+    for _, o in pairs(origins) do
+        if o.path == path then o.line = o.line + #block end
+    end
+    origins[key] = { path = path, line = #block - 1 }
+    return write_lines(path, lines, key)
+end
+
+function M.write_configs(list)
+    if not M.user_path then return false end
+    local names = {}
+    for _, c in ipairs(list) do names[#names + 1] = (c.enabled and "" or "!") .. c.name end
+    local entry = "configs=" .. table.concat(names, ",")
     local lines = read_lines(M.user_path)
 
-    local found = false
     for i, line in ipairs(lines) do
-        if line:sub(1, #key + 1) == key .. "=" then
+        if line:sub(1, 8) == "configs=" then
             lines[i] = entry
-            found    = true
-            break
+            return write_lines(M.user_path, lines, "configs")
         end
     end
 
-    if not found then
-        local block = builtin_block(key)
-        block[#block + 1] = entry
-        block[#block + 1] = ""
-        for i = #block, 1, -1 do table.insert(lines, 1, block[i]) end
-    end
-
-    common.ensure_dir(common.get_conf_dir())
-    local f = io.open(M.user_path, "w")
-    if not f then
-        mp.msg.warn("Failed to write " .. key .. " to " .. M.user_path)
-        return false
-    end
-    f:write(table.concat(lines, "\n") .. "\n")
-    f:close()
-    return true
+    if #lines > 0 and lines[#lines] ~= "" then lines[#lines + 1] = "" end
+    for _, line in ipairs(builtin_block("configs")) do lines[#lines + 1] = line end
+    lines[#lines + 1] = entry
+    return write_lines(M.user_path, lines, "configs")
 end
 
 return M

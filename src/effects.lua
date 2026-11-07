@@ -423,6 +423,12 @@ local function seed_from_opts()
     end
 end
 
+function M.seed()
+    state.effects         = {}
+    state.effects_enabled = false
+    seed_from_opts()
+end
+
 parse_effects_file(common.ensure_default_conf("tachytome-effects.conf", "effects.conf"))
 seed_from_opts()
 

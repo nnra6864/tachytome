@@ -25,6 +25,7 @@ return {
     menu_trash_source_now  = "Trash Source Now",
     menu_stats             = "Toggle Stats",
     menu_menu_preset       = "Menu",
+    menu_configs           = "Configs",
     menu_language          = "Language",
     menu_update            = "Update",
     menu_close             = "Close",
@@ -134,6 +135,13 @@ return {
     notify_menu           = "Menu set to: {name}",
     title_select_language = "Select Language",
     notify_language       = "Language set to: {name}",
+
+    configs_title   = "Configs",
+    tooltip_configs = "(Up/Down to navigate, Enter to toggle, Shift+Up/Down or K/J to move, Esc to apply and close)",
+    configs_none    = "none",
+    configs_empty   = "No .conf files in {dir}",
+    configs_missing = "(missing)",
+    notify_configs  = "Configs: {names}",
 
     stats_title        = "Tachytome Stats",
     stats_source_space = "Source Space",

@@ -262,7 +262,13 @@ function M.active()
     return normalize(rows)
 end
 
-parse_lines(conf.menu_lines.builtin)
-parse_lines(conf.menu_lines.user)
+function M.load()
+    presets = {}
+    order   = {}
+    flats   = {}
+    for _, lines in ipairs(conf.menu_lines) do parse_lines(lines) end
+end
+
+M.load()
 
 return M

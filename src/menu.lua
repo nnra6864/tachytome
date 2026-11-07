@@ -25,6 +25,7 @@ local flash_timer   = nil
 local pending_row   = nil
 local flash_frame   = 0.003
 local load_menu
+local reload
 
 local function resolve_easing(val, name)
     local fn = easing.parse(val)
@@ -41,22 +42,29 @@ local function resolve_duration(val, fallback)
     return n
 end
 
-local flash_spec = {
-    in_d  = state.opts.flash_in_duration,
-    in_e  = resolve_easing(state.opts.flash_in_easing, "flash_in_easing"),
-    out_d = state.opts.flash_out_duration,
-    out_e = resolve_easing(state.opts.flash_out_easing, "flash_out_easing")
-}
+local flash_spec = {}
+local start_spec = {}
 
-local start_spec = {
-    in_d  = resolve_duration(state.opts.start_in_duration, flash_spec.in_d),
-    in_e  = state.opts.start_in_easing ~= "" and resolve_easing(state.opts.start_in_easing, "start_in_easing") or flash_spec.in_e,
-    out_d = resolve_duration(state.opts.start_out_duration, flash_spec.out_d),
-    out_e = state.opts.start_out_easing ~= "" and resolve_easing(state.opts.start_out_easing, "start_out_easing") or flash_spec.out_e
-}
+local function load_specs()
+    flash_spec = {
+        in_d  = state.opts.flash_in_duration,
+        in_e  = resolve_easing(state.opts.flash_in_easing, "flash_in_easing"),
+        out_d = state.opts.flash_out_duration,
+        out_e = resolve_easing(state.opts.flash_out_easing, "flash_out_easing")
+    }
 
-flash_spec.total = flash_spec.in_d + flash_spec.out_d
-start_spec.total = start_spec.in_d + start_spec.out_d
+    start_spec = {
+        in_d  = resolve_duration(state.opts.start_in_duration, flash_spec.in_d),
+        in_e  = state.opts.start_in_easing ~= "" and resolve_easing(state.opts.start_in_easing, "start_in_easing") or flash_spec.in_e,
+        out_d = resolve_duration(state.opts.start_out_duration, flash_spec.out_d),
+        out_e = state.opts.start_out_easing ~= "" and resolve_easing(state.opts.start_out_easing, "start_out_easing") or flash_spec.out_e
+    }
+
+    flash_spec.total = flash_spec.in_d + flash_spec.out_d
+    start_spec.total = start_spec.in_d + start_spec.out_d
+end
+
+load_specs()
 
 local function off(val) return string.format("%s%s%s", theme.c("off_color"), tostring(val), theme.reset()) end
 local function on(val) return string.format("%s%s%s", theme.c("on_color"),   tostring(val), theme.reset()) end
@@ -218,6 +226,13 @@ local items = {
         keep_open = false
     },
     {
+        name      = "configs",
+        label_key = "menu_configs",
+        get_val   = function() return v(theme.escape(actions.get_configs_display())) end,
+        action    = function() actions.select_configs(reload, M.open) end,
+        keep_open = false
+    },
+    {
         name      = "language",
         label_key = "menu_language",
         get_val   = function()
@@ -350,6 +365,12 @@ load_menu = function()
         path       = trail or {}
     end
     sync_level()
+end
+
+reload = function()
+    menus.load()
+    load_specs()
+    load_menu()
 end
 
 load_menu()

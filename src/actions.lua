@@ -12,6 +12,7 @@ local notify        = require 'src.notify'
 local theme         = require 'src.theme'
 local ui_goto       = require 'src.ui_goto'
 local ui_effects    = require 'src.ui_effects'
+local ui_configs    = require 'src.ui_configs'
 local updater       = require 'src.updater'
 local conf          = require 'src.conf'
 local menus         = require 'src.menus'
@@ -370,6 +371,27 @@ function M.select_menu(on_select, on_complete)
             if on_select then on_select() end
         end
         notify.show(lang.t("notify_menu", { name = name }))
+        if on_complete then on_complete() end
+    end, on_complete)
+end
+
+function M.get_configs_display()
+    local names = {}
+    for _, c in ipairs(conf.configs) do
+        if c.enabled and c.exists then names[#names + 1] = c.name end
+    end
+    if #names == 0 then return lang.t("configs_none") end
+    return table.concat(names, ",")
+end
+
+function M.select_configs(on_reload, on_complete)
+    ui_configs.show(conf.configs, function(list)
+        conf.write_configs(list)
+        conf.read_options(state.opts)
+        effects.seed()
+        lang.load()
+        if on_reload then on_reload() end
+        notify.show(lang.t("notify_configs", { names = M.get_configs_display() }))
         if on_complete then on_complete() end
     end, on_complete)
 end
