@@ -342,7 +342,8 @@ menu mine {
 ```
 
 - The key opens the submenu, Esc goes back to the parent.
-- The id names the submenu, e.g. `video`, so it can be patched and [translated](#translations), an optional label follows it, e.g. `Options`.
+- The id names the submenu, e.g. `video`, so it can be patched and [translated](#translations) through `submenu_<id>`.
+- An optional label after the id, e.g. `Options`, replaces the translation, use `@key Fallback` to keep it translatable.
 - Submenus nest, the menu title shows the path, e.g. `< Tachytome / Options / Extras >`, joined with `menu_path_separator`.
 - Submenus without any bound items are dropped from the list.
 
