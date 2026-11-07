@@ -1,4 +1,5 @@
 local mp     = require 'mp'
+local common = require 'src.common'
 local notify = require 'src.notify'
 local state  = require 'src.state'
 local theme  = require 'src.theme'
@@ -10,6 +11,9 @@ local active           = false
 local input            = ""
 local current_callback = nil
 local current_options  = {}
+local current_place    = nil
+local current_title    = "Go to"
+local current_verb     = "seek"
 
 local key_mappings   = {}
 local standard_chars = "0123456789:.dhmsf%+-[]"
@@ -32,9 +36,9 @@ local function render()
         )
     end
 
-    overlay.data = string.format("%s%s%sGo to > %s%s%s_%s%s%s\\N%s(Enter to seek, Esc to cancel)",
+    overlay.data = string.format("%s%s%s%s > %s%s%s_%s%s%s\\N%s(Enter to %s, Esc to cancel)",
         theme.align(7), theme.f(), theme.c("text_color"),
-        theme.c("value_color"), input, theme.a("FF"), theme.a("00"), theme.reset(), options_str, theme.f(true)
+        current_title, theme.c("value_color"), input, theme.a("FF"), theme.a("00"), theme.reset(), options_str, theme.f(true), current_verb
     )
     overlay:update()
 end
@@ -100,10 +104,7 @@ local function parse_duration(str)
     return parse_compound(str)
 end
 
-local function parse_and_seek()
-    local str = input:lower():gsub("%s+", "")
-    if str == "" then cleanup(); return end
-
+local function parse_input(str)
     -- TODO: document the [ and ] mark prefixes in README Go To > Prefix
     local base  = nil
     local first = str:sub(1, 1)
@@ -123,53 +124,87 @@ local function parse_and_seek()
         sign     = -1
         str      = str:sub(2)
     end
+
     if str == "" then
-        if base then seek_to(base, false) end
-        cleanup()
-        return
+        if base then return { kind = "abs", seconds = base } end
+        return nil
     end
 
     if str:sub(-1) == '%' then
         local num = tonumber(str:sub(1, -2))
-        if num then
-            if base or relative then
-                local duration = mp.get_property_number("duration")
-                if not (duration and duration > 0) then
-                    notify.show("Cannot jump by percent: duration unknown.", true, "warn")
-                elseif base then
-                    seek_to(base + sign * duration * num / 100, false)
-                else
-                    seek_to(sign * duration * num / 100, true)
-                end
-            else
-                mp.commandv("seek", num, "absolute-percent")
+        if not num then return nil end
+        if base or relative then
+            local duration = mp.get_property_number("duration")
+            if not (duration and duration > 0) then
+                notify.show("Cannot jump by percent: duration unknown.", true, "warn")
+                return nil
             end
-        end
-    elseif str:sub(-1) == 'f' then
-        local num = tonumber(str:sub(1, -2))
-        if num then
-            local fps = mp.get_property_number("container-fps") or mp.get_property_number("container-fps-approx")
-            if fps and fps > 0 then
-                if base then
-                    seek_to(base + sign * num / fps, false, true)
-                else
-                    seek_to(sign * num / fps, relative, true)
-                end
-            else
-                notify.show("Cannot jump frames: FPS unknown.", true, "warn")
-            end
-        end
-    else
-        local seconds = parse_duration(str)
-        if seconds then
             if base then
-                seek_to(base + sign * seconds, false)
-            else
-                seek_to(sign * seconds, relative)
+                return { kind = "abs", seconds = base + sign * duration * num / 100 }
             end
+            return { kind = "delta", seconds = sign * duration * num / 100 }
         end
+        return { kind = "percent", value = num }
     end
 
+    if str:sub(-1) == 'f' then
+        local num = tonumber(str:sub(1, -2))
+        if not num then return nil end
+        local fps = mp.get_property_number("container-fps") or mp.get_property_number("container-fps-approx")
+        if not (fps and fps > 0) then
+            notify.show("Cannot jump frames: FPS unknown.", true, "warn")
+            return nil
+        end
+        if base then
+            return { kind = "abs", seconds = base + sign * num / fps, exact = true }
+        end
+        return { kind = relative and "delta" or "abs", seconds = sign * num / fps, exact = true }
+    end
+
+    local seconds = parse_duration(str)
+    if not seconds then return nil end
+    if base then
+        return { kind = "abs", seconds = base + sign * seconds }
+    end
+    return { kind = relative and "delta" or "abs", seconds = sign * seconds }
+end
+
+local function apply_input(t)
+    if current_place then
+        local seconds = t.seconds
+        if t.kind == "delta" then
+            seconds = mp.get_property_number("time-pos", 0) + t.seconds
+        elseif t.kind == "percent" then
+            local duration = mp.get_property_number("duration")
+            if not (duration and duration > 0) then
+                notify.show("Cannot jump by percent: duration unknown.", true, "warn")
+                return
+            end
+            seconds = duration * t.value / 100
+        end
+        if current_place == 0 then
+            state.mark_in = seconds
+            notify.show("In: " .. common.format_time(seconds))
+        else
+            state.mark_out = seconds
+            notify.show("Out: " .. common.format_time(seconds))
+        end
+        return
+    end
+
+    if t.kind == "percent" then
+        mp.commandv("seek", t.value, "absolute-percent")
+    else
+        seek_to(t.seconds, t.kind == "delta", t.exact)
+    end
+end
+
+local function parse_and_apply()
+    local str = input:lower():gsub("%s+", "")
+    if str ~= "" then
+        local t = parse_input(str)
+        if t then apply_input(t) end
+    end
     cleanup()
 end
 
@@ -190,9 +225,9 @@ local function run_option(opt)
     opt.action()
 end
 
-function M.show(on_complete, options)
+function M.show(on_complete, options, place)
     if active then return end
-    if not mp.get_property_bool("seekable") then
+    if not place and not mp.get_property_bool("seekable") then
         notify.show("Cannot seek in this file.", true, "warn")
         if on_complete then on_complete() end
         return
@@ -201,6 +236,9 @@ function M.show(on_complete, options)
     state.ui_owner   = "goto"
     input            = ""
     current_callback = on_complete
+    current_place    = place
+    current_title    = place == 0 and "Set In" or place == 1 and "Set Out" or "Go to"
+    current_verb     = place and "set" or "seek"
     current_options  = {}
     for _, opt in ipairs(options or {}) do
         current_options[#current_options + 1] = { key = opt.key, label = opt.label, val = opt.get_val(), action = opt.action }
@@ -211,7 +249,7 @@ function M.show(on_complete, options)
     render()
 
     mp.add_forced_key_binding("BS", "goto-bs", backspace, {repeatable=true})
-    mp.add_forced_key_binding("ENTER", "goto-enter", parse_and_seek)
+    mp.add_forced_key_binding("ENTER", "goto-enter", parse_and_apply)
     mp.add_forced_key_binding("ESC", "goto-esc", cleanup)
 
     for key, char in pairs(key_mappings) do

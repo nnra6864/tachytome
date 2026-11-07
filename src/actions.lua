@@ -41,6 +41,10 @@ function M.goto_mark(place)
     notify.show("Go to " .. label .. ": " .. common.format_time(time))
 end
 
+function M.set_mark(place, on_complete)
+    ui_goto.show(on_complete, nil, place)
+end
+
 function M.set_quality(on_complete)
     local enc     = state.opts.video_encoder:lower()
     local min_val = 0

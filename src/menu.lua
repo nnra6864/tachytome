@@ -76,6 +76,19 @@ local registry = {
         action = function() actions.goto_prompt(M.open) end,
         keep_open = false
     },
+    -- TODO: document Set In and Set Out and their binds in the README menu table
+    {
+        name = "set_mark_in",
+        label = "Set In",
+        action = function() actions.set_mark(0, M.open) end,
+        keep_open = false
+    },
+    {
+        name = "set_mark_out",
+        label = "Set Out",
+        action = function() actions.set_mark(1, M.open) end,
+        keep_open = false
+    },
 
     { separator = true },
     {
