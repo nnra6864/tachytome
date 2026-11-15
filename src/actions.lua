@@ -12,6 +12,8 @@ local notify        = require 'src.notify'
 local theme         = require 'src.theme'
 local ui_goto       = require 'src.ui_goto'
 local ui_effects    = require 'src.ui_effects'
+local ui_tracks     = require 'src.ui_tracks'
+local tracks        = require 'src.tracks'
 local ui_configs    = require 'src.ui_configs'
 local updater       = require 'src.updater'
 local conf          = require 'src.conf'
@@ -307,6 +309,14 @@ function M.effects_menu(on_complete)
     ui_effects.show(on_complete)
 end
 
+function M.get_tracks_display()
+    return lang.t("tracks_summary", { audio = tracks.display("audio"), video = tracks.display("video") })
+end
+
+function M.tracks_menu(on_complete)
+    ui_tracks.show(on_complete)
+end
+
 function M.toggle_combine_audio()
     state.opts.combine_audio = not state.opts.combine_audio
     notify_set("combine_audio", on_off(state.opts.combine_audio))
@@ -401,6 +411,8 @@ function M.start_render(on_complete)
         combine_audio       = state.opts.combine_audio,
         combined_audio_name = state.opts.combined_audio_name,
         first_audio_only    = state.opts.first_audio_only,
+        audio_tracks        = tracks.indices("audio"),
+        video_tracks        = tracks.indices("video"),
         trash_source        = state.opts.trash_source,
         trash_path          = state.trash_path,
         space_replacement   = state.opts.space_replacement,
@@ -450,6 +462,7 @@ function M.select_configs(on_reload, on_complete)
         conf.write_configs(list)
         conf.read_options(state.opts)
         effects.seed()
+        tracks.reset()
         lang.load()
         if on_reload then on_reload() end
         notify_set("configs", M.get_configs_display())

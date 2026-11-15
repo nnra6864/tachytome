@@ -90,6 +90,8 @@ function M.item_from_job(job, status)
         combine_audio       = job.combine_audio,
         combined_audio_name = job.combined_audio_name,
         first_audio_only    = job.first_audio_only,
+        audio_tracks        = job.audio_tracks,
+        video_tracks        = job.video_tracks,
         trash_source        = job.trash_source,
         trash_path          = job.trash_path,
         space_replacement   = job.space_replacement,
@@ -140,6 +142,8 @@ function M.build_job(spec)
         lossless_cut        = spec.lossless_cut,
         combine_audio       = spec.combine_audio,
         first_audio_only    = spec.first_audio_only,
+        audio_tracks        = spec.audio_tracks,
+        video_tracks        = spec.video_tracks,
         combined_audio_name = spec.combined_audio_name
     }
     local args, out_fps = builder.build_args(build_opts, spec.input_file, spec.output_file, creation_time)
@@ -176,7 +180,9 @@ function M.build_job(spec)
         accurate_cut        = spec.accurate_cut,
         combine_audio       = spec.combine_audio,
         first_audio_only    = spec.first_audio_only,
-        show_stats_screen   = spec.show_stats_screen,
+        audio_tracks        = spec.audio_tracks,
+        video_tracks        = spec.video_tracks,
+        show_stats_screen  = spec.show_stats_screen,
         show_stats_terminal = spec.show_stats_terminal,
         stats_osd_time      = spec.stats_osd_time,
         input_size          = (in_info and in_info.size) or spec.input_size or 0,

@@ -8,24 +8,44 @@ local function get_media_info(input_file)
         "-show_streams", "-print_format", "json"
     })
 
-    local info = { audio_count = 0, a_meta = nil, v_fps = nil, full_range = false, has_range = false }
+    local info = { audio = {}, video = {} }
     if not probe_data or not probe_data.streams then return info end
 
     for _, s in ipairs(probe_data.streams) do
         if s.codec_type == "audio" then
-            info.audio_count = info.audio_count + 1
-            if not info.a_meta then
-                info.a_meta = { codec = s.codec_name, sample_rate = s.sample_rate, bit_rate = s.bit_rate }
-            end
+            info.audio[#info.audio + 1] = { codec = s.codec_name, sample_rate = s.sample_rate, bit_rate = s.bit_rate }
         elseif s.codec_type == "video" then
-            if not info.has_range then
-                info.has_range  = true
-                info.full_range = s.color_range == "pc"
-            end
-            if not info.v_fps and s.avg_frame_rate and s.avg_frame_rate ~= "0/0" and s.avg_frame_rate ~= "N/A" then
-                info.v_fps = s.avg_frame_rate
-            end
+            local fps = nil
+            if s.avg_frame_rate and s.avg_frame_rate ~= "0/0" and s.avg_frame_rate ~= "N/A" then fps = s.avg_frame_rate end
+            info.video[#info.video + 1] = { fps = fps, full_range = s.color_range == "pc" }
         end
+    end
+    return info
+end
+
+local function pick_tracks(list, count)
+    local out = {}
+    if not list then
+        for i = 0, count - 1 do out[#out + 1] = i end
+        return out
+    end
+    for _, n in ipairs(list) do
+        if n >= 1 and n <= count then out[#out + 1] = n - 1 end
+    end
+    return out
+end
+
+local function select_streams(info, opts)
+    info.audio_pick  = pick_tracks(opts.audio_tracks, #info.audio)
+    info.video_pick  = pick_tracks(opts.video_tracks, #info.video)
+    info.audio_count = #info.audio_pick
+    info.a_meta      = info.audio_pick[1] and info.audio[info.audio_pick[1] + 1] or nil
+    info.full_range  = false
+    info.v_fps       = nil
+    for k, i in ipairs(info.video_pick) do
+        local v = info.video[i + 1]
+        if k == 1 then info.full_range = v.full_range end
+        if not info.v_fps then info.v_fps = v.fps end
     end
     return info
 end
@@ -62,10 +82,25 @@ local function keyframe_frames(value, fps)
     return nil
 end
 
-local function deselect_extra_audio(args, audio_count)
-    for i = 1, audio_count - 1 do
-        table.insert(args, "-map") table.insert(args, string.format("-0:a:%d", i))
+local function deselect(args, kind, count, keep)
+    local kept = {}
+    for _, i in ipairs(keep) do kept[i] = true end
+    for i = 0, count - 1 do
+        if not kept[i] then
+            table.insert(args, "-map") table.insert(args, string.format("-0:%s:%d", kind, i))
+        end
     end
+end
+
+local function map_source(args, media_info, audio)
+    table.insert(args, "-map") table.insert(args, "0")
+    deselect(args, "a", #media_info.audio, audio)
+    deselect(args, "v", #media_info.video, media_info.video_pick)
+end
+
+local function kept_audio(opts, media_info)
+    if opts.first_audio_only then return { media_info.audio_pick[1] } end
+    return media_info.audio_pick
 end
 
 local function audio_encoder(a_meta)
@@ -93,18 +128,19 @@ end
 
 local function append_combine_audio(args, opts, media_info, af_effects, reencode_copies)
     local chain = #af_effects > 0 and table.concat(af_effects, ",") or nil
+    local picks = media_info.audio_pick
 
     if chain and not opts.first_audio_only then
         local parts  = {}
         local inputs = ""
-        for i = 0, media_info.audio_count - 1 do
-            parts[#parts + 1] = string.format("[0:a:%d]asplit=2[m%d][c%d]", i, i, i)
-            inputs           = inputs .. string.format("[m%d]", i)
+        for k, i in ipairs(picks) do
+            parts[#parts + 1] = string.format("[0:a:%d]asplit=2[m%d][c%d]", i, k, k)
+            inputs           = inputs .. string.format("[m%d]", k)
         end
         local mix = string.format("%samix=inputs=%d:normalize=0", inputs, media_info.audio_count)
         parts[#parts + 1] = mix .. "," .. renamed_chain(chain, "mix") .. "[aout0]"
-        for i = 0, media_info.audio_count - 1 do
-            parts[#parts + 1] = string.format("[c%d]%s[aout%d]", i, renamed_chain(chain, "t" .. i), i + 1)
+        for k in ipairs(picks) do
+            parts[#parts + 1] = string.format("[c%d]%s[aout%d]", k, renamed_chain(chain, "t" .. (k - 1)), k)
         end
 
         table.insert(args, "-filter_complex") table.insert(args, table.concat(parts, ";"))
@@ -112,20 +148,16 @@ local function append_combine_audio(args, opts, media_info, af_effects, reencode
         for i = 1, media_info.audio_count do
             table.insert(args, "-map") table.insert(args, string.format("[aout%d]", i))
         end
-        table.insert(args, "-map") table.insert(args, "0")
-        table.insert(args, "-map") table.insert(args, "-0:a")
+        map_source(args, media_info, {})
     else
         local filter_inputs = ""
-        for i = 0, media_info.audio_count - 1 do filter_inputs = filter_inputs .. string.format("[0:a:%d]", i) end
+        for _, i in ipairs(picks) do filter_inputs = filter_inputs .. string.format("[0:a:%d]", i) end
         local mix            = string.format("%samix=inputs=%d:normalize=0", filter_inputs, media_info.audio_count)
         if chain then mix = mix .. "," .. chain end
 
         table.insert(args, "-filter_complex") table.insert(args, mix .. "[aout]")
         table.insert(args, "-map") table.insert(args, "[aout]")
-        table.insert(args, "-map") table.insert(args, "0")
-        if opts.first_audio_only then
-            table.insert(args, "-map") table.insert(args, "-0:a")
-        end
+        map_source(args, media_info, opts.first_audio_only and {} or picks)
     end
 
     audio_codec_args(args, media_info, 0)
@@ -156,7 +188,7 @@ end
 function M.build_args(opts, input_file, output_file, creation_time)
     local args       = { "ffmpeg", "-y", "-hide_banner" }
     local duration   = opts.mark_out - opts.mark_in
-    local media_info = get_media_info(input_file)
+    local media_info = select_streams(get_media_info(input_file), opts)
     local out_fps    = nil
     local accurate   = opts.accurate_cut or opts.lossless_cut
 
@@ -202,25 +234,17 @@ function M.build_args(opts, input_file, output_file, creation_time)
 
     if lossless then
         out_fps = parse_fps(media_info.v_fps)
+        local codec_args = {
+            "-c",            "copy",
+            "-map_metadata", "0",
+            "-metadata",     "ENCODED_BY=tachytome",
+            "-metadata",     "TACHYTOME_MODE=Lossless"
+        }
+        for _, v in ipairs(codec_args) do table.insert(args, v) end
         if opts.combine_audio and media_info.audio_count > 1 and media_info.a_meta then
-            local codec_args = {
-                "-c",            "copy",
-                "-map_metadata", "0",
-                "-metadata",     "ENCODED_BY=tachytome",
-                "-metadata",     "TACHYTOME_MODE=Lossless"
-            }
-            for _, v in ipairs(codec_args) do table.insert(args, v) end
             append_combine_audio(args, opts, media_info, af_effects, false)
         else
-            local codec_args = {
-                "-c",            "copy",
-                "-map",          "0",
-                "-map_metadata", "0",
-                "-metadata",     "ENCODED_BY=tachytome",
-                "-metadata",     "TACHYTOME_MODE=Lossless"
-            }
-            for _, v in ipairs(codec_args) do table.insert(args, v) end
-            if opts.first_audio_only then deselect_extra_audio(args, media_info.audio_count) end
+            map_source(args, media_info, kept_audio(opts, media_info))
         end
     else
         local enc = opts.video_encoder:lower()
@@ -231,7 +255,8 @@ function M.build_args(opts, input_file, output_file, creation_time)
         elseif enc:match("^intel_") then safe_quality = math.min(51, math.max(1, safe_quality))
         else safe_quality = math.min(51, math.max(0, safe_quality)) end
         local quality_str = tostring(safe_quality)
-        local fps_value   = opts.fps_override or media_info.v_fps
+        local has_video   = #media_info.video_pick > 0
+        local fps_value   = has_video and (opts.fps_override or media_info.v_fps) or nil
 
         local v_filters = {}
         if fps_value then
@@ -239,7 +264,7 @@ function M.build_args(opts, input_file, output_file, creation_time)
             v_filters[#v_filters + 1] = "fps=" .. fps_value
         end
         for _, fx in ipairs(vf_effects) do v_filters[#v_filters + 1] = fx end
-        if #v_filters > 0 then
+        if has_video and #v_filters > 0 then
             table.insert(args, "-vf")
             table.insert(args, table.concat(v_filters, ","))
         end
@@ -292,19 +317,10 @@ function M.build_args(opts, input_file, output_file, creation_time)
             table.insert(args, "-g") table.insert(args, tostring(gop))
         end
 
-        if opts.combine_audio then
-            if media_info.audio_count > 1 and media_info.a_meta then
-                append_combine_audio(args, opts, media_info, af_effects, not accurate)
-            else
-                table.insert(args, "-map") table.insert(args, "0")
-                append_audio_effects(args, media_info, af_effects, not accurate)
-            end
-        elseif opts.first_audio_only then
-            table.insert(args, "-map") table.insert(args, "0")
-            deselect_extra_audio(args, media_info.audio_count)
-            append_audio_effects(args, media_info, af_effects, not accurate)
+        if opts.combine_audio and media_info.audio_count > 1 and media_info.a_meta then
+            append_combine_audio(args, opts, media_info, af_effects, not accurate)
         else
-            table.insert(args, "-map") table.insert(args, "0")
+            map_source(args, media_info, kept_audio(opts, media_info))
             append_audio_effects(args, media_info, af_effects, not accurate)
         end
     end

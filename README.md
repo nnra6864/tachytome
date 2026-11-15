@@ -138,6 +138,7 @@ The `simple` menu keeps every item on a single level, switch to it with `s-s` `m
 | <hr>    | <hr>              | <hr>                                                                                         |
 | v       | Video             | Open the [Video](#video) submenu.                                                            |
 | a       | Audio             | Open the [Audio](#audio) submenu.                                                            |
+| T       | Tracks            | Pick the tracks kept in the output.<br>Learn more about [Tracks](#tracks-list).              |
 | e       | Effects           | Select the effects applied to the output.<br>Learn more about [Effects](#effects).           |
 | <hr>    | <hr>              | <hr>                                                                                         |
 | p       | Path              | Set Output path.<br>Learn more about [Path](#path).                                          |
@@ -239,6 +240,23 @@ Inputs like the Path prompt use ctrl+k/ctrl+j instead, since plain letters are t
 | Enter   | Toggle | Select or deselect the preset.              |
 | d       | Edit   | Edit the duration and params of the preset. |
 | Esc     | Close  | Close the list.                             |
+
+#### Tracks List
+
+| Keybind   | Action     | Description                                    |
+|-----------|------------|------------------------------------------------|
+| a         | Pick Audio | Show the audio tracks.                         |
+| v         | Pick Video | Show the video tracks.                         |
+| 1-9       | Toggle     | Keep or drop the track with that number.       |
+| Enter     | Toggle     | Keep or drop the track under the cursor.       |
+| Esc       | Close      | Close the list.                                |
+
+Each track shows its number, title, on/off state and its codec, channels or size and language.<br>
+Tracks past the 9th have no number key, reach them with Up/Down and toggle them with Enter.<br>
+The list opens on audio, set `tracks_type=video` to open on video instead.<br>
+`audio_tracks` and `video_tracks` pick the tracks kept by default for every loaded file, `all`, a list like `1,3`, or empty for none.<br>
+Only the file's own tracks are listed, external audio files loaded into mpv aren't part of the render.<br>
+First Audio Only keeps the first selected audio track, Combine Audio mixes only the selected ones, dropping every video track renders audio only.
 
 #### Configs List
 

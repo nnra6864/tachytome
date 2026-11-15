@@ -171,6 +171,13 @@ local items = {
         keep_open = true
     },
     {
+        name      = "tracks",
+        label_key = "menu_tracks",
+        get_val   = function() return v(theme.escape(actions.get_tracks_display())) end,
+        action    = function() actions.tracks_menu(M.open) end,
+        keep_open = false
+    },
+    {
         name      = "effects",
         label_key = "menu_effects",
         get_val   = function()
