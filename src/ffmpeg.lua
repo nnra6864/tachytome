@@ -23,6 +23,30 @@ local function get_media_info(input_file)
     return info
 end
 
+local audio_encoders = {
+    opus   = "libopus",
+    aac    = "aac",
+    mp3    = "libmp3lame",
+    flac   = "flac",
+    vorbis = "libvorbis",
+    pcm    = "pcm_s16le"
+}
+
+local ogg_codecs = { opus = true, vorbis = true, flac = true }
+local wav_codecs = { pcm_s16le = true, pcm_s24le = true, pcm_s32le = true, pcm_f32le = true, pcm_u8 = true }
+
+local audio_formats = {
+    mka  = {},
+    opus = { encoder = "opus",   codecs = { opus = true } },
+    ogg  = { encoder = "opus",   codecs = ogg_codecs },
+    oga  = { encoder = "opus",   codecs = ogg_codecs },
+    m4a  = { encoder = "aac",    codecs = { aac = true, alac = true, ac3 = true, eac3 = true } },
+    mp3  = { encoder = "mp3",    codecs = { mp3 = true },  single = true },
+    aac  = { encoder = "aac",    codecs = { aac = true },  single = true },
+    flac = { encoder = "flac",   codecs = { flac = true }, single = true },
+    wav  = { encoder = "pcm",    codecs = wav_codecs,      single = true }
+}
+
 local function pick_tracks(list, count)
     local out = {}
     if not list then
@@ -35,11 +59,26 @@ local function pick_tracks(list, count)
     return out
 end
 
-local function select_streams(info, opts)
+local function audio_target(opts, info)
+    local name = opts.audio_encoder or "copy"
+    local fmt  = info.format
+    if not audio_encoders[name] then name = "copy" end
+    if name == "copy" and fmt and info.a_meta and fmt.codecs and not fmt.codecs[info.a_meta.codec] then name = fmt.encoder end
+    if name == "copy" then return nil end
+    return audio_encoders[name]
+end
+
+local function select_streams(info, opts, output_file)
+    local ext        = (output_file:match("%.([a-zA-Z0-9]+)$") or ""):lower()
+    info.format      = audio_formats[ext]
+    info.audio_only  = info.format ~= nil
+    info.first_only  = opts.first_audio_only or (info.format ~= nil and info.format.single == true)
     info.audio_pick  = pick_tracks(opts.audio_tracks, #info.audio)
-    info.video_pick  = pick_tracks(opts.video_tracks, #info.video)
+    info.video_pick  = info.audio_only and {} or pick_tracks(opts.video_tracks, #info.video)
     info.audio_count = #info.audio_pick
     info.a_meta      = info.audio_pick[1] and info.audio[info.audio_pick[1] + 1] or nil
+    info.a_encoder   = audio_target(opts, info)
+    info.a_bitrate   = opts.audio_bitrate ~= "" and opts.audio_bitrate or nil
     info.full_range  = false
     info.v_fps       = nil
     for k, i in ipairs(info.video_pick) do
@@ -93,13 +132,13 @@ local function deselect(args, kind, count, keep)
 end
 
 local function map_source(args, media_info, audio)
-    table.insert(args, "-map") table.insert(args, "0")
+    table.insert(args, "-map") table.insert(args, media_info.audio_only and "0:a?" or "0")
     deselect(args, "a", #media_info.audio, audio)
-    deselect(args, "v", #media_info.video, media_info.video_pick)
+    if not media_info.audio_only then deselect(args, "v", #media_info.video, media_info.video_pick) end
 end
 
-local function kept_audio(opts, media_info)
-    if opts.first_audio_only then return { media_info.audio_pick[1] } end
+local function kept_audio(media_info)
+    if media_info.first_only then return { media_info.audio_pick[1] } end
     return media_info.audio_pick
 end
 
@@ -112,13 +151,19 @@ local function audio_encoder(a_meta)
 end
 
 local function audio_codec_args(args, media_info, index)
-    local suffix = index and string.format(":%d", index) or ""
-    table.insert(args, "-c:a" .. suffix) table.insert(args, audio_encoder(media_info.a_meta))
-    if media_info.a_meta.sample_rate and media_info.a_meta.sample_rate ~= "N/A" then
-        table.insert(args, "-ar" .. suffix) table.insert(args, media_info.a_meta.sample_rate)
+    local suffix  = index and string.format(":%d", index) or ""
+    local bitrate = media_info.a_bitrate
+    if media_info.a_encoder then
+        table.insert(args, "-c:a" .. suffix) table.insert(args, media_info.a_encoder)
+    else
+        table.insert(args, "-c:a" .. suffix) table.insert(args, audio_encoder(media_info.a_meta))
+        if media_info.a_meta.sample_rate and media_info.a_meta.sample_rate ~= "N/A" then
+            table.insert(args, "-ar" .. suffix) table.insert(args, media_info.a_meta.sample_rate)
+        end
+        if not bitrate and media_info.a_meta.bit_rate and media_info.a_meta.bit_rate ~= "N/A" then bitrate = media_info.a_meta.bit_rate end
     end
-    if media_info.a_meta.bit_rate and media_info.a_meta.bit_rate ~= "N/A" then
-        table.insert(args, "-b:a" .. suffix) table.insert(args, media_info.a_meta.bit_rate)
+    if bitrate then
+        table.insert(args, "-b:a" .. suffix) table.insert(args, bitrate)
     end
 end
 
@@ -130,7 +175,7 @@ local function append_combine_audio(args, opts, media_info, af_effects, reencode
     local chain = #af_effects > 0 and table.concat(af_effects, ",") or nil
     local picks = media_info.audio_pick
 
-    if chain and not opts.first_audio_only then
+    if chain and not media_info.first_only then
         local parts  = {}
         local inputs = ""
         for k, i in ipairs(picks) do
@@ -157,14 +202,14 @@ local function append_combine_audio(args, opts, media_info, af_effects, reencode
 
         table.insert(args, "-filter_complex") table.insert(args, mix .. "[aout]")
         table.insert(args, "-map") table.insert(args, "[aout]")
-        map_source(args, media_info, opts.first_audio_only and {} or picks)
+        map_source(args, media_info, media_info.first_only and {} or picks)
     end
 
     audio_codec_args(args, media_info, 0)
 
-    if not opts.first_audio_only then
+    if not media_info.first_only then
         for i = 1, media_info.audio_count do
-            if reencode_copies or chain then
+            if reencode_copies or chain or media_info.a_encoder then
                 audio_codec_args(args, media_info, i)
             else
                 table.insert(args, string.format("-c:a:%d", i))
@@ -178,7 +223,7 @@ local function append_combine_audio(args, opts, media_info, af_effects, reencode
 end
 
 local function append_audio_effects(args, media_info, af_effects, force)
-    if (#af_effects == 0 and not force) or not media_info.a_meta then return end
+    if (#af_effects == 0 and not force and not media_info.a_encoder) or not media_info.a_meta then return end
     if #af_effects > 0 then
         table.insert(args, "-af") table.insert(args, table.concat(af_effects, ","))
     end
@@ -188,7 +233,7 @@ end
 function M.build_args(opts, input_file, output_file, creation_time)
     local args       = { "ffmpeg", "-y", "-hide_banner" }
     local duration   = opts.mark_out - opts.mark_in
-    local media_info = select_streams(get_media_info(input_file), opts)
+    local media_info = select_streams(get_media_info(input_file), opts, output_file)
     local out_fps    = nil
     local accurate   = opts.accurate_cut or opts.lossless_cut
 
@@ -244,7 +289,8 @@ function M.build_args(opts, input_file, output_file, creation_time)
         if opts.combine_audio and media_info.audio_count > 1 and media_info.a_meta then
             append_combine_audio(args, opts, media_info, af_effects, false)
         else
-            map_source(args, media_info, kept_audio(opts, media_info))
+            map_source(args, media_info, kept_audio(media_info))
+            append_audio_effects(args, media_info, af_effects, false)
         end
     else
         local enc = opts.video_encoder:lower()
@@ -320,7 +366,7 @@ function M.build_args(opts, input_file, output_file, creation_time)
         if opts.combine_audio and media_info.audio_count > 1 and media_info.a_meta then
             append_combine_audio(args, opts, media_info, af_effects, not accurate)
         else
-            map_source(args, media_info, kept_audio(opts, media_info))
+            map_source(args, media_info, kept_audio(media_info))
             append_audio_effects(args, media_info, af_effects, not accurate)
         end
     end

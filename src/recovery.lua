@@ -232,6 +232,8 @@ local function adopt_orphan_queue(file)
                 effects             = it.effects,
                 lossless_cut        = it.lossless_cut,
                 accurate_cut        = it.accurate_cut,
+                audio_encoder       = it.audio_encoder,
+                audio_bitrate       = it.audio_bitrate,
                 combine_audio       = it.combine_audio,
                 combined_audio_name = it.combined_audio_name,
                 first_audio_only    = it.first_audio_only,

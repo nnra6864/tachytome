@@ -170,10 +170,20 @@ The `simple` menu keeps every item on a single level, switch to it with `s-s` `m
 
 ##### Audio
 
-| Keybind | Action           | Description                         |
-|---------|------------------|-------------------------------------|
-| c       | Combine Audio    | Toggle the combine audio option.    |
-| f       | First Audio Only | Toggle the first audio only option. |
+| Keybind | Action           | Description                                                                         |
+|---------|------------------|-------------------------------------------------------------------------------------|
+| e       | Audio Encoder    | Set the audio encoder, `copy` keeps the source audio.                               |
+| b       | Audio Bitrate    | Set the bitrate of re-encoded audio, e.g. `128k`.<br>Empty uses the source bitrate. |
+| c       | Combine Audio    | Toggle the combine audio option.                                                    |
+| f       | First Audio Only | Toggle the first audio only option.                                                 |
+
+##### Audio Export
+
+End the [Path](#path) with an audio extension to export audio only, e.g. `clip.opus` or `clip.mp3`.<br>
+Supported formats are `mka`, `opus`, `ogg`, `oga`, `m4a`, `mp3`, `aac`, `flac` and `wav`, video and subtitles are dropped.<br>
+With the `copy` encoder the audio is copied when the format can hold it, otherwise it's re-encoded with the format's own codec, e.g. Opus for `.opus`, AAC for `.m4a`.<br>
+`mp3`, `aac`, `flac` and `wav` hold a single track, the first selected one, or the combined one with Combine Audio.<br>
+Pick which audio tracks are exported in the [Tracks](#tracks-list) list.
 
 ##### Settings
 

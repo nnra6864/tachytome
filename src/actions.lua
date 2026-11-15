@@ -208,6 +208,40 @@ function M.select_encoder(on_complete)
     end, on_complete)
 end
 
+function M.select_audio_encoder(on_complete)
+    local encoders = { "copy", "opus", "aac", "mp3", "flac", "vorbis", "pcm" }
+
+    ui_list.show(lang.t("menu_audio_encoder"), encoders, state.opts.audio_encoder, function(new_enc)
+        state.opts.audio_encoder = new_enc
+        notify_set("audio_encoder", new_enc)
+        if on_complete then on_complete() end
+    end, on_complete)
+end
+
+function M.get_audio_bitrate_display()
+    if state.opts.audio_bitrate == "" then return lang.t("value_default") end
+    return state.opts.audio_bitrate
+end
+
+function M.set_audio_bitrate(on_complete)
+    ui_input.show({
+        title     = lang.t("menu_audio_bitrate"),
+        current   = M.get_audio_bitrate_display(),
+        hint      = lang.t("hint_audio_bitrate"),
+        on_cancel = on_complete,
+        on_submit = function(input)
+            input = input:lower()
+            if input == "" or input:match("^%d+k?$") then
+                state.opts.audio_bitrate = input
+                notify_set("audio_bitrate", M.get_audio_bitrate_display())
+            else
+                warn_invalid("audio_bitrate", input)
+            end
+            if on_complete then on_complete() end
+        end
+    })
+end
+
 M.stats_visible = false
 local stats_ov = mp.create_osd_overlay("ass-events")
 
@@ -408,6 +442,8 @@ function M.start_render(on_complete)
         fps_override        = state.fps_override,
         keyframe_interval   = state.opts.keyframe_interval,
         effects             = state.effects_enabled and effects.snapshot() or nil,
+        audio_encoder       = state.opts.audio_encoder,
+        audio_bitrate       = state.opts.audio_bitrate,
         combine_audio       = state.opts.combine_audio,
         combined_audio_name = state.opts.combined_audio_name,
         first_audio_only    = state.opts.first_audio_only,

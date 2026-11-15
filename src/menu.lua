@@ -158,6 +158,20 @@ local items = {
         keep_open = true
     },
     {
+        name      = "audio_encoder",
+        label_key = "menu_audio_encoder",
+        get_val   = function() return v(state.opts.audio_encoder) end,
+        action    = function() actions.select_audio_encoder(M.open) end,
+        keep_open = false
+    },
+    {
+        name      = "audio_bitrate",
+        label_key = "menu_audio_bitrate",
+        get_val   = function() return v(theme.escape(actions.get_audio_bitrate_display())) end,
+        action    = function() actions.set_audio_bitrate(M.open) end,
+        keep_open = false
+    },
+    {
         name      = "combine_audio",
         label_key = "menu_combine_audio",
         get_val   = function() return toggle(state.opts.combine_audio) end,

@@ -214,7 +214,8 @@ local function resolve_absolute_path_base(custom, opts, input_path)
             [".mkv"]=true, [".mp4"]= true, [".webm"]=true, [".avi"]=true,
             [".mov"]=true, [".m4v"]= true, [".ts"]=  true, [".flv"]=true,
             [".wmv"]=true, [".mp3"]= true, [".ogg"]= true, [".aac"]=true,
-            [".mka"]=true, [".opus"]=true
+            [".mka"]=true, [".opus"]=true, [".oga"]=true, [".m4a"]=true,
+            [".flac"]=true, [".wav"]=true
         }
         local user_ext = target_name:match("(%.[a-zA-Z0-9]+)$")
         if not (user_ext and known_exts[user_ext:lower()]) then
