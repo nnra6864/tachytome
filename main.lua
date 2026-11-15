@@ -87,5 +87,5 @@ mp.add_key_binding("ESC", "clear_osd", function()
 end)
 
 mp.add_key_binding("t", "menu", menu.open)
-mp.add_key_binding(nil, "goto", function() actions.goto_prompt() end)
-mp.add_key_binding(nil, "trash", function() actions.trash_source() end)
+mp.add_key_binding(nil, "goto", function() menu.run(actions.goto_prompt) end)
+mp.add_key_binding(nil, "trash", function() menu.run(actions.trash_source) end)

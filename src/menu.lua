@@ -19,6 +19,7 @@ local active_rows   = {}
 local active_map    = {}
 local active_prefix = ""
 local resume_row    = nil
+local keep_path     = false
 local bound_names   = {}
 local esc_back      = false
 local flashes       = {}
@@ -651,8 +652,9 @@ function M.open()
     if menu_active then M.close() return end
     menu_active    = true
     state.ui_owner = "menu"
-    if not resume_row then path = {} end
+    if not resume_row and not keep_path then path = {} end
     resume_row     = nil
+    keep_path      = false
     sync_level()
     ui.clear_osd()
     bind_level()
@@ -667,6 +669,16 @@ end
 
 function M.refresh()
     if menu_active then draw() end
+end
+
+function M.run(fn)
+    if state.ui_owner and state.ui_owner ~= "menu" then
+        return notify.show(lang.t("menu_busy"))
+    end
+    if not menu_active then return fn() end
+    M.close()
+    keep_path = true
+    fn(M.open)
 end
 
 return M

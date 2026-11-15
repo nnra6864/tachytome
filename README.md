@@ -121,6 +121,9 @@ This is done to avoid global bind conflicts.
 | nil     | Go To  | Open the Go To menu.     |
 | nil     | Trash  | Trash current file.      |
 
+Go To and Trash hide the Tachytome menu while they're open and bring it back where you left it once they close.<br>
+They do nothing while another list, prompt or dialog is open, close it first.
+
 #### Menu
 
 The `default` menu groups related items into the Video, Audio and Settings submenus.<br>
