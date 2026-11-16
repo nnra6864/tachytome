@@ -218,9 +218,26 @@ function M.select_audio_encoder(on_complete)
     end, on_complete)
 end
 
+local function source_bitrate()
+    local set = tracks.selected("audio")
+    for i, t in ipairs(tracks.list("audio")) do
+        if set[i] then
+            local enc  = state.opts.audio_encoder
+            local same = enc == "copy" or t.codec == enc or (enc == "pcm" and (t.codec or ""):match("^pcm_"))
+            if not same then return nil, true end
+            local bps = tonumber(t["demux-bitrate"])
+            if bps and bps > 0 then return string.format("%dk", math.floor(bps / 1000 + 0.5)) end
+            return nil, enc ~= "copy"
+        end
+    end
+    return nil
+end
+
 function M.get_audio_bitrate_display()
-    if state.opts.audio_bitrate == "" then return lang.t("value_default") end
-    return state.opts.audio_bitrate
+    if state.opts.audio_bitrate ~= "" then return state.opts.audio_bitrate end
+    local src, best = source_bitrate()
+    if best then return lang.t("value_best") end
+    return src or lang.t("value_source")
 end
 
 function M.set_audio_bitrate(on_complete)
@@ -231,6 +248,7 @@ function M.set_audio_bitrate(on_complete)
         on_cancel = on_complete,
         on_submit = function(input)
             input = input:lower()
+            if input == source_bitrate() or (state.opts.audio_bitrate == "" and input == M.get_audio_bitrate_display():lower()) then input = "" end
             if input == "" or input:match("^%d+k?$") then
                 state.opts.audio_bitrate = input
                 notify_set("audio_bitrate", M.get_audio_bitrate_display())

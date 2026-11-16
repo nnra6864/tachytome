@@ -173,7 +173,7 @@ The `simple` menu keeps every item on a single level, switch to it with `s-s` `m
 | Keybind | Action           | Description                                                                         |
 |---------|------------------|-------------------------------------------------------------------------------------|
 | e       | Audio Encoder    | Set the audio encoder, `copy` keeps the source audio.                               |
-| b       | Audio Bitrate    | Re-encode the audio at a bitrate, e.g. `128k`.<br>Submit it empty to reset it.      |
+| b       | Audio Bitrate    | Set the bitrate, e.g. `128k`, shows the source or `Best`.<br>Empty resets it.       |
 | c       | Combine Audio    | Toggle the combine audio option.                                                    |
 | o       | Combined Only    | Keep only the combined track, dropping the tracks it was mixed from.                |
 
