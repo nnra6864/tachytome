@@ -552,7 +552,7 @@ end
 ### Path
 
 Tachytome offers powerful path resolution.<br>
-Config includes the `output_dir` option which you can set to the path you most commonly use, by default `~/Videos/Tachytome`.
+Config includes the `output_dir` option which you can set to the path you most commonly use, by default `~/Videos/tachytome`.
 
 #### Prefixes
 
@@ -568,7 +568,7 @@ Config includes the `output_dir` option which you can set to the path you most c
 
 | Input      | Resolves To                    |
 |------------|--------------------------------|
-| CutClip    | ~/Videos/Tachytome/CutClip.mkv |
+| CutClip    | ~/Videos/tachytome/CutClip.mkv |
 | ~/CutClip  | ~/CutClip.mkv                  |
 | /CutClip   | /CutClip.mkv                   |
 | ./CutClip  | /path-to-source/CutClip.mkv    |
@@ -578,7 +578,7 @@ Config includes the `output_dir` option which you can set to the path you most c
 
 To keep the menu narrow, paths are shown in their shortest form:
 - under the source file's directory as `./Repo/Funny/MyClip.mkv`
-- under the home directory as `~/Videos/Tachytome/MyClip.mkv` (`~\Videos\...` on Windows)
+- under the home directory as `~/Videos/tachytome/MyClip.mkv` (`~\Videos\...` on Windows)
 - whichever of the two is shorter when both apply, otherwise the full path
 
 While typing a path, the fully expanded path is shown below the input and updates as you type.<br>
