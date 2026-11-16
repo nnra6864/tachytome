@@ -349,7 +349,7 @@ function M.start(opts)
         audio_bitrate       = opts.audio_bitrate,
         combine_audio       = opts.combine_audio,
         combined_audio_name = opts.combined_audio_name,
-        first_audio_only    = opts.first_audio_only,
+        combined_audio_only = opts.combined_audio_only,
         audio_tracks        = opts.audio_tracks,
         video_tracks        = opts.video_tracks,
         trash_source        = opts.trash_source,

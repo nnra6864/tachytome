@@ -179,10 +179,10 @@ local items = {
         keep_open = true
     },
     {
-        name      = "first_audio_only",
-        label_key = "menu_first_audio_only",
-        get_val   = function() return toggle(state.opts.first_audio_only) end,
-        action    = actions.toggle_first_audio_only,
+        name      = "combined_audio_only",
+        label_key = "menu_combined_audio_only",
+        get_val   = function() return toggle(state.opts.combined_audio_only) end,
+        action    = actions.toggle_combined_audio_only,
         keep_open = true
     },
     {
@@ -297,6 +297,7 @@ local items = {
 
 local items_by_name = {}
 for _, item in ipairs(items) do items_by_name[item.name] = item end
+items_by_name.first_audio_only = items_by_name.combined_audio_only
 
 local function row_label(row)
     if row.label then

@@ -236,7 +236,7 @@ local function adopt_orphan_queue(file)
                 audio_bitrate       = it.audio_bitrate,
                 combine_audio       = it.combine_audio,
                 combined_audio_name = it.combined_audio_name,
-                first_audio_only    = it.first_audio_only,
+                combined_audio_only = it.combined_audio_only or it.first_audio_only,
                 audio_tracks        = it.audio_tracks,
                 video_tracks        = it.video_tracks,
                 trash_source        = it.trash_source,

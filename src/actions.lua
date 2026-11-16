@@ -356,9 +356,9 @@ function M.toggle_combine_audio()
     notify_set("combine_audio", on_off(state.opts.combine_audio))
 end
 
-function M.toggle_first_audio_only()
-    state.opts.first_audio_only = not state.opts.first_audio_only
-    notify_set("first_audio_only", on_off(state.opts.first_audio_only))
+function M.toggle_combined_audio_only()
+    state.opts.combined_audio_only = not state.opts.combined_audio_only
+    notify_set("combined_audio_only", on_off(state.opts.combined_audio_only))
 end
 
 function M.toggle_trash_source()
@@ -446,7 +446,7 @@ function M.start_render(on_complete)
         audio_bitrate       = state.opts.audio_bitrate,
         combine_audio       = state.opts.combine_audio,
         combined_audio_name = state.opts.combined_audio_name,
-        first_audio_only    = state.opts.first_audio_only,
+        combined_audio_only = state.opts.combined_audio_only,
         audio_tracks        = tracks.indices("audio"),
         video_tracks        = tracks.indices("video"),
         trash_source        = state.opts.trash_source,

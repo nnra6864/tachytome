@@ -13,6 +13,7 @@ local identifier = "tachytome"
 local reserved   = { ["tachytome.conf"] = true, ["effects.conf"] = true }
 local defaults   = nil
 local origins    = {}
+local aliases    = { first_audio_only = "combined_audio_only" }
 
 local function typeconv(default, val)
     if type(default) == "boolean" then
@@ -25,6 +26,7 @@ local function typeconv(default, val)
 end
 
 local function set_opt(opts, key, val, where, origin)
+    key = aliases[key] or key
     if opts[key] == nil then
         mp.msg.warn(where .. " unknown key '" .. key .. "', ignoring")
         return

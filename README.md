@@ -175,7 +175,7 @@ The `simple` menu keeps every item on a single level, switch to it with `s-s` `m
 | e       | Audio Encoder    | Set the audio encoder, `copy` keeps the source audio.                               |
 | b       | Audio Bitrate    | Re-encode the audio at a bitrate, e.g. `128k`.<br>Submit it empty to reset it.      |
 | c       | Combine Audio    | Toggle the combine audio option.                                                    |
-| f       | First Audio Only | Toggle the first audio only option.                                                 |
+| o       | Combined Only    | Keep only the combined track, dropping the tracks it was mixed from.                |
 
 ##### Audio Export
 
@@ -271,7 +271,7 @@ Tracks past the 9th have no number key, reach them with Up/Down and toggle them 
 The list opens on audio, set `tracks_type=video` to open on video instead.<br>
 `audio_tracks` and `video_tracks` pick the tracks kept by default for every loaded file, `all`, a list like `1,3`, or empty for none.<br>
 Only the file's own tracks are listed, external audio files loaded into mpv aren't part of the render.<br>
-First Audio Only keeps the first selected audio track, Combine Audio mixes only the selected ones, dropping every video track renders audio only.
+Combine Audio mixes only the selected ones, dropping every video track renders audio only.
 
 #### Configs List
 

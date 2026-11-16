@@ -65,7 +65,8 @@ local function select_streams(info, opts, output_file)
     local ext        = (output_file:match("%.([a-zA-Z0-9]+)$") or ""):lower()
     info.format      = audio_formats[ext]
     info.audio_only  = info.format ~= nil
-    info.first_only  = opts.first_audio_only or (info.format ~= nil and info.format.single == true)
+    info.single      = info.format ~= nil and info.format.single == true
+    info.mix_only    = opts.combined_audio_only or info.single
     info.audio_pick  = pick_tracks(opts.audio_tracks, #info.audio)
     info.video_pick  = info.audio_only and {} or pick_tracks(opts.video_tracks, #info.video)
     info.audio_count = #info.audio_pick
@@ -131,7 +132,7 @@ local function map_source(args, media_info, audio)
 end
 
 local function kept_audio(media_info)
-    if media_info.first_only then return { media_info.audio_pick[1] } end
+    if media_info.single then return { media_info.audio_pick[1] } end
     return media_info.audio_pick
 end
 
@@ -185,7 +186,7 @@ local function append_combine_audio(args, opts, media_info, af_effects)
     local chain = #af_effects > 0 and table.concat(af_effects, ",") or nil
     local picks = media_info.audio_pick
 
-    if chain and not media_info.first_only then
+    if chain and not media_info.mix_only then
         local parts  = {}
         local inputs = ""
         for k, i in ipairs(picks) do
@@ -212,12 +213,12 @@ local function append_combine_audio(args, opts, media_info, af_effects)
 
         table.insert(args, "-filter_complex") table.insert(args, mix .. "[aout]")
         table.insert(args, "-map") table.insert(args, "[aout]")
-        map_source(args, media_info, media_info.first_only and {} or picks)
+        map_source(args, media_info, media_info.mix_only and {} or picks)
     end
 
     audio_codec_args(args, media_info, 0, media_info.a_meta, true)
 
-    if not media_info.first_only then
+    if not media_info.mix_only then
         for k, i in ipairs(picks) do
             audio_codec_args(args, media_info, k, media_info.audio[i + 1], chain ~= nil)
         end
