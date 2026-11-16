@@ -61,7 +61,7 @@ local M = {
         menu_path_separator = "/",
         selected_menu       = "default",
         language            = "auto",
-        update_branch       = "master"
+        version             = "latest"
     },
     custom_output_name = "",
     fps_override       = nil,

@@ -11,9 +11,55 @@ local M = {}
 local repo = "nnra6864/tachytome"
 local busy = false
 
-local function branch()
-    if state.opts.update_branch == "" then return "master" end
-    return state.opts.update_branch
+local function version()
+    if state.opts.version == "" then return "latest" end
+    return state.opts.version
+end
+
+local function parse_version(name)
+    local s = name:match("^v?(%d[%.%d]*)$")
+    if not s or s:find("%.%.") or s:sub(-1) == "." then return nil end
+    local nums = {}
+    for n in s:gmatch("%d+") do nums[#nums + 1] = tonumber(n) end
+    return nums
+end
+
+local function newer(a, b)
+    for i = 1, math.max(#a, #b) do
+        local x, y = a[i] or 0, b[i] or 0
+        if x ~= y then return x > y end
+    end
+    return #a > #b
+end
+
+local function releases(tags)
+    local list = {}
+    for _, tag in ipairs(tags) do
+        local nums = parse_version(tag)
+        if nums then list[#list + 1] = { tag = tag, nums = nums } end
+    end
+    table.sort(list, function(a, b) return newer(a.nums, b.nums) end)
+    return list
+end
+
+local function is_release(val)
+    return val == "latest" or parse_version(val) ~= nil
+end
+
+local function target(val, tags)
+    if not is_release(val) then return { name = val, ref = "refs/heads/" .. val } end
+    local want = val ~= "latest" and parse_version(val) or {}
+    for _, r in ipairs(releases(tags or {})) do
+        local match = true
+        for i, n in ipairs(want) do
+            if (r.nums[i] or 0) ~= n then
+                match = false
+                break
+            end
+        end
+        if match then return { name = r.tag, ref = "refs/tags/" .. r.tag, tag = true } end
+    end
+    return nil
 end
 
 local function run(args, callback)
@@ -46,6 +92,43 @@ local function in_repo(dir, callback)
     end)
 end
 
+local function git_refs(dir, callback)
+    git(dir, {"ls-remote", "--heads", "--tags", "origin"}, function(ok, out, err)
+        if not ok then return callback(nil, err) end
+        local refs = { branches = {}, tags = {} }
+        for kind, name in out:gmatch("refs/(%a+)/(%S+)") do
+            if kind == "heads" then
+                refs.branches[#refs.branches + 1] = name
+            elseif kind == "tags" and not name:find("%^{}$") then
+                refs.tags[#refs.tags + 1] = name
+            end
+        end
+        callback(refs)
+    end)
+end
+
+local function github_names(kind, callback)
+    run({"curl", "-fsSL", "https://api.github.com/repos/" .. repo .. "/" .. kind .. "?per_page=100"}, function(ok, out, err)
+        local data = ok and utils.parse_json(out)
+        if type(data) ~= "table" then return callback(nil, err) end
+        local names = {}
+        for _, item in ipairs(data) do
+            if type(item) == "table" and item.name then names[#names + 1] = item.name end
+        end
+        callback(names)
+    end)
+end
+
+local function github_refs(callback)
+    github_names("branches", function(branches, err)
+        if not branches then return callback(nil, err) end
+        github_names("tags", function(tags, err_tags)
+            if not tags then return callback(nil, err_tags) end
+            callback({ branches = branches, tags = tags })
+        end)
+    end)
+end
+
 local function done(on_complete)
     busy = false
     if on_complete then on_complete() end
@@ -61,53 +144,80 @@ local function failed(step)
     return lang.t("update_failed", { step = step })
 end
 
-local function apply_git(dir, target, old, new, on_complete)
+local function no_release(on_complete)
+    fail(lang.t("update_no_release", { version = version() }), nil, on_complete)
+end
+
+local function current_name(dir, callback)
+    git(dir, {"rev-parse", "--abbrev-ref", "HEAD"}, function(ok, name, err)
+        if not ok then return callback(nil, err) end
+        if name ~= "HEAD" then return callback(name) end
+        git(dir, {"describe", "--tags", "--exact-match", "HEAD"}, function(ok_tag, tag)
+            callback(ok_tag and tag or name)
+        end)
+    end)
+end
+
+local function apply_git(dir, t, old, new, on_complete)
     notify.show(lang.t("update_updating"), true)
-    git(dir, {"checkout", "-f", "-B", target, "FETCH_HEAD"}, function(ok, _, err)
+    local args = {"checkout", "-f", "-B", t.name, "FETCH_HEAD"}
+    if t.tag then args = {"checkout", "-f", "--detach", "FETCH_HEAD"} end
+    git(dir, args, function(ok, _, err)
         if not ok then return fail(failed("git checkout"), err, on_complete) end
         notify.show(lang.t("update_done_git", { old = old, new = new }), true)
         done(on_complete)
     end)
 end
 
-local function update_git(dir, on_complete)
-    local target = branch()
-    notify.show(lang.t("update_checking"), true)
-    git(dir, {"fetch", "origin", target}, function(ok, _, err)
-        if not ok then return fail(failed("git fetch"), err, on_complete) end
-        git(dir, {"rev-parse", "--abbrev-ref", "HEAD"}, function(ok_head, current, err_head)
-            if not ok_head then return fail(failed("git rev-parse"), err_head, on_complete) end
-            git(dir, {"rev-list", "--count", "HEAD..FETCH_HEAD"}, function(ok_count, count, err_count)
-                if not ok_count then return fail(failed("git rev-list"), err_count, on_complete) end
-                if tonumber(count) == 0 and current == target then
+local function confirm_git(dir, t, on_complete)
+    current_name(dir, function(current, err)
+        if not current then return fail(failed("git rev-parse"), err, on_complete) end
+        git(dir, {"rev-list", "--count", "HEAD..FETCH_HEAD"}, function(ok_count, count, err_count)
+            if not ok_count then return fail(failed("git rev-list"), err_count, on_complete) end
+            git(dir, {"show", "-s", "--format=%h", "HEAD", "FETCH_HEAD^{commit}"}, function(ok_rev, revs, err_rev)
+                if not ok_rev then return fail(failed("git show"), err_rev, on_complete) end
+                local old, new = revs:match("^(%S+)%s+(%S+)$")
+                old = old or "?"
+                new = new or "?"
+                local same = current == t.name
+                if same and (old == new or (not t.tag and tonumber(count) == 0)) then
                     notify.show(lang.t("update_up_to_date"), true)
                     return done(on_complete)
                 end
-                git(dir, {"show", "-s", "--format=%h", "HEAD", "FETCH_HEAD"}, function(ok_rev, revs, err_rev)
-                    if not ok_rev then return fail(failed("git show"), err_rev, on_complete) end
-                    local old, new = revs:match("^(%S+)%s+(%S+)$")
-                    old = old or "?"
-                    new = new or "?"
-                    local body = lang.t("update_method_git", { count = count, old = old, new = new })
-                    if current ~= target then
-                        body = lang.t("update_method_git_switch", { from = current, to = target, old = old, new = new })
-                    end
-                    ui_confirm.show(lang.t("update_title"), body, function()
-                        apply_git(dir, target, old, new, on_complete)
-                    end, function()
-                        done(on_complete)
-                    end)
+                local body = lang.t("update_method_git", { count = count, old = old, new = new })
+                if not same then
+                    body = lang.t("update_method_git_switch", { from = current, to = t.name, old = old, new = new })
+                end
+                ui_confirm.show(lang.t("update_title"), body, function()
+                    apply_git(dir, t, old, new, on_complete)
+                end, function()
+                    done(on_complete)
                 end)
             end)
         end)
     end)
 end
 
-local function apply_archive(dir, target, on_complete)
+local function update_git(dir, on_complete)
+    notify.show(lang.t("update_checking"), true)
+    git_refs(dir, function(refs, err)
+        if not refs then return fail(failed("git ls-remote"), err, on_complete) end
+        local t = target(version(), refs.tags)
+        if not t then return no_release(on_complete) end
+        local spec = t.name
+        if t.tag then spec = "+" .. t.ref .. ":" .. t.ref end
+        git(dir, {"fetch", "origin", spec}, function(ok, _, err_fetch)
+            if not ok then return fail(failed("git fetch"), err_fetch, on_complete) end
+            confirm_git(dir, t, on_complete)
+        end)
+    end)
+end
+
+local function apply_archive(dir, t, on_complete)
     notify.show(lang.t("update_downloading"), true)
     local temp_dir = os.getenv("TEMP") or os.getenv("TMP") or "/tmp"
     local archive  = utils.join_path(temp_dir, "tachytome_update_" .. tostring(math.floor(mp.get_time() * 1000)) .. ".tar.gz")
-    local url      = "https://github.com/" .. repo .. "/archive/refs/heads/" .. target .. ".tar.gz"
+    local url      = "https://github.com/" .. repo .. "/archive/" .. t.ref .. ".tar.gz"
     run({"curl", "-fsSL", "-o", archive, url}, function(ok, _, err)
         if not ok then
             os.remove(archive)
@@ -122,38 +232,51 @@ local function apply_archive(dir, target, on_complete)
     end)
 end
 
-local function update_archive(dir, reason, on_complete)
-    local target = branch()
-    ui_confirm.show(lang.t("update_title"), lang.t("update_method_archive", { branch = target, reason = reason }), function()
-        apply_archive(dir, target, on_complete)
+local function confirm_archive(dir, t, reason, on_complete)
+    ui_confirm.show(lang.t("update_title"), lang.t("update_method_archive", { version = t.name, reason = reason }), function()
+        apply_archive(dir, t, on_complete)
     end, function()
         done(on_complete)
     end)
 end
 
-local function github_branches(callback)
-    run({"curl", "-fsSL", "https://api.github.com/repos/" .. repo .. "/branches?per_page=100"}, function(ok, out, err)
-        local data = ok and utils.parse_json(out)
-        if type(data) ~= "table" then return callback(nil, err) end
-        local list = {}
-        for _, b in ipairs(data) do
-            if type(b) == "table" and b.name then list[#list + 1] = b.name end
-        end
-        callback(list)
+local function update_archive(dir, reason, on_complete)
+    if not is_release(version()) then return confirm_archive(dir, target(version()), reason, on_complete) end
+    notify.show(lang.t("update_checking"), true)
+    github_names("tags", function(tags, err)
+        if not tags then return fail(failed("curl"), err, on_complete) end
+        local t = target(version(), tags)
+        if not t then return no_release(on_complete) end
+        confirm_archive(dir, t, reason, on_complete)
     end)
 end
 
-function M.branches(callback)
+function M.versions(callback)
+    local function collect(refs, err)
+        if not refs then return callback(nil, err) end
+        local list = {}
+        local seen = {}
+        local function add(name)
+            if seen[name] then return end
+            seen[name]      = true
+            list[#list + 1] = name
+        end
+        add("latest")
+        for _, b in ipairs(refs.branches) do
+            if b == "master" then add(b) end
+        end
+        for _, b in ipairs(refs.branches) do add(b) end
+        for _, r in ipairs(releases(refs.tags)) do
+            for i = 1, #r.nums do add(table.concat(r.nums, ".", 1, i)) end
+        end
+        callback(list)
+    end
+
     local dir = mp.get_script_directory()
-    if not dir then return github_branches(callback) end
+    if not dir then return github_refs(collect) end
     in_repo(dir, function(is_repo)
-        if not is_repo then return github_branches(callback) end
-        git(dir, {"ls-remote", "--heads", "origin"}, function(ok, out, err)
-            if not ok then return callback(nil, err) end
-            local list = {}
-            for name in out:gmatch("refs/heads/(%S+)") do list[#list + 1] = name end
-            callback(list)
-        end)
+        if is_repo then return git_refs(dir, collect) end
+        github_refs(collect)
     end)
 end
 

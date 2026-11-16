@@ -282,10 +282,10 @@ local items = {
         keep_open = false
     },
     {
-        name      = "update_branch",
-        label_key = "menu_update_branch",
-        get_val   = function() return v(theme.escape(state.opts.update_branch)) end,
-        action    = function() actions.select_update_branch(M.open) end,
+        name      = "version",
+        label_key = "menu_version",
+        get_val   = function() return v(theme.escape(state.opts.version)) end,
+        action    = function() actions.select_version(M.open) end,
         keep_open = false
     },
     {
