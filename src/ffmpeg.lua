@@ -171,7 +171,7 @@ local function renamed_chain(chain, suffix)
     return (chain:gsub("@(%w+)", "@%1" .. suffix))
 end
 
-local function append_combine_audio(args, opts, media_info, af_effects, reencode_copies)
+local function append_combine_audio(args, opts, media_info, af_effects)
     local chain = #af_effects > 0 and table.concat(af_effects, ",") or nil
     local picks = media_info.audio_pick
 
@@ -209,7 +209,7 @@ local function append_combine_audio(args, opts, media_info, af_effects, reencode
 
     if not media_info.first_only then
         for i = 1, media_info.audio_count do
-            if reencode_copies or chain or media_info.a_encoder then
+            if chain or media_info.a_encoder then
                 audio_codec_args(args, media_info, i)
             else
                 table.insert(args, string.format("-c:a:%d", i))
@@ -222,8 +222,8 @@ local function append_combine_audio(args, opts, media_info, af_effects, reencode
     table.insert(args, "-metadata:s:a:0")  table.insert(args, string.format("TITLE=%s", opts.combined_audio_name))
 end
 
-local function append_audio_effects(args, media_info, af_effects, force)
-    if (#af_effects == 0 and not force and not media_info.a_encoder) or not media_info.a_meta then return end
+local function append_audio_effects(args, media_info, af_effects)
+    if (#af_effects == 0 and not media_info.a_encoder) or not media_info.a_meta then return end
     if #af_effects > 0 then
         table.insert(args, "-af") table.insert(args, table.concat(af_effects, ","))
     end
@@ -267,6 +267,7 @@ function M.build_args(opts, input_file, output_file, creation_time)
     else
         table.insert(args, "-ss") table.insert(args, tostring(opts.mark_in))
         table.insert(args, "-i")  table.insert(args, input_file)
+        table.insert(args, "-ss") table.insert(args, "0")
         table.insert(args, "-t")  table.insert(args, tostring(duration))
     end
 
@@ -287,10 +288,10 @@ function M.build_args(opts, input_file, output_file, creation_time)
         }
         for _, v in ipairs(codec_args) do table.insert(args, v) end
         if opts.combine_audio and media_info.audio_count > 1 and media_info.a_meta then
-            append_combine_audio(args, opts, media_info, af_effects, false)
+            append_combine_audio(args, opts, media_info, af_effects)
         else
             map_source(args, media_info, kept_audio(media_info))
-            append_audio_effects(args, media_info, af_effects, false)
+            append_audio_effects(args, media_info, af_effects)
         end
     else
         local enc = opts.video_encoder:lower()
@@ -364,10 +365,10 @@ function M.build_args(opts, input_file, output_file, creation_time)
         end
 
         if opts.combine_audio and media_info.audio_count > 1 and media_info.a_meta then
-            append_combine_audio(args, opts, media_info, af_effects, not accurate)
+            append_combine_audio(args, opts, media_info, af_effects)
         else
             map_source(args, media_info, kept_audio(media_info))
-            append_audio_effects(args, media_info, af_effects, not accurate)
+            append_audio_effects(args, media_info, af_effects)
         end
     end
 
