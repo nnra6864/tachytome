@@ -522,6 +522,26 @@ function M.update(on_complete)
     updater.run(on_complete)
 end
 
+function M.select_update_branch(on_complete)
+    notify.show(lang.t("update_fetching_branches"), true)
+    updater.branches(function(list, err)
+        if not list or #list == 0 then
+            notify.show(lang.t("update_branches_failed"), true, "error")
+            if err and err ~= "" then mp.msg.error(err) end
+            if on_complete then on_complete() end
+            return
+        end
+        ui_list.show(lang.t("menu_update_branch"), list, state.opts.update_branch, function(name)
+            if name ~= state.opts.update_branch then
+                state.opts.update_branch = name
+                conf.write_option("update_branch", name)
+            end
+            notify_set("update_branch", name)
+            if on_complete then on_complete() end
+        end, on_complete)
+    end)
+end
+
 function M.select_menu(on_select, on_complete)
     ui_list.show(lang.t("menu_menu_preset"), menus.names(), state.opts.selected_menu, function(name)
         if name ~= state.opts.selected_menu then

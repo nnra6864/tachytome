@@ -60,7 +60,8 @@ local M = {
         start_out_easing    = "ease_out_cubic",
         menu_path_separator = "/",
         selected_menu       = "default",
-        language            = "auto"
+        language            = "auto",
+        update_branch       = "master"
     },
     custom_output_name = "",
     fps_override       = nil,

@@ -282,6 +282,13 @@ local items = {
         keep_open = false
     },
     {
+        name      = "update_branch",
+        label_key = "menu_update_branch",
+        get_val   = function() return v(theme.escape(state.opts.update_branch)) end,
+        action    = function() actions.select_update_branch(M.open) end,
+        keep_open = false
+    },
+    {
         name      = "update",
         label_key = "menu_update",
         action    = function() actions.update(M.open) end,

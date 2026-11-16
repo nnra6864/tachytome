@@ -192,13 +192,14 @@ Pick which audio tracks are exported in the [Tracks](#tracks-list) list.
 
 ##### Settings
 
-| Keybind | Action   | Description                                                                                      |
-|---------|----------|--------------------------------------------------------------------------------------------------|
-| s       | Stats    | Toggle the Tachytome stats overlay.                                                              |
-| m       | Menu     | Switch the menu, saved to your config.<br>Learn more about [Custom Menus](#custom-menus).        |
-| c       | Configs  | Enable, disable and reorder extra configs.<br>Learn more about [Configs](#configs).              |
-| l       | Language | Switch the UI language, saved to your config.<br>Learn more about [Translations](#translations). |
-| U       | Update   | Update Tachytome using git, falls back to the GitHub archive.<br>Restart mpv after updating.     |
+| Keybind | Action   | Description                                                                                                                                |
+|---------|----------|--------------------------------------------------------------------------------------------------------------------------------------------|
+| s       | Stats    | Toggle the Tachytome stats overlay.                                                                                                        |
+| m       | Menu     | Switch the menu, saved to your config.<br>Learn more about [Custom Menus](#custom-menus).                                                  |
+| c       | Configs  | Enable, disable and reorder extra configs.<br>Learn more about [Configs](#configs).                                                        |
+| l       | Language | Switch the UI language, saved to your config.<br>Learn more about [Translations](#translations).                                           |
+| b       | Branch   | Pick the branch Update pulls from, saved to your config as `update_branch`.<br>Lists the git remote's branches, or GitHub's without git.   |
+| U       | Update   | Update Tachytome from the picked branch using git, falls back to the GitHub archive.<br>Restart mpv after updating.                        |
 
 #### Render Queue
 
@@ -323,7 +324,7 @@ configs=default,work,stream,!old
 - `.conf` files in the dir that aren't listed show up as disabled.
 - Switch them from the menu with `c` in Settings, which writes the `configs=` line and reloads options and menus.<br>
   Options changed from the menu during the session are reset to the config values on reload.
-- Switching the menu or language from the menu saves it to whichever file sets it, e.g. `work.conf` when it's the one that wins.<br>
+- Switching the menu, language or update branch from the menu saves it to whichever file sets it, e.g. `work.conf` when it's the one that wins.<br>
   When no file sets it yet, it goes to the first enabled config.
 
 #### Custom Menus
