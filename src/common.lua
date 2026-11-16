@@ -4,6 +4,7 @@ local utils = require 'mp.utils'
 local M = {}
 
 local keyframe_cache  = {}
+local interval_cache  = {}
 local cached_platform = nil
 
 function M.get_platform()
@@ -367,6 +368,31 @@ function M.get_keyframes(file)
 
     keyframe_cache[file] = { list = list, mtime = info.mtime, size = info.size }
     return list
+end
+
+function M.get_keyframe_interval(file)
+    local info = utils.file_info(file)
+    if not info then return nil end
+
+    local cached = interval_cache[file]
+    if cached and cached.mtime == info.mtime and cached.size == info.size then
+        return cached.interval
+    end
+
+    local raw = M.ffprobe_get(file, {"-select_streams", "v:0", "-read_intervals", "%+60", "-show_entries", "packet=pts_time,flags", "-of", "csv=p=0"})
+
+    local last, interval
+    for line in (raw or ""):gmatch("[^\r\n]+") do
+        local pts, flags = line:match("^(.-),(.*)$")
+        local t = tonumber(pts)
+        if t and flags:find("K", 1, true) then
+            if last and t > last then interval = math.max(interval or 0, t - last) end
+            if not last or t > last then last = t end
+        end
+    end
+
+    interval_cache[file] = { interval = interval, mtime = info.mtime, size = info.size }
+    return interval
 end
 
 function M.nearest_keyframe_at_or_before(file, t)

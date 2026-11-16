@@ -83,7 +83,7 @@ return {
 
     hint_quality       = "{label}, {min} to {max}",
     hint_fps           = "Empty uses the source FPS",
-    hint_keyframes     = "Frames, e.g. 120, or seconds, e.g. 2s, empty uses the encoder default",
+    hint_keyframes     = "Frames, e.g. 120, or seconds, e.g. 2s, empty matches the source",
     hint_audio_bitrate = "e.g. 128k, empty keeps the source bitrate, or the best quality when the codec changes",
     hint_space         = "Replaces spaces in the output name, empty removes them",
     hint_path          = "Empty resets to the default path",

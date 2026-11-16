@@ -83,7 +83,7 @@ return {
 
     hint_quality       = "{label}, od {min} do {max}",
     hint_fps           = "Prazno koristi FPS izvora",
-    hint_keyframes     = "Frejmovi, npr. 120, ili sekunde, npr. 2s, prazno koristi podrazumevano za enkoder",
+    hint_keyframes     = "Frejmovi, npr. 120, ili sekunde, npr. 2s, prazno prati izvor",
     hint_audio_bitrate = "npr. 128k, prazno zadržava protok izvora, ili najbolji kvalitet kada se kodek menja",
     hint_space         = "Zamenjuje razmake u imenu izlaza, prazno ih uklanja",
     hint_path          = "Prazno vraća podrazumevanu putanju",

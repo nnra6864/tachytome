@@ -163,7 +163,7 @@ The `simple` menu keeps every item on a single level, switch to it with `s-s` `m
 | e       | Encoder      | Set the video encoder.                                                                                        |
 | q       | Quality      | Set the video encoder quality parameter.                                                                      |
 | f       | FPS          | Set the FPS of the video.                                                                                     |
-| k       | Keyframes    | Set the keyframe interval, e.g. `120` frames or `2s`.<br>Empty uses the encoder default.                      |
+| k       | Keyframes    | Set the keyframe interval, e.g. `120` frames or `2s`.<br>Empty matches the source, shown like `2s`.           |
 | p       | Preset       | Set the video encoder preset parameter.                                                                       |
 | l       | Lossless Cut | Toggle the lossless cut option.                                                                               |
 | a       | Accurate Cut | Toggle accurate cut.<br>Makes cuts millisecond precise, but may cause a slight delay before rendering starts. |

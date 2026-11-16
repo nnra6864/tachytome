@@ -161,9 +161,38 @@ local function valid_keyframe_interval(val)
     return num ~= nil and num > 0
 end
 
+local function source_keyframes()
+    local path = mp.get_property("path")
+    local fps  = get_source_fps()
+    if not path or not fps or fps <= 0 then return nil end
+
+    local interval = common.get_keyframe_interval(path)
+    if not interval then return nil end
+
+    local frames = math.floor(interval * fps + 0.5)
+    if frames < 2 or frames < fps then return nil end
+    return frames / fps, fps
+end
+
+local function keyframe_seconds(val, fps)
+    local secs = tonumber(val:match("^([%d%.]+)s$") or "")
+    if secs then return secs end
+    local frames = tonumber(val:match("^%d+$") or "")
+    if frames and fps then return frames / fps end
+    return nil
+end
+
+function M.get_keyframe_interval()
+    if state.opts.keyframe_interval ~= "" then return state.opts.keyframe_interval end
+    local secs = source_keyframes()
+    if secs then return format_fps(secs) .. "s" end
+    return ""
+end
+
 function M.get_keyframes_display()
-    if state.opts.keyframe_interval == "" then return lang.t("value_default") end
-    return state.opts.keyframe_interval
+    local val = M.get_keyframe_interval()
+    if val == "" then return lang.t("value_default") end
+    return val
 end
 
 function M.set_keyframes(on_complete)
@@ -175,6 +204,9 @@ function M.set_keyframes(on_complete)
         on_submit = function(input)
             input = input:lower()
             if input == "" or valid_keyframe_interval(input) then
+                local src, fps = source_keyframes()
+                local secs     = src and keyframe_seconds(input, fps)
+                if secs and math.abs(secs - src) < 0.5 / fps then input = "" end
                 state.opts.keyframe_interval = input
                 notify_set("keyframes", M.get_keyframes_display())
             else
@@ -458,7 +490,7 @@ function M.start_render(on_complete)
         quality             = state.opts.quality,
         preset              = state.opts.preset,
         fps_override        = state.fps_override,
-        keyframe_interval   = state.opts.keyframe_interval,
+        keyframe_interval   = M.get_keyframe_interval(),
         effects             = state.effects_enabled and effects.snapshot() or nil,
         audio_encoder       = state.opts.audio_encoder,
         audio_bitrate       = state.opts.audio_bitrate,
