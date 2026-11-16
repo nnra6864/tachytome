@@ -164,13 +164,13 @@ local function replace_spaces(name, replacement)
     return (name:gsub(" ", (replacement:gsub("%%", "%%%%"))))
 end
 
-local function resolve_absolute_path_base(custom, opts, input_path)
+local function resolve_absolute_path_base(custom, opts, input_path, container)
     if not input_path or input_path == "" then return "" end
 
     local input_dir   = utils.split_path(input_path)
     local input_name  = input_path:match("([^/\\]+)$") or ""
     local base_name   = input_name:match("^(.*)%.[^%.]+$") or input_name
-    local default_ext = opts.container ~= "" and opts.container or (input_name:match("^.+(%..+)$") or ".mkv")
+    local default_ext = container or (opts.container ~= "" and opts.container or (input_name:match("^.+(%..+)$") or ".mkv"))
     if default_ext:sub(1,1) ~= "." then default_ext = "." .. default_ext end
 
     local base_output_dir = (opts.output_dir == "") and input_dir or M.expand_path(opts.output_dir)
@@ -226,8 +226,8 @@ local function resolve_absolute_path_base(custom, opts, input_path)
     return utils.join_path(target_dir, replace_spaces(target_name, opts.space_replacement))
 end
 
-function M.resolve_absolute_path(custom, opts)
-    return resolve_absolute_path_base(custom, opts, mp.get_property("path"))
+function M.resolve_absolute_path(custom, opts, container)
+    return resolve_absolute_path_base(custom, opts, mp.get_property("path"), container)
 end
 
 function M.resolve_absolute_path_for(custom, opts, input_path)

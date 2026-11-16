@@ -389,7 +389,7 @@ function M.get_space_replacement_display()
 end
 
 function M.get_final_path()
-    return common.resolve_absolute_path(state.custom_output_name, state.opts)
+    return common.resolve_absolute_path(state.custom_output_name, state.opts, tracks.container())
 end
 
 function M.get_final_path_display()
@@ -417,7 +417,7 @@ function M.set_path(on_complete)
         allow_space = true,
         on_cancel   = on_complete,
         preview     = function(input)
-            return common.resolve_absolute_path(input, state.opts)
+            return common.resolve_absolute_path(input, state.opts, tracks.container())
         end,
         on_submit   = function(input)
             state.custom_output_name = input

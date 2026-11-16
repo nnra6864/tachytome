@@ -8,6 +8,7 @@ local notify    = require 'src.notify'
 local theme     = require 'src.theme'
 local process   = require 'src.process'
 local ui_choice = require 'src.ui_choice'
+local tracks    = require 'src.tracks'
 local lang      = require 'src.lang'
 
 local M = {}
@@ -292,7 +293,7 @@ local function verify_and_queue(job, file_path, on_complete)
     ui_choice.show_exists(job.final_name, function()
         if job.rename_callback then
             job.rename_callback(function()
-                local new_output = common.resolve_absolute_path(state.custom_output_name, state.opts)
+                local new_output = common.resolve_absolute_path(state.custom_output_name, state.opts, tracks.container())
                 local _, fname   = utils.split_path(new_output)
 
                 job.final_name                 = fname

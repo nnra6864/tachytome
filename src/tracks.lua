@@ -5,6 +5,9 @@ local lang   = require 'src.lang'
 
 local M = {}
 
+local codec_exts   = { opus = "opus", aac = "m4a", alac = "m4a", mp3 = "mp3", flac = "flac", vorbis = "ogg" }
+local encoder_exts = { opus = "opus", aac = "m4a", mp3 = "mp3", flac = "flac", vorbis = "ogg", pcm = "wav" }
+
 local function parse(kind, count)
     local key  = kind .. "_tracks"
     local spec = state.opts[key]:lower():match("^%s*(.-)%s*$")
@@ -57,6 +60,33 @@ function M.indices(kind)
     end
     if #out == count then return nil end
     return out
+end
+
+local function kept_video()
+    local set = M.selected("video")
+    for i, t in ipairs(M.list("video")) do
+        if set[i] and not t.albumart and not t.image then return true end
+    end
+    return false
+end
+
+function M.container()
+    if kept_video() then return nil end
+    local set  = M.selected("audio")
+    local kept = {}
+    for i, t in ipairs(M.list("audio")) do
+        if set[i] then kept[#kept + 1] = t end
+    end
+    local count = #kept
+    if count == 0 then return nil end
+    if count > 1 and state.opts.combine_audio then count = state.opts.combined_audio_only and 1 or count + 1 end
+    if count > 1 then return "mka" end
+
+    local encoder = state.opts.audio_encoder
+    if encoder_exts[encoder] then return encoder_exts[encoder] end
+    local codec = kept[1].codec or ""
+    if codec:match("^pcm_") then return "wav" end
+    return codec_exts[codec] or "mka"
 end
 
 function M.display(kind)

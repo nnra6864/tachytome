@@ -184,7 +184,9 @@ Supported formats are `mka`, `opus`, `ogg`, `oga`, `m4a`, `mp3`, `aac`, `flac` a
 With the `copy` encoder the audio is copied when the format can hold it, otherwise it's re-encoded with the format's own codec, e.g. Opus for `.opus`, AAC for `.m4a`.<br>
 Audio is only re-encoded when needed: a codec the format can't hold, audio effects, the combined track, a picked encoder or a set bitrate.<br>
 Re-encoded audio keeps the source bitrate when the codec stays the same, otherwise it uses the highest quality, 256k per channel for Opus and AAC, 320k for MP3 and quality 10 for Vorbis.<br>
-`mp3`, `aac`, `flac` and `wav` hold a single track, the first selected one, or the combined one with Combine Audio.<br>
+`opus`, `mp3`, `aac`, `flac` and `wav` hold a single track, the first selected one, or the combined one with Combine Audio.<br>
+Dropping every video track in the [Tracks](#tracks-list) list switches the default name to an audio format, so it's never re-encoded just to fit.<br>
+A single kept track uses its own format, e.g. `.opus` for Opus, `.m4a` for AAC or `.flac` for FLAC, several tracks use `.mka`, Matroska for audio.<br>
 Pick which audio tracks are exported in the [Tracks](#tracks-list) list.
 
 ##### Settings

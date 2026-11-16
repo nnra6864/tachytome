@@ -39,7 +39,7 @@ local wav_codecs = { pcm_s16le = true, pcm_s24le = true, pcm_s32le = true, pcm_f
 
 local audio_formats = {
     mka  = {},
-    opus = { encoder = "opus",   codecs = { opus = true } },
+    opus = { encoder = "opus",   codecs = { opus = true }, single = true },
     ogg  = { encoder = "opus",   codecs = ogg_codecs },
     oga  = { encoder = "opus",   codecs = ogg_codecs },
     m4a  = { encoder = "aac",    codecs = { aac = true, alac = true, ac3 = true, eac3 = true } },
