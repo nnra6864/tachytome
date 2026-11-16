@@ -182,6 +182,7 @@ The `simple` menu keeps every item on a single level, switch to it with `s-s` `m
 End the [Path](#path) with an audio extension to export audio only, e.g. `clip.opus` or `clip.mp3`.<br>
 Supported formats are `mka`, `opus`, `ogg`, `oga`, `m4a`, `mp3`, `aac`, `flac` and `wav`, video and subtitles are dropped.<br>
 With the `copy` encoder the audio is copied when the format can hold it, otherwise it's re-encoded with the format's own codec, e.g. Opus for `.opus`, AAC for `.m4a`.<br>
+The typed format also wins over a picked Audio Encoder it can't hold, e.g. the `mp3` encoder with `clip.opus` gives Opus.<br>
 Audio is only re-encoded when needed: a codec the format can't hold, audio effects, the combined track, a picked encoder or a set bitrate.<br>
 Re-encoded audio keeps the source bitrate when the codec stays the same, otherwise it uses the highest quality, 256k per channel for Opus and AAC, 320k for MP3 and quality 10 for Vorbis.<br>
 `opus`, `mp3`, `aac`, `flac` and `wav` hold a single track, the first selected one, or the combined one with Combine Audio.<br>

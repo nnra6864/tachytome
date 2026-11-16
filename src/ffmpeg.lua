@@ -144,11 +144,16 @@ local function audio_encoder(a_meta)
     return encoder
 end
 
+local function fits(fmt, codec)
+    return not fmt or not fmt.codecs or fmt.codecs[codec] == true
+end
+
 local function track_encoder(media_info, meta)
-    local fmt = media_info.format
-    if media_info.a_choice then return audio_encoders[media_info.a_choice] end
-    if fmt and fmt.codecs and not fmt.codecs[meta.codec] then return audio_encoders[fmt.encoder] end
-    return nil
+    local fmt    = media_info.format
+    local choice = media_info.a_choice
+    if choice and fits(fmt, choice == "pcm" and "pcm_s16le" or choice) then return audio_encoders[choice] end
+    if fits(fmt, meta.codec) then return nil end
+    return audio_encoders[fmt.encoder]
 end
 
 local function audio_codec_args(args, media_info, index, meta, force)
