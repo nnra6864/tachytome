@@ -100,8 +100,14 @@ newest_tag() {
     }' | sort | tail -n 1 | cut -d " " -f 2
 }
 
+latest_release() {
+    has curl || return 0
+    curl -fsSL "https://api.github.com/repos/$repo/releases/latest" 2>/dev/null | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' | head -n 1
+}
+
 install_git() {
-    tag=$(git ls-remote --tags --refs "$url.git" | newest_tag)
+    tag=$(latest_release)
+    [ -n "$tag" ] || tag=$(git ls-remote --tags --refs "$url.git" | newest_tag)
     if [ -n "$tag" ]; then
         say "Cloning Tachytome $tag into $target..."
         git clone -q --no-checkout "$url.git" "$target"
@@ -115,7 +121,8 @@ install_git() {
 install_archive() {
     has curl || die "curl is needed to download Tachytome"
     has tar  || die "tar is needed to extract Tachytome"
-    tag=$(curl -fsSL "https://api.github.com/repos/$repo/tags?per_page=100" | sed -n 's/.*"name": *"\([^"]*\)".*/\1/p' | newest_tag)
+    tag=$(latest_release)
+    [ -n "$tag" ] || tag=$(curl -fsSL "https://api.github.com/repos/$repo/tags?per_page=100" | sed -n 's/.*"name": *"\([^"]*\)".*/\1/p' | newest_tag)
     ref="refs/heads/master"
     name="master"
     if [ -n "$tag" ]; then

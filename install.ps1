@@ -47,10 +47,21 @@ function Install-Tachytome {
         return ($tags | Sort-Object Key | Select-Object -Last 1).Name
     }
 
+    function Latest-Release {
+        try {
+            return (Invoke-RestMethod "https://api.github.com/repos/$repo/releases/latest").tag_name
+        } catch {
+            return $null
+        }
+    }
+
     function Install-Git($target) {
-        $names = git ls-remote --tags --refs "$url.git" | ForEach-Object { ($_ -split "/")[-1] }
-        if ($LASTEXITCODE -ne 0) { throw "Failed to list the releases of $url" }
-        $tag = Newest-Tag $names
+        $tag = Latest-Release
+        if (-not $tag) {
+            $names = git ls-remote --tags --refs "$url.git" | ForEach-Object { ($_ -split "/")[-1] }
+            if ($LASTEXITCODE -ne 0) { throw "Failed to list the releases of $url" }
+            $tag = Newest-Tag $names
+        }
         if ($tag) {
             Write-Host "Cloning Tachytome $tag into $target..."
             git clone -q --no-checkout "$url.git" $target
@@ -65,8 +76,8 @@ function Install-Tachytome {
     }
 
     function Install-Archive($target) {
-        $names = (Invoke-RestMethod "https://api.github.com/repos/$repo/tags?per_page=100").name
-        $tag   = Newest-Tag $names
+        $tag = Latest-Release
+        if (-not $tag) { $tag = Newest-Tag (Invoke-RestMethod "https://api.github.com/repos/$repo/tags?per_page=100").name }
         $ref   = "refs/heads/master"
         $label = "master"
         if ($tag) {

@@ -129,6 +129,17 @@ local function github_refs(callback)
     end)
 end
 
+local function resolve(val, tags, callback)
+    if val ~= "latest" then return callback(target(val, tags)) end
+    run({"curl", "-fsSL", "https://api.github.com/repos/" .. repo .. "/releases/latest"}, function(ok, out)
+        local data = ok and utils.parse_json(out)
+        if type(data) == "table" and type(data.tag_name) == "string" then
+            return callback({ name = data.tag_name, ref = "refs/tags/" .. data.tag_name, tag = true })
+        end
+        callback(target(val, tags))
+    end)
+end
+
 local function done(on_complete)
     busy = false
     if on_complete then on_complete() end
@@ -202,13 +213,14 @@ local function update_git(dir, on_complete)
     notify.show(lang.t("update_checking"), true)
     git_refs(dir, function(refs, err)
         if not refs then return fail(failed("git ls-remote"), err, on_complete) end
-        local t = target(version(), refs.tags)
-        if not t then return no_release(on_complete) end
-        local spec = t.name
-        if t.tag then spec = "+" .. t.ref .. ":" .. t.ref end
-        git(dir, {"fetch", "origin", spec}, function(ok, _, err_fetch)
-            if not ok then return fail(failed("git fetch"), err_fetch, on_complete) end
-            confirm_git(dir, t, on_complete)
+        resolve(version(), refs.tags, function(t)
+            if not t then return no_release(on_complete) end
+            local spec = t.name
+            if t.tag then spec = "+" .. t.ref .. ":" .. t.ref end
+            git(dir, {"fetch", "origin", spec}, function(ok, _, err_fetch)
+                if not ok then return fail(failed("git fetch"), err_fetch, on_complete) end
+                confirm_git(dir, t, on_complete)
+            end)
         end)
     end)
 end
@@ -245,9 +257,10 @@ local function update_archive(dir, reason, on_complete)
     notify.show(lang.t("update_checking"), true)
     github_names("tags", function(tags, err)
         if not tags then return fail(failed("curl"), err, on_complete) end
-        local t = target(version(), tags)
-        if not t then return no_release(on_complete) end
-        confirm_archive(dir, t, reason, on_complete)
+        resolve(version(), tags, function(t)
+            if not t then return no_release(on_complete) end
+            confirm_archive(dir, t, reason, on_complete)
+        end)
     end)
 end
 

@@ -57,7 +57,7 @@ irm https://raw.githubusercontent.com/nnra6864/tachytome/master/install.ps1 | ie
 ```
 
 - Installs into the dir mpv reads its config from, `$MPV_HOME`, `$XDG_CONFIG_HOME/mpv` or `~/.config/mpv`, the Flatpak dir when that's your only mpv, and `portable_config` next to `mpv.exe`, `$MPV_HOME` or `%APPDATA%/mpv` on Windows.
-- Clones the newest release with git, offering to install git when it's missing, and downloads the release archive from GitHub otherwise.
+- Clones the release marked Latest on GitHub with git, offering to install git when it's missing, and downloads the release archive from GitHub otherwise.
 - Offers installing FFmpeg, and gio or trash-cli on Linux, with your package manager, `brew` on Mac or `winget` on Windows.
 - When Tachytome is already installed, it asks before reinstalling and moves the current install next to the scripts dir, your config is never touched.
 
@@ -224,11 +224,11 @@ Pick which audio tracks are exported in the [Tracks](#tracks-list) list.
 | U       | Update   | Update Tachytome to the picked version using git, falls back to the GitHub archive.<br>Restart mpv after updating.  |
 
 The `version` option takes:
-- `latest`, the default, the newest release.
+- `latest`, the default, the release marked Latest on GitHub, or the highest version tag when there's no release.
 - A branch name, e.g. `master`, following that branch.
-- A full or partial version, pinning the newest release it matches, e.g. `3` for the newest 3.x.x, `2.1` for the newest 2.1.x, or `1.2.5` for exactly 1.2.5.
+- A full or partial version, pinning the highest version tag it matches, e.g. `3` for the newest 3.x.x, `2.1` for the newest 2.1.x, or `1.2.5` for exactly 1.2.5.
 
-Releases are the repo's version tags, e.g. `v1.2.5` or `1.2.5`.<br>
+Version tags look like `v1.2.5` or `1.2.5`, others like `v2.0-rc1` are skipped.<br>
 Version lists `latest`, the branches and every release with its partial versions, read from the git remote, or from GitHub when Tachytome isn't a git clone.<br>
 Updating through git switches the checkout to the branch, or detaches it at the release.
 
