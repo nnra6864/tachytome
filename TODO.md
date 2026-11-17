@@ -3,34 +3,7 @@
 Items are ordered for implementation, one at a time. `[?]` marks an open
 question that needs an answer before that item starts.
 
-## 1. Installers
-- `install.sh` (Linux, macOS) and `install.ps1` (Windows) in the repo root,
-  served from GitHub raw and run with one line:
-  `curl -fsSL https://raw.githubusercontent.com/nnra6864/tachytome/master/install.sh | sh`
-  and `irm https://raw.githubusercontent.com/nnra6864/tachytome/master/install.ps1 | iex`.
-- Finds the mpv config dir like mpv does: `$MPV_HOME`, then
-  `$XDG_CONFIG_HOME/mpv` or `~/.config/mpv` on Linux and macOS, the
-  Flatpak dir `~/.var/app/io.mpv.Mpv/config/mpv` when that's the only
-  installed mpv; `portable_config` next to `mpv.exe`, then `$MPV_HOME`,
-  then `%APPDATA%\mpv` on Windows.
-- Installs into `<mpv>/scripts/tachytome`:
-  - git is the default: clones the GitHub repo and checks out the newest
-    release tag, so Update and Version work through git.
-  - git missing: offers installing it (package manager on Linux, `brew` on
-    macOS, `winget` on Windows), and falls back to the GitHub archive of
-    the newest release when declined or when it fails.
-  - Already installed: says so and offers reinstalling, never deletes the
-    user's config.
-- Dependencies, each checked first, skipped when present, and asked before
-  installing:
-  - FFmpeg: pacman, apt, dnf or zypper with `sudo` on Linux, `brew` on
-    macOS, `winget install -e --id Gyan.FFmpeg` on Windows.
-  - Linux: `gio` or `trash-cli`, needed for trashing.
-  - Warns when mpv itself isn't found.
-- README: the one-liners become the main install method, the manual clone
-  and submodule steps stay as alternatives.
-
-## 2. Version tracking and the 1.0.0 -> 2.0.0 migration
+## 1. Version tracking and the 1.0.0 -> 2.0.0 migration
 - `src/version.lua` returns the running version, e.g. `"2.0.0"`, bumped on
   every release.
 - A version file in the platform state dir: `$XDG_STATE_HOME/tachytome` or
