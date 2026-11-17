@@ -15,6 +15,7 @@ Keyboard Driven, AV1/H265/H264/Lossless, MPV Video Cutter.
 
 - [Why Tachytome?](#why-tachytome)
 - [Installation](#installation)
+  - [Installer](#installer)
   - [Dependencies](#dependencies)
   - [Clone](#clone)
   - [Submodule](#submodule)
@@ -40,6 +41,27 @@ You run into a good clip, and Tachytome is right there, ready to cut the importa
 No more copying paths, no more external software with poor UX, it's all there, right in your video player.
 
 ## Installation
+
+### Installer
+
+The installer puts Tachytome in your mpv scripts dir and offers installing what's missing.
+
+- Linux, Mac
+```sh
+curl -fsSL https://raw.githubusercontent.com/nnra6864/tachytome/master/install.sh | sh
+```
+
+- Windows (Powershell)
+```sh
+irm https://raw.githubusercontent.com/nnra6864/tachytome/master/install.ps1 | iex
+```
+
+- Installs into the dir mpv reads its config from, `$MPV_HOME`, `$XDG_CONFIG_HOME/mpv` or `~/.config/mpv`, the Flatpak dir when that's your only mpv, and `portable_config` next to `mpv.exe`, `$MPV_HOME` or `%APPDATA%/mpv` on Windows.
+- Clones the newest release with git, offering to install git when it's missing, and downloads the release archive from GitHub otherwise.
+- Offers installing FFmpeg, and gio or trash-cli on Linux, with your package manager, `brew` on Mac or `winget` on Windows.
+- When Tachytome is already installed, it asks before reinstalling and moves the current install next to the scripts dir, your config is never touched.
+
+To install manually instead, get the dependencies and clone the repo or add it as a submodule.
 
 ### Dependencies
 
