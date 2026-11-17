@@ -8,10 +8,11 @@ question that needs an answer before that item starts.
   served from GitHub raw and run with one line:
   `curl -fsSL https://raw.githubusercontent.com/nnra6864/tachytome/master/install.sh | sh`
   and `irm https://raw.githubusercontent.com/nnra6864/tachytome/master/install.ps1 | iex`.
-- Finds the mpv config dir: `$MPV_HOME`, then `$XDG_CONFIG_HOME/mpv` or
-  `~/.config/mpv` on Linux and macOS, the Flatpak dir
-  `~/.var/app/io.mpv.Mpv/config/mpv` when that's the installed mpv,
-  `portable_config` next to `mpv.exe` or `%APPDATA%\mpv` on Windows.
+- Finds the mpv config dir like mpv does: `$MPV_HOME`, then
+  `$XDG_CONFIG_HOME/mpv` or `~/.config/mpv` on Linux and macOS, the
+  Flatpak dir `~/.var/app/io.mpv.Mpv/config/mpv` when that's the only
+  installed mpv; `portable_config` next to `mpv.exe`, then `$MPV_HOME`,
+  then `%APPDATA%\mpv` on Windows.
 - Installs into `<mpv>/scripts/tachytome`:
   - git is the default: clones the GitHub repo and checks out the newest
     release tag, so Update and Version work through git.
@@ -36,12 +37,13 @@ question that needs an answer before that item starts.
   `~/.local/state/tachytome` on Linux, `~/Library/Application
   Support/tachytome` on macOS, `%LOCALAPPDATA%\tachytome` on Windows.
   Tachytome writes the running version to it on every start.
-- On start, before writing the file:
-  - File missing and the user config has 1.0.0 leftovers
-    (`selected_keymap`, `keymap` blocks, `first_audio_only`, a config in
-    `script-opts/`): came from 1.0.0, offer the migration.
-  - File missing and no leftovers: first install or a new machine, just
-    write the file.
+- On start, before writing the file and before `ensure_main_conf` moves
+  anything:
+  - File missing, `script-opts/tachytome.conf` exists and there's no
+    `script-opts/tachytome/` subdir: a pre-1.0.0 install (today's
+    master), offer the migration.
+  - File missing otherwise: first install or a new machine, just write the
+    file.
   - File older than the running version: run the migrations after it.
 - Migrations are an ordered list of `{ version, detect, apply }`; the
   2.0.0 one moves the config out of `script-opts/`, renames
@@ -55,5 +57,5 @@ question that needs an answer before that item starts.
   again for this version).
 - Update reads the target version before installing and warns when it
   crosses a major version, e.g. `2.4.1 -> 3.0.0`.
-- [?] Does the rest of the data dir (path history, recovery) move to the
-  state dir too, or only the version file?
+- Path history and render recovery move from the data dir to the state
+  dir too, moving existing files over on the first start.
