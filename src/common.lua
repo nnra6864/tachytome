@@ -23,7 +23,7 @@ function M.get_platform()
     return cached_platform
 end
 
-function M.get_data_dir()
+function M.get_state_dir()
     local platform = M.get_platform()
     local path = ""
 
@@ -35,9 +35,9 @@ function M.get_data_dir()
     elseif platform == "macos" then
         path = utils.join_path(os.getenv("HOME") or "~", "Library/Application Support/tachytome")
     else
-        path = os.getenv("XDG_DATA_HOME") or ""
+        path = os.getenv("XDG_STATE_HOME") or ""
         if path == "" then
-            path = utils.join_path(os.getenv("HOME") or "~", ".local/share")
+            path = utils.join_path(os.getenv("HOME") or "~", ".local/state")
         end
         path = utils.join_path(path, "tachytome")
     end
@@ -103,27 +103,6 @@ function M.file_exists(path)
     return true
 end
 
-function M.migrate_file(legacy_path, conf_path)
-    if not M.file_exists(legacy_path) then return end
-
-    if M.file_exists(conf_path) then
-        mp.msg.warn("Ignoring old config " .. legacy_path .. ", using " .. conf_path)
-        return
-    end
-
-    M.ensure_dir(M.get_conf_dir())
-    local ok, err = os.rename(legacy_path, conf_path)
-    if ok then
-        mp.msg.info("Moved config " .. legacy_path .. " to " .. conf_path)
-    else
-        mp.msg.warn("Failed to move config " .. legacy_path .. ": " .. tostring(err))
-    end
-end
-
-local function migrate_conf(legacy_name, conf_path)
-    M.migrate_file(utils.join_path(mp.command_native({"expand-path", "~~/script-opts"}), legacy_name), conf_path)
-end
-
 local function comment_out(content)
     local lines = {}
     for line in (content .. "\n"):gmatch("(.-)\n") do
@@ -137,7 +116,6 @@ function M.ensure_default_conf(builtin_name, name, commented)
     local conf_dir  = M.get_conf_dir()
     local conf_path = utils.join_path(conf_dir, name)
 
-    migrate_conf(builtin_name, conf_path)
     if M.file_exists(conf_path) then return conf_path end
 
     local script_dir = mp.get_script_directory()
@@ -454,7 +432,7 @@ function M.trash_file(file_path, trash_path, callback)
 end
 
 function M.get_history_path()
-    return utils.join_path(M.get_data_dir(), "history.json")
+    return utils.join_path(M.get_state_dir(), "history.json")
 end
 
 function M.read_history()

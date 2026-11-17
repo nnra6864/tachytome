@@ -304,7 +304,6 @@ local items = {
 
 local items_by_name = {}
 for _, item in ipairs(items) do items_by_name[item.name] = item end
-items_by_name.first_audio_only = items_by_name.combined_audio_only
 
 local function row_label(row)
     if row.label then
@@ -691,6 +690,10 @@ end
 
 function M.refresh()
     if menu_active then draw() end
+end
+
+function M.reload()
+    reload()
 end
 
 function M.run(fn)

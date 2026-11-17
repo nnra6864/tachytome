@@ -19,6 +19,7 @@ Keyboard Driven, AV1/H265/H264/Lossless, MPV Video Cutter.
   - [Dependencies](#dependencies)
   - [Clone](#clone)
   - [Submodule](#submodule)
+  - [Upgrading](#upgrading)
 - [Usage](#usage)
   - [Quickstart](#quickstart)
   - [Keymap](#keymap)
@@ -116,6 +117,28 @@ git submodule add ../../nnra6864/tachytome "$env:APPDATA/mpv/scripts/tachytome"
 > [!NOTE]
 > `../../` in the link makes git use the same server as your root repo.<br>
 > For example, if your dotfiles are hosted on `https://github.com/name/dotfiles`, double `../` will make it go up twice in the URL, ending up with `https://github.com/`, and then appending `nnra6864/tachytome` to that, resulting in `https://github.com/nnra6864/tachytome`
+
+### Upgrading
+
+Tachytome remembers the version it last ran in the state dir, see [Recovery](#recovery).<br>
+When a new version changes the config format, the first start after updating shows what will change and asks:
+
+- **Migrate** converts your config, keeping the old files next to it with a `.bak` extension.
+- **Skip, start fresh** uses the new defaults, keeping the old files as `.bak` too.
+- **Later** asks again on the next start, using the defaults until then.
+
+Updates that cross a major version, e.g. `2.4.1 -> 3.0.0`, are pointed out before installing.
+
+#### 1.0.0 -> 2.0.0
+
+- `mpv/script-opts/tachytome.conf` becomes `mpv/script-opts/tachytome/default.conf`, sourced by a new `tachytome.conf`.<br>
+  Only options you changed from the 1.0.0 defaults are kept, `first_audio_only` is renamed to `combined_audio_only`, and options that no longer exist are dropped.
+- Everyone moves to the new `default` menu, `selected_keymap` is dropped.<br>
+  Your own keymaps become menus, e.g. `keymap mine ... end` turns into `menu mine { ... }`, with `ignore` becoming `none` and `base builtin` or `base default` becoming `base simple`, `base nested` becoming `base default`.<br>
+  Keymaps named like a builtin menu get an `old_` prefix, and flat rebinds like `keymap r render` become `menu r render`.
+- `mpv/script-opts/tachytome-effects.conf` is replaced by `.eff` files in `mpv/script-opts/tachytome/`, effects you added or changed go to `custom.eff`.
+- Path history, stats and render queues move from `~/.local/share/tachytome` to `~/.local/state/tachytome` on Linux.
+- A git install that 1.0.0's updater left on `master` switches to the latest release when that's the same commit.
 
 ## Usage
 
@@ -329,9 +352,7 @@ The builtin config contains detailed explanations of all the settings, I would h
 A deleted `default.conf` is generated again on start when `default` is enabled in `configs`, or when there are no other `.conf` files next to `tachytome.conf`.
 
 > [!NOTE]
-> Older versions used `mpv/script-opts/tachytome.conf` and `mpv/script-opts/tachytome-effects.conf`.<br>
-> These get moved to `mpv/script-opts/tachytome/default.conf` and `mpv/script-opts/tachytome/default.eff` on start, with a new `tachytome.conf` sourcing `default`.<br>
-> A `tachytome/tachytome.conf` without a `configs=` line is moved to `default.conf` the same way, and a `tachytome/effects.conf` to `default.eff`.
+> Coming from 1.0.0, which used `mpv/script-opts/tachytome.conf`? See [Upgrading](#upgrading).
 
 To access exposed Tachytome functions, add the following to your `mpv/input.conf`:
 ```
@@ -490,7 +511,8 @@ return {
 ### Recovery
 
 Tachytome gracefully handles crashes and accidental closes.<br>
-Render queues are stored as files tied to the mpv PID.<br>
+Render queues are stored as files tied to the mpv PID, in the state dir: `$XDG_STATE_HOME/tachytome` or `~/.local/state/tachytome` on Linux, `~/Library/Application Support/tachytome` on Mac and `%LOCALAPPDATA%/tachytome` on Windows.<br>
+The path history and the installed version live there too.<br>
 Every time you start a new mpv instance, the script checks if any of these are present without an active mpv instance.<br>
 It then asks you whether you want to recover, discard or ignore the queue.
 
@@ -622,6 +644,11 @@ This only affects what is displayed, ffmpeg and the render queue always use the 
 If you are interested in contributing, feel free to just open a PR.<br>
 The only thing I ask you to do is follow the [commit naming convention](https://www.conventionalcommits.org/en/v1.0.0/).<br>
 AI is allowed as long as you fully review, understand and, most importantly, test the code.
+
+Releases bump the version in [`src/version.lua`](./src/version.lua).<br>
+A release that breaks old configs or files adds a handler to [`src/migrations`](./src/migrations), named after the version, e.g. `3_0_0.lua`, and listed in [`src/migrate.lua`](./src/migrate.lua).<br>
+A handler has `detect` for installs without a version file, `prepare` for silent moves on start, and `plan`, `apply` and `skip` for changes the user decides on.<br>
+Keep a copy of the previous version's builtin files in `src/migrations/<version>/` when the handler needs to tell user changes from defaults.
 
 ## Donations
 

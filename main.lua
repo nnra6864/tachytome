@@ -5,12 +5,17 @@ local script_dir = mp.get_script_directory()
 if script_dir then package.path = package.path .. ";" .. script_dir .. "/src/?.lua" end
 
 local common     = require 'src.common'
+require 'src.migrate'
 local state      = require 'src.state'
+local conf       = require 'src.conf'
 local actions    = require 'src.actions'
 local menu       = require 'src.menu'
 local notify     = require 'src.notify'
 local recovery   = require 'src.recovery'
+local effects    = require 'src.effects'
+local tracks     = require 'src.tracks'
 local ui_confirm = require 'src.ui_confirm'
+local ui_migrate = require 'src.ui_migrate'
 local lang       = require 'src.lang'
 
 local platform             = common.get_platform()
@@ -53,9 +58,17 @@ local function check_dependencies()
     end)
 end
 
-check_dependencies()
+local function reload()
+    conf.read_options(state.opts)
+    effects.reload()
+    tracks.reset()
+    lang.load()
+    menu.reload()
+end
 
 lang.on_change(menu.refresh)
+
+ui_migrate.run(reload, check_dependencies)
 
 local function check_orphans()
     if state.opts.output_dir ~= "" then

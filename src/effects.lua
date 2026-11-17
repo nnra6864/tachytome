@@ -454,8 +454,7 @@ local function effect_files(dir)
 end
 
 local function load_presets()
-    local dir = common.get_conf_dir()
-    common.migrate_file(utils.join_path(dir, "effects.conf"), utils.join_path(dir, "default.eff"))
+    local dir   = common.get_conf_dir()
     local files = effect_files(dir)
     if #files == 0 then
         common.ensure_default_conf("tachytome-effects.conf", "default.eff")
@@ -466,6 +465,12 @@ end
 
 load_presets()
 seed_from_opts()
+
+function M.reload()
+    presets = {}
+    load_presets()
+    M.seed()
+end
 
 function M.label(name)
     local p = M.preset(name)

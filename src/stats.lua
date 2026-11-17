@@ -6,7 +6,7 @@ local lang   = require 'src.lang'
 local M = {}
 
 local function get_stats_path()
-    return utils.join_path(common.get_data_dir(), "stats.json")
+    return utils.join_path(common.get_state_dir(), "stats.json")
 end
 
 function M.read_stats()

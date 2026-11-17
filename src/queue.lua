@@ -6,11 +6,10 @@ local state   = require 'src.state'
 
 local M = {}
 
-local own_pid           = utils.getpid()
-local data_dir          = common.get_data_dir()
-local queue_path        = utils.join_path(data_dir, "queue-" .. tostring(own_pid) .. ".json")
-local queue_tmp         = queue_path .. ".tmp"
-local legacy_queue_path = utils.join_path(data_dir, "queue.json")
+local own_pid    = utils.getpid()
+local state_dir  = common.get_state_dir()
+local queue_path = utils.join_path(state_dir, "queue-" .. tostring(own_pid) .. ".json")
+local queue_tmp  = queue_path .. ".tmp"
 
 local temp_seq  = 0
 local temp_seed = tostring(os.time()) .. "-" .. tostring(math.floor(mp.get_time() * 1000))
@@ -51,16 +50,13 @@ end
 
 function M.scan_files()
     local files = {}
-    local entries = utils.readdir(data_dir)
+    local entries = utils.readdir(state_dir)
     if entries then
         for _, name in ipairs(entries) do
             if name:match("^queue%-%d+%.json$") then
-                table.insert(files, utils.join_path(data_dir, name))
+                table.insert(files, utils.join_path(state_dir, name))
             end
         end
-    end
-    if utils.file_info(legacy_queue_path) then
-        table.insert(files, legacy_queue_path)
     end
     table.sort(files)
     return files

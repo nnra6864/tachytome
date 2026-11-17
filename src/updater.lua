@@ -5,6 +5,7 @@ local state      = require 'src.state'
 local notify     = require 'src.notify'
 local ui_confirm = require 'src.ui_confirm'
 local lang       = require 'src.lang'
+local ver        = require 'src.version'
 
 local M = {}
 
@@ -16,39 +17,30 @@ local function version()
     return state.opts.version
 end
 
-local function parse_version(name)
-    local s = name:match("^v?(%d[%.%d]*)$")
-    if not s or s:find("%.%.") or s:sub(-1) == "." then return nil end
-    local nums = {}
-    for n in s:gmatch("%d+") do nums[#nums + 1] = tonumber(n) end
-    return nums
-end
-
-local function newer(a, b)
-    for i = 1, math.max(#a, #b) do
-        local x, y = a[i] or 0, b[i] or 0
-        if x ~= y then return x > y end
-    end
-    return #a > #b
-end
-
 local function releases(tags)
     local list = {}
     for _, tag in ipairs(tags) do
-        local nums = parse_version(tag)
+        local nums = ver.parse(tag)
         if nums then list[#list + 1] = { tag = tag, nums = nums } end
     end
-    table.sort(list, function(a, b) return newer(a.nums, b.nums) end)
+    table.sort(list, function(a, b) return ver.newer(a.nums, b.nums) end)
     return list
 end
 
 local function is_release(val)
-    return val == "latest" or parse_version(val) ~= nil
+    return val == "latest" or ver.parse(val) ~= nil
+end
+
+local function with_major(body, t)
+    local to   = t.tag and ver.parse(t.name)
+    local from = ver.parse(ver.current)
+    if not to or not from or to[1] == from[1] then return body end
+    return body .. "\n" .. lang.t("update_major", { from = ver.current, to = t.name })
 end
 
 local function target(val, tags)
     if not is_release(val) then return { name = val, ref = "refs/heads/" .. val } end
-    local want = val ~= "latest" and parse_version(val) or {}
+    local want = val ~= "latest" and ver.parse(val) or {}
     for _, r in ipairs(releases(tags or {})) do
         local match = true
         for i, n in ipairs(want) do
@@ -199,7 +191,7 @@ local function confirm_git(dir, t, on_complete)
                 if not same then
                     body = lang.t("update_method_git_switch", { from = current, to = t.name, old = old, new = new })
                 end
-                ui_confirm.show(lang.t("update_title"), body, function()
+                ui_confirm.show(lang.t("update_title"), with_major(body, t), function()
                     apply_git(dir, t, old, new, on_complete)
                 end, function()
                     done(on_complete)
@@ -245,7 +237,7 @@ local function apply_archive(dir, t, on_complete)
 end
 
 local function confirm_archive(dir, t, reason, on_complete)
-    ui_confirm.show(lang.t("update_title"), lang.t("update_method_archive", { version = t.name, reason = reason }), function()
+    ui_confirm.show(lang.t("update_title"), with_major(lang.t("update_method_archive", { version = t.name, reason = reason }), t), function()
         apply_archive(dir, t, on_complete)
     end, function()
         done(on_complete)
@@ -290,6 +282,37 @@ function M.versions(callback)
     in_repo(dir, function(is_repo)
         if is_repo then return git_refs(dir, collect) end
         github_refs(collect)
+    end)
+end
+
+function M.follow_latest()
+    local dir = mp.get_script_directory()
+    if not dir or busy then return end
+    in_repo(dir, function(is_repo)
+        if not is_repo then return end
+        git(dir, {"rev-parse", "--abbrev-ref", "HEAD"}, function(ok, current)
+            if not ok or current ~= "master" then return end
+            git_refs(dir, function(refs)
+                if not refs then return end
+                resolve("latest", refs.tags, function(t)
+                    if not t then return end
+                    git(dir, {"fetch", "origin", "+" .. t.ref .. ":" .. t.ref}, function(ok_fetch)
+                        if not ok_fetch then return end
+                        git(dir, {"rev-parse", "HEAD", "FETCH_HEAD^{commit}"}, function(ok_rev, revs)
+                            local head, tag = revs:match("^(%S+)%s+(%S+)$")
+                            if not ok_rev or not head or head ~= tag then return end
+                            git(dir, {"checkout", "-q", "--detach", "FETCH_HEAD"}, function(ok_checkout, _, err)
+                                if ok_checkout then
+                                    mp.msg.info("Switched from master to " .. t.name)
+                                else
+                                    mp.msg.warn("Failed to switch from master to " .. t.name .. ": " .. tostring(err))
+                                end
+                            end)
+                        end)
+                    end)
+                end)
+            end)
+        end)
     end)
 end
 

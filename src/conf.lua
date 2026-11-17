@@ -6,14 +6,14 @@ local M = {
     builtin_path = utils.join_path(mp.get_script_directory() or "", "tachytome.conf"),
     user_path    = nil,
     menu_lines   = {},
-    configs      = {}
+    configs      = {},
+    hold         = false
 }
 
 local identifier = "tachytome"
-local reserved   = { ["tachytome.conf"] = true, ["effects.conf"] = true }
+local reserved   = { ["tachytome.conf"] = true }
 local defaults   = nil
 local origins    = {}
-local aliases    = { first_audio_only = "combined_audio_only" }
 
 local function typeconv(default, val)
     if type(default) == "boolean" then
@@ -26,7 +26,6 @@ local function typeconv(default, val)
 end
 
 local function set_opt(opts, key, val, where, origin)
-    key = aliases[key] or key
     if opts[key] == nil then
         mp.msg.warn(where .. " unknown key '" .. key .. "', ignoring")
         return
@@ -164,13 +163,6 @@ local function write_lines(path, lines, key)
     return true
 end
 
-local function has_configs_line(path)
-    for _, line in ipairs(read_lines(path)) do
-        if line:sub(1, 8) == "configs=" then return true end
-    end
-    return false
-end
-
 local function needs_default(main)
     for _, line in ipairs(read_lines(main)) do
         if line:sub(1, 8) == "configs=" then
@@ -186,40 +178,21 @@ local function needs_default(main)
     return true
 end
 
+function M.main_path()
+    return utils.join_path(common.get_conf_dir(), "tachytome.conf")
+end
+
 local function ensure_main_conf()
-    local main    = utils.join_path(common.get_conf_dir(), "tachytome.conf")
-    local default = M.config_path("default")
-    local legacy  = utils.join_path(mp.command_native({"expand-path", "~~/script-opts"}), "tachytome.conf")
-    local source  = nil
+    local main = M.main_path()
+    if M.hold then return main end
 
-    if not common.file_exists(default) then
-        if common.file_exists(legacy) and not common.file_exists(main) then
-            source = legacy
-        elseif common.file_exists(main) and not has_configs_line(main) then
-            source = main
-        end
-    end
-
-    if source then
-        common.ensure_dir(common.get_conf_dir())
-        local ok, err = os.rename(source, default)
-        if ok then
-            mp.msg.info("Moved config " .. source .. " to " .. default)
-        else
-            mp.msg.warn("Failed to move config " .. source .. ": " .. tostring(err))
-            return main
-        end
-    end
-
-    if source == main or not common.file_exists(main) then
+    if not common.file_exists(main) then
         write_lines(main, { "configs=default" }, "configs")
         mp.msg.info("Generated config at: " .. main)
     end
 
-    if not common.file_exists(default) and needs_default(main) then
+    if not common.file_exists(M.config_path("default")) and needs_default(main) then
         common.ensure_default_conf("tachytome.conf", "default.conf", true)
-    elseif common.file_exists(legacy) then
-        mp.msg.warn("Ignoring old config " .. legacy .. ", using " .. main)
     end
     return main
 end
@@ -264,7 +237,7 @@ local function find_line(lines, key, hint)
 end
 
 function M.write_option(key, val)
-    if not M.user_path then return false end
+    if not M.user_path or M.hold then return false end
     local entry  = key .. "=" .. tostring(val)
     local origin = origins[key]
     local path   = origin and origin.path or M.user_path
@@ -297,7 +270,7 @@ function M.write_option(key, val)
 end
 
 function M.write_configs(list)
-    if not M.user_path then return false end
+    if not M.user_path or M.hold then return false end
     local names = {}
     for _, c in ipairs(list) do names[#names + 1] = (c.enabled and "" or "!") .. c.name end
     local entry = "configs=" .. table.concat(names, ",")
