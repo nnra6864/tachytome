@@ -247,12 +247,15 @@ Pick which audio tracks are exported in the [Tracks](#tracks-list) list.
 | U       | Update   | Update Tachytome to the picked version using git, falls back to the GitHub archive.<br>Restart mpv after updating.  |
 
 The `version` option takes:
-- `latest`, the default, the release marked Latest on GitHub, or the highest version tag when there's no release.
+- `latest`, the default, the release marked Latest, or the highest version tag when there's no release.
 - A branch name, e.g. `master`, following that branch.
 - A full or partial version, pinning the highest version tag it matches, e.g. `3` for the newest 3.x.x, `2.1` for the newest 2.1.x, or `1.2.5` for exactly 1.2.5.
 
 Version tags look like `v1.2.5` or `1.2.5`, others like `v2.0-rc1` are skipped.<br>
-Version lists `latest`, the branches and every release with its partial versions, read from the git remote, or from GitHub when Tachytome isn't a git clone.<br>
+Version lists `latest`, the branches and every release with its partial versions.<br>
+A git clone reads them from the remote of the current branch, or `origin` when it's detached at a release, and asks that remote's host which release is Latest.<br>
+GitHub and Forgejo/Gitea hosts are supported, other hosts fall back to the highest version tag.<br>
+Without git, everything comes from the GitHub repo.<br>
 Updating through git switches the checkout to the branch, or detaches it at the release.
 
 #### Render Queue

@@ -84,8 +84,41 @@ local function in_repo(dir, callback)
     end)
 end
 
-local function git_refs(dir, callback)
-    git(dir, {"ls-remote", "--heads", "--tags", "origin"}, function(ok, out, err)
+local function latest_api(url)
+    local scheme, host, path = url:match("^(%a[%w+.-]*)://([^/]+)/(.+)$")
+    if not host then
+        host, path = url:match("^[^@/]+@([^:/]+):(.+)$")
+    end
+    if not host then return nil end
+    host = host:gsub("^.*@", "")
+    path = path:gsub("^/+", ""):gsub("/+$", ""):gsub("%.git$", "")
+    if scheme ~= "http" and scheme ~= "https" then
+        host   = host:gsub(":%d+$", "")
+        scheme = "https"
+    end
+    if host == "github.com" then return "https://api.github.com/repos/" .. path .. "/releases/latest" end
+    return scheme .. "://" .. host .. "/api/v1/repos/" .. path .. "/releases/latest"
+end
+
+local github = { api = "https://api.github.com/repos/" .. repo .. "/releases/latest" }
+
+local function git_source(dir, callback)
+    local function from(remote)
+        if remote == "" or remote == "." then remote = "origin" end
+        git(dir, {"remote", "get-url", remote}, function(ok, url)
+            callback({ remote = remote, api = ok and latest_api(url) or nil })
+        end)
+    end
+    git(dir, {"rev-parse", "--abbrev-ref", "HEAD"}, function(ok, branch)
+        if not ok or branch == "HEAD" then return from("origin") end
+        git(dir, {"config", "--get", "branch." .. branch .. ".remote"}, function(ok_remote, remote)
+            from(ok_remote and remote or "origin")
+        end)
+    end)
+end
+
+local function git_refs(dir, src, callback)
+    git(dir, {"ls-remote", "--heads", "--tags", src.remote}, function(ok, out, err)
         if not ok then return callback(nil, err) end
         local refs = { branches = {}, tags = {} }
         for kind, name in out:gmatch("refs/(%a+)/(%S+)") do
@@ -121,9 +154,9 @@ local function github_refs(callback)
     end)
 end
 
-local function resolve(val, tags, callback)
-    if val ~= "latest" then return callback(target(val, tags)) end
-    run({"curl", "-fsSL", "https://api.github.com/repos/" .. repo .. "/releases/latest"}, function(ok, out)
+local function resolve(val, tags, src, callback)
+    if val ~= "latest" or not src.api then return callback(target(val, tags)) end
+    run({"curl", "-fsSL", src.api}, function(ok, out)
         local data = ok and utils.parse_json(out)
         if type(data) == "table" and type(data.tag_name) == "string" then
             return callback({ name = data.tag_name, ref = "refs/tags/" .. data.tag_name, tag = true })
@@ -203,15 +236,17 @@ end
 
 local function update_git(dir, on_complete)
     notify.show(lang.t("update_checking"), true)
-    git_refs(dir, function(refs, err)
-        if not refs then return fail(failed("git ls-remote"), err, on_complete) end
-        resolve(version(), refs.tags, function(t)
-            if not t then return no_release(on_complete) end
-            local spec = t.name
-            if t.tag then spec = "+" .. t.ref .. ":" .. t.ref end
-            git(dir, {"fetch", "origin", spec}, function(ok, _, err_fetch)
-                if not ok then return fail(failed("git fetch"), err_fetch, on_complete) end
-                confirm_git(dir, t, on_complete)
+    git_source(dir, function(src)
+        git_refs(dir, src, function(refs, err)
+            if not refs then return fail(failed("git ls-remote"), err, on_complete) end
+            resolve(version(), refs.tags, src, function(t)
+                if not t then return no_release(on_complete) end
+                local spec = t.name
+                if t.tag then spec = "+" .. t.ref .. ":" .. t.ref end
+                git(dir, {"fetch", src.remote, spec}, function(ok, _, err_fetch)
+                    if not ok then return fail(failed("git fetch"), err_fetch, on_complete) end
+                    confirm_git(dir, t, on_complete)
+                end)
             end)
         end)
     end)
@@ -249,7 +284,7 @@ local function update_archive(dir, reason, on_complete)
     notify.show(lang.t("update_checking"), true)
     github_names("tags", function(tags, err)
         if not tags then return fail(failed("curl"), err, on_complete) end
-        resolve(version(), tags, function(t)
+        resolve(version(), tags, github, function(t)
             if not t then return no_release(on_complete) end
             confirm_archive(dir, t, reason, on_complete)
         end)
@@ -280,8 +315,8 @@ function M.versions(callback)
     local dir = mp.get_script_directory()
     if not dir then return github_refs(collect) end
     in_repo(dir, function(is_repo)
-        if is_repo then return git_refs(dir, collect) end
-        github_refs(collect)
+        if not is_repo then return github_refs(collect) end
+        git_source(dir, function(src) git_refs(dir, src, collect) end)
     end)
 end
 
@@ -292,21 +327,23 @@ function M.follow_latest()
         if not is_repo then return end
         git(dir, {"rev-parse", "--abbrev-ref", "HEAD"}, function(ok, current)
             if not ok or current ~= "master" then return end
-            git_refs(dir, function(refs)
-                if not refs then return end
-                resolve("latest", refs.tags, function(t)
-                    if not t then return end
-                    git(dir, {"fetch", "origin", "+" .. t.ref .. ":" .. t.ref}, function(ok_fetch)
-                        if not ok_fetch then return end
-                        git(dir, {"rev-parse", "HEAD", "FETCH_HEAD^{commit}"}, function(ok_rev, revs)
-                            local head, tag = revs:match("^(%S+)%s+(%S+)$")
-                            if not ok_rev or not head or head ~= tag then return end
-                            git(dir, {"checkout", "-q", "--detach", "FETCH_HEAD"}, function(ok_checkout, _, err)
-                                if ok_checkout then
-                                    mp.msg.info("Switched from master to " .. t.name)
-                                else
-                                    mp.msg.warn("Failed to switch from master to " .. t.name .. ": " .. tostring(err))
-                                end
+            git_source(dir, function(src)
+                git_refs(dir, src, function(refs)
+                    if not refs then return end
+                    resolve("latest", refs.tags, src, function(t)
+                        if not t then return end
+                        git(dir, {"fetch", src.remote, "+" .. t.ref .. ":" .. t.ref}, function(ok_fetch)
+                            if not ok_fetch then return end
+                            git(dir, {"rev-parse", "HEAD", "FETCH_HEAD^{commit}"}, function(ok_rev, revs)
+                                local head, tag = revs:match("^(%S+)%s+(%S+)$")
+                                if not ok_rev or not head or head ~= tag then return end
+                                git(dir, {"checkout", "-q", "--detach", "FETCH_HEAD"}, function(ok_checkout, _, err)
+                                    if ok_checkout then
+                                        mp.msg.info("Switched from master to " .. t.name)
+                                    else
+                                        mp.msg.warn("Failed to switch from master to " .. t.name .. ": " .. tostring(err))
+                                    end
+                                end)
                             end)
                         end)
                     end)
