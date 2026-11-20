@@ -76,7 +76,7 @@ return {
     key_search   = "search",
     key_mode     = "mode",
     key_scaler   = "scaler",
-    key_presets  = "presets",
+    key_use      = "use",
 
     choice_yes       = "Yes",
     choice_no        = "No",
@@ -168,6 +168,7 @@ return {
     resolution_mode    = "Mode",
     resolution_scaler  = "Scaler",
     resolution_default = "Default ({value})",
+    resolution_presets = "Presets",
 
     recovery_title     = "Interrupted Renders Found",
     recovery_owner     = "From a closed or crashed mpv",

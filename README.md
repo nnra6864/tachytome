@@ -320,10 +320,10 @@ Search opens a `/` line under the list title, the list stays and hides what does
 - Up/Down stop typing and move through the matches.
 - Esc while typing, or on the kept matches, clears the search and shows the whole list again.
 
-Selecting a match does what Enter does in that list: picks it, toggles the effect, track or config, or moves to the render.<br>
-Tracks keep their own numbers while searching, configs can't be moved until the search is cleared.<br>
+Selecting a match does what Enter does in that list: picks it, toggles the effect, track or config, uses the resolution preset, or moves to the render.<br>
+Tracks keep their own numbers while searching, configs and resolution layers can't be moved until the search is cleared.<br>
 Effects are searched as `file/name`, so `/default` lists one file's effects and `/fade` picks `fade`.<br>
-The Resolution List has no search, its rows are your own few layers.<br>
+The Resolution List searches its presets.<br>
 Inputs like the Path prompt use ctrl+k/ctrl+j instead, since plain letters are typed into the input.
 
 #### Effects List
@@ -339,19 +339,21 @@ Inputs like the Path prompt use ctrl+k/ctrl+j instead, since plain letters are t
 | Keybind      | Action    | Description                                                              |
 |--------------|-----------|--------------------------------------------------------------------------|
 | Enter        | Edit      | Toggle Resolution, type the whole chain or replace the selected layer.   |
-| a            | Add       | Add layers after the selected one, or at the end.                        |
+| Enter        | Use       | On a preset, replace the whole chain with it.                            |
+| a            | Add       | Add layers after the selected one, or a selected preset at the end.      |
 | m            | Mode      | Pick the layer's mode from a list, Default follows `resolution_mode`.    |
 | s            | Scaler    | Pick the layer's scaler from a list, Default follows the scaler options. |
 | d            | Delete    | Delete the layer.                                                        |
 | Shift+Up/K   | Move Up   | Move the layer up, before the one above.                                 |
 | Shift+Down/J | Move Down | Move the layer down, after the one below.                                |
+| /            | Search    | Search the presets.                                                      |
 | Esc          | Close     | Close the list.                                                          |
 
 The title shows the source and output size, each layer shows its mode, the scaler it uses and the size it goes from and to.<br>
 Modes and scalers set on the layer are highlighted, the rest come from the defaults, `-` means it doesn't apply.<br>
+The [presets](#resolution-presets) are listed under the layers with their chain and the size they give, the one in use is marked.<br>
 The inputs show the resulting size while typing and share a history kept across restarts, an input can hold several layers, e.g. `5:4 crop 0.5x`.<br>
-In the inputs Up walks the history and Down walks the [presets](#resolution-presets).<br>
-Setting a chain turns Resolution on, an empty Chain keeps the source.
+Setting a chain or using a preset turns Resolution on, an empty Chain keeps the source.
 
 #### Tracks List
 
@@ -657,7 +659,7 @@ cs       = 1280x1024 stretch
 - A mode or scaler right after a preset applies to all of its layers, e.g. `vertical fit` or `4k neighbor`.
 - Names ignore case and can't hold spaces, `=` or `/`, or be a size, mode or scaler.
 - The same name in two files is fine, `file/name` picks a specific one, e.g. `mine/vertical`, a bare name picks the first file.
-- In a Resolution List input, Down past what you typed walks the presets, Up walks the history.
+- The Resolution List shows them under the layers, Enter uses one, `a` adds it to the end of the chain, with several files each gets its own section.
 
 `default.res` holds `hd`, `fhd`, `qhd`, `2k`, `uhd`, `4k` and `8k` on the short side, with `2k` as 1440p like in gaming, and `vertical`.<br>
 Redefine `2k` in your own file if you mean 1080p or DCI 2048x1080.

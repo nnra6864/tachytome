@@ -166,12 +166,11 @@ function M.reload()
     for _, file in ipairs(files) do parse_presets_file(utils.join_path(dir, file), (file:gsub("%.res$", ""))) end
 end
 
-function M.preset_names()
+function M.presets()
     local count = {}
     for _, p in ipairs(presets) do count[p.name] = (count[p.name] or 0) + 1 end
-    local names = {}
-    for _, p in ipairs(presets) do names[#names + 1] = count[p.name] > 1 and p.id or p.name end
-    return names
+    for _, p in ipairs(presets) do p.label = count[p.name] > 1 and find_preset(p.name) ~= p and p.id or p.name end
+    return presets
 end
 
 function M.layer_text(layer)
