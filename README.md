@@ -618,6 +618,7 @@ Each size token starts a new layer, a mode or scaler word right after it applies
 | `720p`         | Short side, keeps the aspect, so vertical works.    |
 | `4:3`          | Aspect, keeps the res, the box depends on the mode. |
 | `fhd`          | A [preset](#resolution-presets), expands in place.  |
+| `auto`         | Crops black bars, see [Auto Crop](#auto-crop).      |
 
 An aspect is the largest box of it inside the frame for `cover` and `crop`, the smallest one around it for `fit`, and keeps the height for `stretch`.
 
@@ -644,7 +645,19 @@ Sizes are rounded to even numbers for encoders that need it, `av1` and `nv_h264`
 | `200% neighbor`     | 3840x2160, keeping hard pixel edges.                                              |
 
 Recorders that stretch a lower game res over the whole screen, e.g. 1280x1024 recorded as 2560x1440, are undone with `1280x1024 stretch`, which gives back the native frame.<br>
-Use `1024p` instead to keep it looking the way it did on screen.
+Use `1024p` instead to keep it looking the way it did on screen.<br>
+`auto` doesn't help there, those recordings have no black bars, the game is stretched over the whole frame.
+
+#### Auto Crop
+
+`auto` finds black bars with ffmpeg's `cropdetect` and cuts them off, e.g. a 4:3 game recorded with side bars, or a letterboxed movie.<br>
+- It samples 8 spots spread over the cut range, never just its start, and keeps the box that fits all of them, so a dark scene can't cut into the picture.
+- Fully black moments, like fades, are ignored.
+- Bars thinner than 0.5% of the frame are left alone.
+- Detection starts as soon as the chain holds `auto`, the layer shows `detecting...`, then the size or `no bars`.
+- Results are kept per file and cut range, moving a mark detects again.
+- A render waits for a running detection before it starts.
+- Mode and scaler don't apply, put `auto` first, e.g. `auto 720p`, it measures the bars on the source.
 
 #### Resolution Presets
 

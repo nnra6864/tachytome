@@ -1,6 +1,7 @@
 local mp         = require 'mp'
 local common     = require 'src.common'
 local resolution = require 'src.resolution'
+local autocrop   = require 'src.autocrop'
 local ui_input   = require 'src.ui_input'
 local ui_list    = require 'src.ui_list'
 local state      = require 'src.state'
@@ -97,8 +98,9 @@ function M.show(on_close)
         local width   = { 0, 0, 0 }
         for i, layer in ipairs(layers) do
             local step   = steps[i]
-            local mode   = resolution.keeps_aspect(layer) and "-" or (layer.mode or (layer.kind == "preset" and "-" or o.resolution_mode))
-            local scaler = layer.scaler or (step and (step.scaler or "-")) or default
+            local auto   = layer.kind == "auto"
+            local mode   = (auto or resolution.keeps_aspect(layer)) and "-" or (layer.mode or (layer.kind == "preset" and "-" or o.resolution_mode))
+            local scaler = auto and "-" or layer.scaler or (step and (step.scaler or "-")) or default
             local cell   = { layer.size, mode, scaler }
             for c = 1, 3 do width[c] = math.max(width[c], common.text_len(cell[c])) end
             cells[i] = cell
@@ -128,7 +130,9 @@ function M.show(on_close)
             mode        = layer.mode and theme.c("value_color") .. mode .. theme.c("text_color") or mode
             sc          = layer.scaler and theme.c("value_color") .. sc .. theme.c("text_color") or sc
             local sizes = ""
-            if step and prev then
+            if step and step.auto then
+                sizes = string.format("%s%s", theme.c("dim_text_color"), theme.escape(lang.t(step.auto == "pending" and "resolution_pending" or "resolution_no_bars")))
+            elseif step and prev then
                 sizes = string.format("%s%s -> %s", theme.c("dim_text_color"), resolution.dims(prev), resolution.dims(step))
             elseif err and row.index == #steps + 1 then
                 sizes = string.format("%s!", theme.c("error_color"))
@@ -237,7 +241,7 @@ function M.show(on_close)
         local row = rows[cursor]
         if not row or row.kind ~= "layer" then return end
         local layer = layers[row.index]
-        if key == "mode" and resolution.keeps_aspect(layer) then return end
+        if layer.kind == "auto" or (key == "mode" and resolution.keeps_aspect(layer)) then return end
 
         local fallback = lang.t("resolution_default", { value = default })
         local items    = { fallback }
@@ -312,6 +316,10 @@ function M.show(on_close)
         bind()
         draw()
     end
+
+    autocrop.listen("resolution", function()
+        if active then draw() end
+    end)
 
     open_ui()
 end

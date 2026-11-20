@@ -1,9 +1,10 @@
-local mp     = require 'mp'
-local utils  = require 'mp.utils'
-local common = require 'src.common'
-local state  = require 'src.state'
-local notify = require 'src.notify'
-local lang   = require 'src.lang'
+local mp       = require 'mp'
+local utils    = require 'mp.utils'
+local common   = require 'src.common'
+local state    = require 'src.state'
+local notify   = require 'src.notify'
+local autocrop = require 'src.autocrop'
+local lang     = require 'src.lang'
 
 local M = {}
 
@@ -29,6 +30,7 @@ local function number(text)
 end
 
 local function size(token)
+    if token == "auto" then return { kind = "auto" } end
     local w, h = token:match("^(%d+)x(%d+)$")
     if w then
         w = number(w)
@@ -272,6 +274,7 @@ function M.filters(res, src_w, src_h, sar, step)
     local w     = src_w
     local h     = src_h
     local used  = nil
+    local note  = nil
 
     local function snapped(x)
         return snap(x, step)
@@ -300,6 +303,26 @@ function M.filters(res, src_w, src_h, sar, step)
             for _, inner in ipairs(layer.layers) do
                 local err = apply(inner)
                 if err then return err end
+            end
+            return nil
+        end
+
+        if layer.kind == "auto" then
+            if res.crop == nil then
+                note = "pending"
+            elseif res.crop == false then
+                note = "none"
+            else
+                local c  = res.crop
+                local x  = math.ceil(w * c.x1 / 2) * 2
+                local y  = math.ceil(h * c.y1 / 2) * 2
+                local cw = math.min(snap_down(w * c.x2 - x, step), w - x)
+                local ch = math.min(snap_down(h * c.y2 - y, step), h - y)
+                if cw ~= w or ch ~= h then
+                    out[#out + 1] = string.format("crop=%d:%d:%d:%d", cw, ch, x, y)
+                    w             = cw
+                    h             = ch
+                end
             end
             return nil
         end
@@ -346,9 +369,10 @@ function M.filters(res, src_w, src_h, sar, step)
 
     for _, layer in ipairs(res.layers) do
         used      = nil
+        note      = nil
         local err = apply(layer)
         if err then return nil, err, steps end
-        steps[#steps + 1] = { w = w, h = h, scaler = used }
+        steps[#steps + 1] = { w = w, h = h, scaler = used, auto = note }
     end
 
     if #out > 0 then out[#out + 1] = "setsar=1" end
@@ -363,11 +387,31 @@ function M.source()
     return { w = p.w, h = p.h, sar = par }
 end
 
+local function has_auto(layers)
+    for _, layer in ipairs(layers) do
+        if layer.kind == "auto" or (layer.kind == "preset" and has_auto(layer.layers)) then return true end
+    end
+    return false
+end
+
+function M.prepare(res, on_ready)
+    if not res or not has_auto(res.layers) then
+        on_ready(res)
+        return false
+    end
+    local _, waiting = autocrop.request(function(box)
+        res.crop = box
+        on_ready(res)
+    end)
+    return waiting == true
+end
+
 function M.trace(text)
     local res, err = M.build(text)
     if not res then return nil, err end
     local src = M.source()
     if not src then return nil end
+    if has_auto(res.layers) then res.crop = autocrop.request() end
     local _, ferr, steps = M.filters(res, src.w, src.h, src.sar, M.step(state.opts.video_encoder))
     return steps, ferr
 end

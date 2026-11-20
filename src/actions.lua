@@ -502,7 +502,7 @@ function M.start_render(on_complete)
         if on_complete then on_complete() end
         return
     end
-    render.start({
+    local job = {
         final_output_path   = M.get_final_path(),
         mark_in             = state.mark_in,
         mark_out            = state.mark_out,
@@ -531,7 +531,17 @@ function M.start_render(on_complete)
         stats_osd_time      = state.opts.stats_osd_time,
         rename_callback     = M.set_path,
         on_complete         = on_complete
-    })
+    }
+    local path    = mp.get_property("path")
+    local waiting = resolution.prepare(res, function(ready)
+        if mp.get_property("path") ~= path then
+            if on_complete then on_complete() end
+            return
+        end
+        job.resolution = ready
+        render.start(job)
+    end)
+    if waiting then notify.show(lang.t("resolution_detecting")) end
 end
 
 function M.manage_queue(on_complete)

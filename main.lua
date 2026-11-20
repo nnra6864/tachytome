@@ -14,6 +14,7 @@ local notify     = require 'src.notify'
 local recovery   = require 'src.recovery'
 local effects    = require 'src.effects'
 local resolution = require 'src.resolution'
+local autocrop   = require 'src.autocrop'
 local tracks     = require 'src.tracks'
 local ui_confirm = require 'src.ui_confirm'
 local ui_migrate = require 'src.ui_migrate'
@@ -70,6 +71,7 @@ local function reload()
 end
 
 lang.on_change(menu.refresh)
+autocrop.listen("menu", menu.refresh)
 
 ui_migrate.run(reload, check_dependencies)
 
