@@ -144,6 +144,17 @@ local items = {
         keep_open = false
     },
     {
+        name      = "resolution",
+        label_key = "menu_resolution",
+        get_val   = function()
+            local text = actions.get_resolution_display()
+            if text == "" then return toggle(state.resolution_enabled) end
+            return toggle(state.resolution_enabled) .. " " .. v(theme.escape(text))
+        end,
+        action    = function() actions.resolution_menu(M.open) end,
+        keep_open = false
+    },
+    {
         name      = "lossless_cut",
         label_key = "menu_lossless_cut",
         get_val   = function() return toggle(state.opts.lossless_cut) end,

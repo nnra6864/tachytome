@@ -4,8 +4,6 @@ local resolution = require 'src.resolution'
 
 local M = {}
 
-local odd_sizes = { av1 = true, nv_h264 = true }
-
 local function display_size(s)
     local w = tonumber(s.width)
     local h = tonumber(s.height)
@@ -285,7 +283,7 @@ function M.build_args(opts, input_file, output_file, creation_time)
     local vf_resolution = {}
     if opts.resolution and media_info.v_size then
         local size         = media_info.v_size
-        local step         = odd_sizes[opts.video_encoder:lower()] and 1 or 2
+        local step         = resolution.step(opts.video_encoder)
         local filters, err = resolution.filters(opts.resolution, size.w, size.h, size.sar, step)
         if not filters then return nil, err end
         vf_resolution = filters

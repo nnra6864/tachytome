@@ -13,6 +13,7 @@ local notify        = require 'src.notify'
 local theme         = require 'src.theme'
 local ui_goto       = require 'src.ui_goto'
 local ui_effects    = require 'src.ui_effects'
+local ui_resolution = require 'src.ui_resolution'
 local ui_tracks     = require 'src.ui_tracks'
 local tracks        = require 'src.tracks'
 local ui_configs    = require 'src.ui_configs'
@@ -396,6 +397,17 @@ end
 
 function M.effects_menu(on_complete)
     ui_effects.show(on_complete)
+end
+
+function M.get_resolution_display()
+    if state.resolution == "" then return "" end
+    local out = resolution.output(state.resolution)
+    if not out then return state.resolution end
+    return string.format("%s -> %s", state.resolution, out)
+end
+
+function M.resolution_menu(on_complete)
+    ui_resolution.show(on_complete)
 end
 
 function M.get_tracks_display()

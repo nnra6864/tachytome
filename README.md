@@ -211,6 +211,7 @@ The `simple` menu keeps every item on a single level, switch to it with `s-s` `m
 | f       | FPS          | Set the FPS of the video.                                                                                     |
 | k       | Keyframes    | Set the keyframe interval, e.g. `120` frames or `2s`.<br>Empty matches the source, shown like `2s`.           |
 | p       | Preset       | Set the video encoder preset parameter.                                                                       |
+| r       | Resolution   | Set the output resolution.<br>Learn more about the [Resolution List](#resolution-list) and [Resolution](#resolution). |
 | l       | Lossless Cut | Toggle the lossless cut option.                                                                               |
 | a       | Accurate Cut | Toggle accurate cut.<br>Makes cuts millisecond precise, but may cause a slight delay before rendering starts. |
 
@@ -317,6 +318,24 @@ Inputs like the Path prompt use ctrl+k/ctrl+j instead, since plain letters are t
 | Enter   | Toggle | Select or deselect the preset.              |
 | d       | Edit   | Edit the duration and params of the preset. |
 | Esc     | Close  | Close the list.                             |
+
+#### Resolution List
+
+| Keybind      | Action    | Description                                                              |
+|--------------|-----------|--------------------------------------------------------------------------|
+| Enter        | Edit      | Toggle Resolution, type the whole chain or replace the selected layer.   |
+| a            | Add       | Add layers after the selected one, or at the end.                        |
+| m            | Mode      | Cycle the layer's mode, the last step goes back to `resolution_mode`.    |
+| s            | Scaler    | Cycle the layer's scaler, the last step goes back to the default.        |
+| d            | Delete    | Delete the layer.                                                        |
+| Shift+Up/K   | Move Up   | Move the layer up, before the one above.                                 |
+| Shift+Down/J | Move Down | Move the layer down, after the one below.                                |
+| Esc          | Close     | Close the list.                                                          |
+
+The title shows the source and output size, each layer shows its mode, the scaler it uses and the size it goes from and to.<br>
+Modes and scalers set on the layer are highlighted, the rest come from the defaults, `-` means it doesn't apply.<br>
+The inputs show the resulting size while typing and share a history kept across restarts, an input can hold several layers, e.g. `5:4 crop 0.5x`.<br>
+Setting a chain turns Resolution on, an empty Chain keeps the source.
 
 #### Tracks List
 
@@ -568,6 +587,7 @@ Their current values are listed right below the input.
 ### Resolution
 
 The `resolution` option sets the output resolution as a chain of layers applied in order, empty keeps the source.<br>
+Change it on the fly in the [Resolution List](#resolution-list), Video > Resolution.<br>
 It's applied while `resolution_enabled` is on, which stays on across files like Effects, and is incompatible with Lossless Cut, turning either on turns the other off.<br>
 Each size token starts a new layer, a mode or scaler word right after it applies to that layer.
 
