@@ -1,18 +1,17 @@
-local mp          = require 'mp'
-local common      = require 'src.common'
-local resolution  = require 'src.resolution'
-local ui_input    = require 'src.ui_input'
-local ui_list     = require 'src.ui_list'
-local list_search = require 'src.list_search'
-local state       = require 'src.state'
-local notify      = require 'src.notify'
-local theme       = require 'src.theme'
-local lang        = require 'src.lang'
-local ui          = require 'src.ui'
+local mp         = require 'mp'
+local common     = require 'src.common'
+local resolution = require 'src.resolution'
+local ui_input   = require 'src.ui_input'
+local ui_list    = require 'src.ui_list'
+local state      = require 'src.state'
+local notify     = require 'src.notify'
+local theme      = require 'src.theme'
+local lang       = require 'src.lang'
+local ui         = require 'src.ui'
 
 local M = {}
 
-local bindings = { "up", "down", "j", "k", "move-up", "move-down", "J", "K", "enter", "a", "m", "s", "d", "search", "esc" }
+local bindings = { "up", "down", "j", "k", "move-up", "move-down", "J", "K", "enter", "a", "m", "s", "p", "d", "esc" }
 
 function M.set_enabled(enabled)
     state.resolution_enabled = enabled
@@ -46,8 +45,8 @@ function M.show(on_close)
     local cursor = 1
     local rows   = {}
     local layers = {}
-    local search
     local open_ui
+    local pick_preset
 
     local function remove_bindings()
         for _, name in ipairs(bindings) do mp.remove_key_binding("res-" .. name) end
@@ -59,7 +58,6 @@ function M.show(on_close)
         state.ui_owner = nil
         ov:remove()
         remove_bindings()
-        search.close()
     end
 
     local function cleanup()
@@ -69,31 +67,9 @@ function M.show(on_close)
     end
 
     local function rebuild_rows()
-        local was = rows[cursor]
-        layers    = resolution.parse(state.resolution) or {}
-        rows      = { { kind = "toggle" }, { kind = "chain" } }
+        layers = resolution.parse(state.resolution) or {}
+        rows   = { { kind = "toggle" }, { kind = "chain" }, { kind = "presets" } }
         for i in ipairs(layers) do rows[#rows + 1] = { kind = "layer", index = i } end
-
-        local list  = resolution.presets()
-        local files = {}
-        for _, p in ipairs(list) do
-            if files[#files] ~= p.file then files[#files + 1] = p.file end
-        end
-        local file = nil
-        for i, p in ipairs(list) do
-            if i == 1 then rows[#rows + 1] = { kind = "gap" } end
-            if p.file ~= file then
-                file            = p.file
-                rows[#rows + 1] = { kind = "header", text = #files > 1 and file or lang.t("resolution_presets") }
-            end
-            rows[#rows + 1] = { kind = "preset", preset = p }
-        end
-
-        if was and was.kind == "preset" then
-            for i, row in ipairs(rows) do
-                if row.preset == was.preset then cursor = i end
-            end
-        end
         if cursor > #rows then cursor = #rows end
     end
 
@@ -102,55 +78,18 @@ function M.show(on_close)
         rebuild_rows()
     end
 
-    local function labels()
-        local out = {}
-        for i, row in ipairs(rows) do out[i] = row.kind == "preset" and row.preset.label or "" end
-        return out
-    end
-
-    local function visible()
-        if not search.filtering() then return ui.visible(#rows, function() return true end) end
-        local names = labels()
-        local keep  = {}
-        for i, row in ipairs(rows) do
-            if row.kind == "preset" and search.keep(names[i]) then
-                keep[i] = true
-                for h = i - 1, 1, -1 do
-                    if rows[h].kind == "header" then
-                        keep[h] = true
-                        break
-                    end
-                end
-            end
+    local function active_preset()
+        local current = state.resolution:lower():match("^%s*(.-)%s*$")
+        for _, p in ipairs(resolution.presets()) do
+            if current == p.label or current == p.id then return p end
         end
-        return ui.visible(#rows, function(i) return keep[i] end)
-    end
-
-    local function navigable(vis)
-        local out = {}
-        for _, i in ipairs(vis) do
-            if rows[i].kind ~= "header" and rows[i].kind ~= "gap" then out[#out + 1] = i end
-        end
-        return out
+        return nil
     end
 
     local function draw()
         local steps, err = resolution.trace(state.resolution)
         local source     = resolution.source()
         steps            = steps or {}
-
-        local vis = visible()
-        local nav = navigable(vis)
-        if #nav > 0 and ui.position(nav, cursor) == 0 then cursor = nav[1] end
-
-        local current = state.resolution:lower():match("^%s*(.-)%s*$")
-        local pwidth  = { 0, 0 }
-        for _, row in ipairs(rows) do
-            if row.kind == "preset" then
-                pwidth[1] = math.max(pwidth[1], common.text_len(row.preset.label))
-                pwidth[2] = math.max(pwidth[2], common.text_len(row.preset.chain))
-            end
-        end
 
         local o       = state.opts
         local default = o.scaler_down == o.scaler_up and o.scaler_down or o.scaler_down .. "/" .. o.scaler_up
@@ -165,20 +104,9 @@ function M.show(on_close)
             cells[i] = cell
         end
 
-        local body = ui.list(#vis, ui.position(vis, cursor), function(k)
-            local row = rows[vis[k]]
-            if row.kind == "gap" then
-                return ""
-            elseif row.kind == "header" then
-                return string.format("%s%s", theme.c("dim_text_color"), theme.escape(row.text))
-            elseif row.kind == "preset" then
-                local p      = row.preset
-                local name   = pad(p.label, pwidth[1])
-                local marker = (current == p.label or current == p.id) and string.format(" %s%s", theme.c("on_color"), state.opts.on_text) or ""
-                local out    = source and resolution.output(p.label)
-                local size   = out and string.format("%s-> %s", theme.c("dim_text_color"), out) or ""
-                return string.format("\\h%s\\h\\h%s%s%s\\h\\h%s%s", name, theme.c("dim_text_color"), pad(p.chain, pwidth[2]), theme.c("text_color"), size, marker)
-            elseif row.kind == "toggle" then
+        local body = ui.list(#rows, cursor, function(i)
+            local row = rows[i]
+            if row.kind == "toggle" then
                 local val = state.resolution_enabled
                     and string.format("%s%s", theme.c("on_color"), state.opts.on_text)
                     or  string.format("%s%s", theme.c("off_color"), state.opts.off_text)
@@ -186,6 +114,9 @@ function M.show(on_close)
             elseif row.kind == "chain" then
                 local chain = state.resolution ~= "" and state.resolution or lang.t("value_none")
                 return string.format("%s > %s%s", theme.escape(lang.t("resolution_chain")), theme.c("value_color"), theme.escape(chain))
+            elseif row.kind == "presets" then
+                local in_use = active_preset()
+                return string.format("%s >%s%s", theme.escape(lang.t("resolution_presets")), theme.c("value_color"), in_use and " " .. theme.escape(in_use.label) or "")
             end
 
             local layer = layers[row.index]
@@ -205,20 +136,16 @@ function M.show(on_close)
             return string.format("\\h%s\\h\\h%s\\h\\h%s\\h\\h%s", pad(cell[1], width[1]), mode, sc, sizes)
         end)
 
-        if #vis == 0 then body = search.empty() end
-
         local summary = err or (source and resolution.describe(state.resolution) or lang.t("no_video"))
-        local head    = search.title(lang.t("menu_resolution"))
-        if summary ~= "" and not search.filtering() then head = head .. ui.dim(summary) end
+        local head    = ui.title(lang.t("menu_resolution"))
+        if summary ~= "" then head = head .. ui.dim(summary) end
 
         local row   = rows[cursor]
-        local hints = { { "Up/Down", "navigate" }, { "Enter", "edit" }, { "a", "add" }, { "/", "search" }, { "Esc", "close" } }
-        if row and row.kind == "preset" then
-            hints = { { "Up/Down", "navigate" }, { "Enter", "use" }, { "a", "add" }, { "/", "search" }, { "Esc", "close" } }
-        elseif row and row.kind == "layer" then
-            hints = { { "Up/Down", "navigate" }, { "Enter", "edit" }, { "a", "add" }, { "m", "mode" }, { "s", "scaler" }, { "d", "delete" }, { "Shift+Up/Down", "move" }, { "/", "search" }, { "Esc", "close" } }
+        local hints = { { "Up/Down", "navigate" }, { "Enter", "edit" }, { "a", "add" }, { "p", "presets" }, { "Esc", "close" } }
+        if row and row.kind == "layer" then
+            hints = { { "Up/Down", "navigate" }, { "Enter", "edit" }, { "a", "add" }, { "m", "mode" }, { "s", "scaler" }, { "p", "presets" }, { "d", "delete" }, { "Shift+Up/Down", "move" }, { "Esc", "close" } }
         end
-        ov.data = head .. "\\N" .. body .. "\\N" .. ui.tooltip(search.hints(hints))
+        ov.data = head .. "\\N" .. body .. "\\N" .. ui.tooltip(hints)
         ov:update()
     end
 
@@ -249,20 +176,14 @@ function M.show(on_close)
         })
     end
 
-    local function use_preset(p)
-        M.set_chain(p.label)
-        rebuild_rows()
-        draw()
-    end
-
     local function edit_row()
         local row = rows[cursor]
-        if not row or #navigable(visible()) == 0 then return end
-        if row.kind == "preset" then
-            use_preset(row.preset)
-        elseif row.kind == "toggle" then
+        if not row then return end
+        if row.kind == "toggle" then
             M.set_enabled(not state.resolution_enabled)
             draw()
+        elseif row.kind == "presets" then
+            pick_preset()
         elseif row.kind == "chain" then
             prompt(lang.t("resolution_chain"), state.resolution, true, function(parsed) return parsed end)
         else
@@ -274,15 +195,42 @@ function M.show(on_close)
     local function add_layer()
         local row = rows[cursor]
         local at  = (row and row.kind == "layer") and row.index + 1 or #layers + 1
-        if row and row.kind == "preset" then
-            if #navigable(visible()) == 0 then return end
-            commit(splice(layers, at, 0, resolution.parse(row.preset.label) or {}))
-            draw()
-            return
-        end
         prompt(lang.t("resolution_add"), "", false, function(parsed)
             return splice(layers, at, 0, parsed)
         end)
+    end
+
+    pick_preset = function()
+        local row    = rows[cursor]
+        local at     = (row and row.kind == "layer") and row.index + 1 or #layers + 1
+        local list   = resolution.presets()
+        local source = resolution.source()
+        local in_use = active_preset()
+        local items  = {}
+        local width  = 0
+        for i, p in ipairs(list) do
+            items[i] = p.label
+            width    = math.max(width, common.text_len(p.chain))
+        end
+        if #items == 0 then return end
+
+        local function detail(i)
+            local p   = list[i]
+            local out = source and resolution.output(p.label)
+            return pad(p.chain, width) .. (out and "\\h\\h-> " .. out or "")
+        end
+
+        local function add(label)
+            commit(splice(layers, at, 0, resolution.parse(label) or {}))
+            open_ui()
+        end
+
+        local title = string.format("%s %s %s", lang.t("menu_resolution"), state.opts.menu_path_separator, lang.t("resolution_presets"))
+        teardown()
+        ui_list.show(title, items, in_use and in_use.label, function(label)
+            M.set_chain(label)
+            open_ui()
+        end, open_ui, { detail = detail, action = "use", keys = { { "a", "add", add } } })
     end
 
     local function pick_option(key, options, default)
@@ -315,7 +263,7 @@ function M.show(on_close)
 
     local function delete_layer()
         local row = rows[cursor]
-        if not row or row.kind ~= "layer" or search.filtering() then return end
+        if not row or row.kind ~= "layer" then return end
         table.remove(layers, row.index)
         commit(layers)
         draw()
@@ -323,7 +271,7 @@ function M.show(on_close)
 
     local function move_layer(delta)
         local row = rows[cursor]
-        if not row or row.kind ~= "layer" or search.filtering() then return end
+        if not row or row.kind ~= "layer" then return end
         local i, j = row.index, row.index + delta
         if not layers[j] then return end
         layers[i], layers[j] = layers[j], layers[i]
@@ -332,23 +280,12 @@ function M.show(on_close)
         draw()
     end
 
-    local function move(delta)
-        cursor = ui.step(navigable(visible()), cursor, delta)
-        draw()
-    end
-
-    search = list_search.new({
-        prefix = "res",
-        labels = labels,
-        redraw = draw,
-        move   = move,
-        pick   = function(i)
-            cursor = i
-            use_preset(rows[i].preset)
-        end
-    })
-
     local function bind()
+        local function move(delta)
+            cursor = ui.wrap(cursor, delta, #rows)
+            draw()
+        end
+
         mp.add_forced_key_binding("UP", "res-up", function() move(-1) end, {repeatable = true})
         mp.add_forced_key_binding("DOWN", "res-down", function() move(1) end, {repeatable = true})
         mp.add_forced_key_binding("k", "res-k", function() move(-1) end, {repeatable = true})
@@ -361,12 +298,9 @@ function M.show(on_close)
         mp.add_forced_key_binding("a", "res-a", add_layer)
         mp.add_forced_key_binding("m", "res-m", pick_mode)
         mp.add_forced_key_binding("s", "res-s", pick_scaler)
+        mp.add_forced_key_binding("p", "res-p", pick_preset)
         mp.add_forced_key_binding("d", "res-d", delete_layer)
-        mp.add_forced_key_binding("/", "res-search", search.start)
-        mp.add_forced_key_binding("ESC", "res-esc", function()
-            if search.filtering() then return search.clear() end
-            cleanup()
-        end)
+        mp.add_forced_key_binding("ESC", "res-esc", cleanup)
     end
 
     open_ui = function()

@@ -1,4 +1,5 @@
 local mp          = require 'mp'
+local common      = require 'src.common'
 local state       = require 'src.state'
 local theme       = require 'src.theme'
 local list_search = require 'src.list_search'
@@ -9,15 +10,22 @@ local M = {}
 local bindings = { "list-up", "list-down", "list-j", "list-k", "list-enter", "list-search", "list-esc" }
 for i = 1, 10 do bindings[#bindings + 1] = "list-" .. i end
 
-function M.show(title, items, current_val, on_select, on_cancel)
+function M.show(title, items, current_val, on_select, on_cancel, opts)
     ui.clear_osd()
     state.ui_owner = "list"
+    opts           = opts or {}
 
     local ov     = mp.create_osd_overlay("ass-events")
     local active = true
     local cursor = 1
+    local keys   = opts.keys or {}
+    local width  = 0
     local search
     local pick
+
+    if opts.detail then
+        for _, item in ipairs(items) do width = math.max(width, common.text_len(item)) end
+    end
 
     for i, item in ipairs(items) do
         if item == current_val then
@@ -32,6 +40,7 @@ function M.show(title, items, current_val, on_select, on_cancel)
         search.close()
         ov:remove()
         for _, name in ipairs(bindings) do mp.remove_key_binding(name) end
+        for _, key in ipairs(keys) do mp.remove_key_binding("list-key-" .. key[1]) end
     end
 
     local function cleanup()
@@ -50,10 +59,19 @@ function M.show(title, items, current_val, on_select, on_cancel)
         local body = ui.list(#vis, ui.position(vis, cursor), function(k)
             local i      = vis[k]
             local marker = items[i] == current_val and string.format(" %s%s", theme.c("on_color"), state.opts.on_text) or ""
-            return ui.number_prefix(k) .. theme.escape(items[i]) .. marker
+            local detail = ""
+            if opts.detail then
+                local pad = string.rep("\\h", width - common.text_len(items[i]))
+                detail    = string.format("%s\\h\\h%s%s%s", pad, theme.c("dim_text_color"), opts.detail(i), theme.c("text_color"))
+            end
+            return ui.number_prefix(k) .. theme.escape(items[i]) .. detail .. marker
         end)
         if #vis == 0 then body = search.empty() end
-        local hints = search.hints({ { "Up/Down", "navigate" }, { "0-9/Enter", "select" }, { "/", "search" }, { "Esc", "cancel" } })
+        local hints = { { "Up/Down", "navigate" }, { "0-9/Enter", opts.action or "select" } }
+        for _, key in ipairs(keys) do hints[#hints + 1] = { key[1], key[2] } end
+        hints[#hints + 1] = { "/", "search" }
+        hints[#hints + 1] = { "Esc", "cancel" }
+        hints             = search.hints(hints)
         ov.data = search.title(title) .. "\\N" .. body .. "\\N" .. ui.tooltip(hints)
         ov:update()
     end
@@ -94,6 +112,14 @@ function M.show(title, items, current_val, on_select, on_cancel)
         mp.add_forced_key_binding(ui.number_key(n), "list-" .. n, function()
             local i = visible()[n]
             if i then pick(i) end
+        end)
+    end
+    for _, key in ipairs(keys) do
+        mp.add_forced_key_binding(key[1], "list-key-" .. key[1], function()
+            if #visible() == 0 then return end
+            local i = cursor
+            teardown()
+            key[3](items[i], i)
         end)
     end
     mp.add_forced_key_binding("/", "list-search", search.start)

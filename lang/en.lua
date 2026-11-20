@@ -77,6 +77,7 @@ return {
     key_mode     = "mode",
     key_scaler   = "scaler",
     key_use      = "use",
+    key_presets  = "presets",
 
     choice_yes       = "Yes",
     choice_no        = "No",
