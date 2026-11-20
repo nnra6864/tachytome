@@ -1,6 +1,7 @@
 local mp        = require 'mp'
 local effects   = require 'src.effects'
 local ui_input  = require 'src.ui_input'
+local ui_list   = require 'src.ui_list'
 local state     = require 'src.state'
 local notify    = require 'src.notify'
 local theme     = require 'src.theme'
@@ -22,6 +23,7 @@ function M.show(on_close)
         mp.remove_key_binding("fx-k")
         mp.remove_key_binding("fx-enter")
         mp.remove_key_binding("fx-d")
+        mp.remove_key_binding("fx-search")
         mp.remove_key_binding("fx-esc")
     end
 
@@ -65,7 +67,7 @@ function M.show(on_close)
             local marker = effects.instance(row.preset.id) and string.format(" %s%s", theme.c("on_color"), state.opts.on_text) or ""
             return string.format("\\h%s%s", theme.escape(row.preset.label), marker)
         end)
-        local hints = { { "Up/Down", "navigate" }, { "Enter", "toggle" }, { "d", "edit" }, { "Esc", "close" } }
+        local hints = { { "Up/Down", "navigate" }, { "Enter", "toggle" }, { "d", "edit" }, { "/", "search" }, { "Esc", "close" } }
         ov.data = ui.title(lang.t("menu_effects")) .. "\\N" .. body .. "\\N" .. ui.tooltip(hints)
         ov:update()
     end
@@ -198,6 +200,20 @@ function M.show(on_close)
         mp.add_forced_key_binding("d", "fx-d", function()
             local row = rows[cursor]
             if row and row.kind == "preset" then edit_preset(row.preset) end
+        end)
+
+        mp.add_forced_key_binding("/", "fx-search", function()
+            local presets = effects.list()
+            local labels  = {}
+            for i, p in ipairs(presets) do labels[i] = p.file .. "/" .. p.label end
+            teardown()
+            ui_list.search(lang.t("menu_effects"), labels, function(i)
+                open_ui()
+                for r, row in ipairs(rows) do
+                    if row.preset and row.preset.id == presets[i].id then cursor = r end
+                end
+                toggle_preset(presets[i])
+            end, open_ui)
         end)
 
         mp.add_forced_key_binding("ESC", "fx-esc", cleanup)

@@ -1,26 +1,26 @@
-local mp     = require 'mp'
-local common = require 'src.common'
-local state  = require 'src.state'
-local theme  = require 'src.theme'
-local lang   = require 'src.lang'
-local ui     = require 'src.ui'
+local mp      = require 'mp'
+local common  = require 'src.common'
+local ui_list = require 'src.ui_list'
+local state   = require 'src.state'
+local theme   = require 'src.theme'
+local lang    = require 'src.lang'
+local ui      = require 'src.ui'
 
 local M = {}
 
-local bindings = { "cfg-up", "cfg-down", "cfg-j", "cfg-k", "cfg-move-up", "cfg-move-down", "cfg-K", "cfg-J", "cfg-enter", "cfg-esc" }
+local bindings = { "cfg-up", "cfg-down", "cfg-j", "cfg-k", "cfg-move-up", "cfg-move-down", "cfg-K", "cfg-J", "cfg-enter", "cfg-search", "cfg-esc" }
 
 function M.show(configs, on_apply, on_close)
     local ov      = mp.create_osd_overlay("ass-events")
-    local active  = true
+    local active  = false
     local cursor  = 1
     local changed = false
     local rows    = {}
+    local open_ui
     for i, c in ipairs(configs) do rows[i] = { name = c.name, enabled = c.enabled, exists = c.exists } end
 
-    ui.clear_osd()
-    state.ui_owner = "configs"
-
     local function teardown()
+        if not active then return end
         active         = false
         state.ui_owner = nil
         ov:remove()
@@ -48,7 +48,7 @@ function M.show(configs, on_apply, on_close)
         end)
         if #rows == 0 then body = ui.dim(lang.t("configs_empty", { dir = common.display_path(common.get_conf_dir()) })) end
 
-        local hints = { { "Up/Down", "navigate" }, { "Enter", "toggle" }, { "Shift+Up/Down", "move" }, { "Esc", "apply" } }
+        local hints = { { "Up/Down", "navigate" }, { "Enter", "toggle" }, { "Shift+Up/Down", "move" }, { "/", "search" }, { "Esc", "apply" } }
         ov.data = ui.title(lang.t("menu_configs")) .. "\\N" .. body .. "\\N" .. ui.tooltip(hints)
         ov:update()
     end
@@ -76,17 +76,40 @@ function M.show(configs, on_apply, on_close)
         draw()
     end
 
-    mp.add_forced_key_binding("UP", "cfg-up", function() move_cursor(-1) end, {repeatable = true})
-    mp.add_forced_key_binding("DOWN", "cfg-down", function() move_cursor(1) end, {repeatable = true})
-    mp.add_forced_key_binding("j", "cfg-j", function() move_cursor(1) end, {repeatable = true})
-    mp.add_forced_key_binding("k", "cfg-k", function() move_cursor(-1) end, {repeatable = true})
-    mp.add_forced_key_binding("shift+UP", "cfg-move-up", function() move_row(-1) end, {repeatable = true})
-    mp.add_forced_key_binding("shift+DOWN", "cfg-move-down", function() move_row(1) end, {repeatable = true})
-    mp.add_forced_key_binding("K", "cfg-K", function() move_row(-1) end, {repeatable = true})
-    mp.add_forced_key_binding("J", "cfg-J", function() move_row(1) end, {repeatable = true})
-    mp.add_forced_key_binding("ENTER", "cfg-enter", toggle)
-    mp.add_forced_key_binding("ESC", "cfg-esc", close)
-    draw()
+    local function search()
+        local labels = {}
+        for i, row in ipairs(rows) do labels[i] = row.name end
+        teardown()
+        ui_list.search(lang.t("menu_configs"), labels, function(i)
+            cursor = i
+            open_ui()
+            toggle()
+        end, open_ui)
+    end
+
+    local function bind()
+        mp.add_forced_key_binding("UP", "cfg-up", function() move_cursor(-1) end, {repeatable = true})
+        mp.add_forced_key_binding("DOWN", "cfg-down", function() move_cursor(1) end, {repeatable = true})
+        mp.add_forced_key_binding("j", "cfg-j", function() move_cursor(1) end, {repeatable = true})
+        mp.add_forced_key_binding("k", "cfg-k", function() move_cursor(-1) end, {repeatable = true})
+        mp.add_forced_key_binding("shift+UP", "cfg-move-up", function() move_row(-1) end, {repeatable = true})
+        mp.add_forced_key_binding("shift+DOWN", "cfg-move-down", function() move_row(1) end, {repeatable = true})
+        mp.add_forced_key_binding("K", "cfg-K", function() move_row(-1) end, {repeatable = true})
+        mp.add_forced_key_binding("J", "cfg-J", function() move_row(1) end, {repeatable = true})
+        mp.add_forced_key_binding("ENTER", "cfg-enter", toggle)
+        mp.add_forced_key_binding("/", "cfg-search", search)
+        mp.add_forced_key_binding("ESC", "cfg-esc", close)
+    end
+
+    open_ui = function()
+        ui.clear_osd()
+        active         = true
+        state.ui_owner = "configs"
+        bind()
+        draw()
+    end
+
+    open_ui()
 end
 
 return M

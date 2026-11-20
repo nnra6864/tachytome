@@ -42,6 +42,8 @@ return {
     value_on      = "On",
     value_off     = "Off",
     value_none    = "None",
+    search_title  = "Search",
+    search_none   = "No matches",
     value_all     = "All",
     value_best    = "Best",
     value_default = "Default",
@@ -72,6 +74,7 @@ return {
     key_audio    = "pick audio",
     key_video    = "pick video",
     key_add      = "add",
+    key_search   = "search",
     key_mode     = "pick mode",
     key_scaler   = "pick scaler",
 

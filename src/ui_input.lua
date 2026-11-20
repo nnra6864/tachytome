@@ -18,6 +18,7 @@ local current_callback        = nil
 local current_cancel_callback = nil
 local current_preview         = nil
 local current_hint            = nil
+local current_below           = nil
 
 local history      = {}
 local history_idx  = 1
@@ -38,9 +39,10 @@ local function render()
     local preview_str = preview ~= "" and string.format("\\N%s%s-> %s%s", theme.f(true), theme.c("value_color"), theme.escape(preview), theme.reset()) or ""
     local current_str = current_value ~= "" and ui.dim(lang.t("value_current", { value = current_value })) or ""
     local hint_str    = current_hint and ui.dim(current_hint) or ""
+    local below_str   = current_below and current_below(buffer) or ""
 
     local line = edit.render(layers, theme.align(7) .. theme.f() .. theme.c("text_color"), current_title .. " > ", buffer, cursor)
-    overlay.data = string.format("%s%s%s%s%s%s", line, theme.reset(), preview_str, current_str, hint_str, ui.tooltip(hints))
+    overlay.data = string.format("%s%s%s%s%s%s%s", line, theme.reset(), preview_str, current_str, hint_str, below_str, ui.tooltip(hints))
     overlay:update()
 end
 
@@ -127,8 +129,9 @@ function M.show(opts)
     current_cancel_callback = opts.on_cancel
     current_preview         = opts.preview
     current_hint            = opts.hint
-    buffer                  = ""
-    cursor                  = 0
+    current_below           = opts.below
+    buffer                  = opts.text or ""
+    cursor                  = #buffer
 
     history      = opts.history or {}
     history_idx  = #history + 1

@@ -8,6 +8,7 @@ local notify    = require 'src.notify'
 local theme     = require 'src.theme'
 local ui_input  = require 'src.ui_input'
 local ui_choice = require 'src.ui_choice'
+local ui_list   = require 'src.ui_list'
 local lang      = require 'src.lang'
 local ui        = require 'src.ui'
 
@@ -41,6 +42,7 @@ function M.show(on_close)
         mp.remove_key_binding("qm-enter")
         mp.remove_key_binding("qm-d")
         mp.remove_key_binding("qm-path")
+        mp.remove_key_binding("qm-search")
         mp.remove_key_binding("qm-esc")
     end
 
@@ -65,7 +67,7 @@ function M.show(on_close)
             local status = job.is_active and string.format(" %s%s", theme.c("on_color"), state.opts.on_text) or ""
             return theme.escape(job.title) .. status
         end)
-        local hints = { { "Up/Down", "navigate" }, { "Enter", "pause" }, { "p", "path" }, { "d", "delete" }, { "Esc", "close" } }
+        local hints = { { "Up/Down", "navigate" }, { "Enter", "pause" }, { "p", "path" }, { "d", "delete" }, { "/", "search" }, { "Esc", "close" } }
         ov.data = ui.title(lang.t("menu_render_queue")) .. "\\N" .. body .. "\\N" .. ui.tooltip(hints)
         ov:update()
     end
@@ -212,6 +214,16 @@ function M.show(on_close)
         mp.add_forced_key_binding("d", "qm-d", delete_selected)
 
         mp.add_forced_key_binding("p", "qm-path", change_path_selected)
+
+        mp.add_forced_key_binding("/", "qm-search", function()
+            local labels = {}
+            for i, job in ipairs(jobs) do labels[i] = job.title end
+            teardown()
+            ui_list.search(lang.t("menu_render_queue"), labels, function(i)
+                cursor = i
+                open_ui()
+            end, open_ui)
+        end)
 
         mp.add_forced_key_binding("ESC", "qm-esc", cleanup)
     end

@@ -1,15 +1,16 @@
-local mp     = require 'mp'
-local common = require 'src.common'
-local tracks = require 'src.tracks'
-local state  = require 'src.state'
-local notify = require 'src.notify'
-local theme  = require 'src.theme'
-local lang   = require 'src.lang'
-local ui     = require 'src.ui'
+local mp      = require 'mp'
+local common  = require 'src.common'
+local tracks  = require 'src.tracks'
+local ui_list = require 'src.ui_list'
+local state   = require 'src.state'
+local notify  = require 'src.notify'
+local theme   = require 'src.theme'
+local lang    = require 'src.lang'
+local ui      = require 'src.ui'
 
 local M = {}
 
-local bindings = { "tr-up", "tr-down", "tr-j", "tr-k", "tr-enter", "tr-a", "tr-v", "tr-esc" }
+local bindings = { "tr-up", "tr-down", "tr-j", "tr-k", "tr-enter", "tr-a", "tr-v", "tr-search", "tr-esc" }
 for i = 1, 10 do bindings[#bindings + 1] = "tr-" .. i end
 
 local function track_label(t, n)
@@ -31,21 +32,24 @@ local function toggle(val)
 end
 
 function M.show(on_close)
-    ui.clear_osd()
-    state.ui_owner = "tracks"
-
     local ov     = mp.create_osd_overlay("ass-events")
-    local active = true
+    local active = false
     local kind   = state.opts.tracks_type == "video" and "video" or "audio"
     local list   = tracks.list(kind)
     local cursor = 1
+    local open_ui
 
-    local function cleanup()
+    local function teardown()
         if not active then return end
         active         = false
         state.ui_owner = nil
         ov:remove()
         for _, name in ipairs(bindings) do mp.remove_key_binding(name) end
+    end
+
+    local function cleanup()
+        if not active then return end
+        teardown()
         if on_close then on_close() end
     end
 
@@ -68,7 +72,7 @@ function M.show(on_close)
                 return line
             end)
         end
-        local hints = { { "a", "audio" }, { "v", "video" }, { "0-9/Enter", "toggle" }, { "Up/Down", "navigate" }, { "Esc", "close" } }
+        local hints = { { "a", "audio" }, { "v", "video" }, { "0-9/Enter", "toggle" }, { "Up/Down", "navigate" }, { "/", "search" }, { "Esc", "close" } }
         ov.data = ui.title(title) .. "\\N" .. body .. "\\N" .. ui.tooltip(hints)
         ov:update()
     end
@@ -99,18 +103,43 @@ function M.show(on_close)
         draw()
     end
 
-    mp.add_forced_key_binding("UP", "tr-up", move_up, {repeatable = true})
-    mp.add_forced_key_binding("DOWN", "tr-down", move_down, {repeatable = true})
-    mp.add_forced_key_binding("j", "tr-j", move_down, {repeatable = true})
-    mp.add_forced_key_binding("k", "tr-k", move_up, {repeatable = true})
-    mp.add_forced_key_binding("ENTER", "tr-enter", function() toggle_track(cursor) end)
-    mp.add_forced_key_binding("a", "tr-a", function() switch("audio") end)
-    mp.add_forced_key_binding("v", "tr-v", function() switch("video") end)
-    for i = 1, 10 do
-        mp.add_forced_key_binding(ui.number_key(i), "tr-" .. i, function() toggle_track(i) end)
+    local function search()
+        local labels = {}
+        for i, t in ipairs(list) do
+            local details = track_details(t)
+            labels[i] = string.format("%d %s", i, track_label(t, i)) .. (details ~= "" and " " .. details or "")
+        end
+        teardown()
+        ui_list.search(string.format("%s %s %s", lang.t("menu_tracks"), state.opts.menu_path_separator, lang.t("tracks_" .. kind)), labels, function(i)
+            open_ui()
+            toggle_track(i)
+        end, open_ui)
     end
-    mp.add_forced_key_binding("ESC", "tr-esc", cleanup)
-    draw()
+
+    local function bind()
+        mp.add_forced_key_binding("UP", "tr-up", move_up, {repeatable = true})
+        mp.add_forced_key_binding("DOWN", "tr-down", move_down, {repeatable = true})
+        mp.add_forced_key_binding("j", "tr-j", move_down, {repeatable = true})
+        mp.add_forced_key_binding("k", "tr-k", move_up, {repeatable = true})
+        mp.add_forced_key_binding("ENTER", "tr-enter", function() toggle_track(cursor) end)
+        mp.add_forced_key_binding("a", "tr-a", function() switch("audio") end)
+        mp.add_forced_key_binding("v", "tr-v", function() switch("video") end)
+        for i = 1, 10 do
+            mp.add_forced_key_binding(ui.number_key(i), "tr-" .. i, function() toggle_track(i) end)
+        end
+        mp.add_forced_key_binding("/", "tr-search", search)
+        mp.add_forced_key_binding("ESC", "tr-esc", cleanup)
+    end
+
+    open_ui = function()
+        ui.clear_osd()
+        active         = true
+        state.ui_owner = "tracks"
+        bind()
+        draw()
+    end
+
+    open_ui()
 end
 
 return M

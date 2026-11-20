@@ -309,9 +309,19 @@ See the `cursor_` options in the [builtin config](./tachytome.conf) for its colo
 | Up/k        | Navigate Up   | Navigates to item above, the top wraps around.  |
 | Down/j      | Navigate Down | Navigates to item below, the bottom wraps around. |
 | 0-9         | Select        | Selects the item number, `0` is the 10th.       |
+| /           | Search        | Search the list by name.                        |
 
 Number keys are shown next to the first 10 items of lists that have them, the rest are reached with Up/Down.<br>
 Lists put what's rarely needed last, so with wrapping it's only a few Up presses away from the top.<br>
+
+Search shows every match live while typing, ignoring case, then Enter:
+- One match, or one exact name, selects it, e.g. `/av1` picks `av1` even though `nv_av1` also matches.
+- Several matches open a numbered list of only those, Esc goes back to the full list.
+- No matches keeps the search open to fix the text.
+
+Selecting a match does what Enter does in that list: picks it, toggles the effect, track or config, or moves to the render.<br>
+Effects are searched as `file/name`, so `/default` lists one file's effects and `/fade` picks `fade`.<br>
+The Resolution List has no search, its rows are your own few layers.<br>
 Inputs like the Path prompt use ctrl+k/ctrl+j instead, since plain letters are typed into the input.
 
 #### Effects List
