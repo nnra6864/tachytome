@@ -81,6 +81,7 @@ function M.item_from_job(job, status)
         fps_override        = job.fps_override,
         keyframe_interval   = job.keyframe_interval,
         effects             = job.effects,
+        resolution          = job.resolution,
         lossless_cut        = job.lossless_cut,
         accurate_cut        = job.accurate_cut,
         audio_encoder       = job.audio_encoder,
@@ -136,6 +137,7 @@ function M.build_job(spec)
         fps_override        = spec.fps_override,
         keyframe_interval   = spec.keyframe_interval,
         effects             = spec.effects,
+        resolution          = spec.resolution,
         accurate_cut        = spec.accurate_cut,
         lossless_cut        = spec.lossless_cut,
         audio_encoder       = spec.audio_encoder,
@@ -147,9 +149,11 @@ function M.build_job(spec)
         combined_audio_name = spec.combined_audio_name
     }
     local args, out_fps = builder.build_args(build_opts, spec.input_file, spec.output_file, creation_time)
-    local in_info       = utils.file_info(spec.input_file)
-    local temp_id       = next_temp_id()
-    local duration      = (tonumber(spec.end_time) or 0) - (tonumber(spec.start_time) or 0)
+    if not args then return nil, out_fps end
+
+    local in_info  = utils.file_info(spec.input_file)
+    local temp_id  = next_temp_id()
+    local duration = (tonumber(spec.end_time) or 0) - (tonumber(spec.start_time) or 0)
 
     return {
         args                = args,
@@ -176,6 +180,7 @@ function M.build_job(spec)
         fps_override        = spec.fps_override,
         keyframe_interval   = spec.keyframe_interval,
         effects             = spec.effects,
+        resolution          = spec.resolution,
         lossless_cut        = spec.lossless_cut,
         accurate_cut        = spec.accurate_cut,
         audio_encoder       = spec.audio_encoder,

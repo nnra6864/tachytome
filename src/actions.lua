@@ -1,6 +1,7 @@
 local mp            = require 'mp'
 local common        = require 'src.common'
 local effects       = require 'src.effects'
+local resolution    = require 'src.resolution'
 local ui_input      = require 'src.ui_input'
 local ui_list       = require 'src.ui_list'
 local ui_confirm    = require 'src.ui_confirm'
@@ -479,6 +480,12 @@ function M.set_path(on_complete)
 end
 
 function M.start_render(on_complete)
+    local res, err = resolution.snapshot()
+    if err then
+        notify.show(err, true, "error")
+        if on_complete then on_complete() end
+        return
+    end
     render.start({
         final_output_path   = M.get_final_path(),
         mark_in             = state.mark_in,
@@ -492,6 +499,7 @@ function M.start_render(on_complete)
         fps_override        = state.fps_override,
         keyframe_interval   = M.get_keyframe_interval(),
         effects             = state.effects_enabled and effects.snapshot() or nil,
+        resolution          = res,
         audio_encoder       = state.opts.audio_encoder,
         audio_bitrate       = state.opts.audio_bitrate,
         combine_audio       = state.opts.combine_audio,

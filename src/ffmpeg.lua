@@ -1,7 +1,24 @@
-local common = require 'src.common'
-local effects = require 'src.effects'
+local common     = require 'src.common'
+local effects    = require 'src.effects'
+local resolution = require 'src.resolution'
 
 local M = {}
+
+local function display_size(s)
+    local w = tonumber(s.width)
+    local h = tonumber(s.height)
+    if not w or not h or w <= 0 or h <= 0 then return nil end
+    local sar_n, sar_d = tostring(s.sample_aspect_ratio or ""):match("^(%d+):(%d+)$")
+    local sar          = 1
+    if sar_n and tonumber(sar_n) > 0 and tonumber(sar_d) > 0 then sar = tonumber(sar_n) / tonumber(sar_d) end
+    local rotation = 0
+    for _, side in ipairs(s.side_data_list or {}) do
+        if side.rotation then rotation = tonumber(side.rotation) or 0 end
+    end
+    if rotation == 0 and s.tags and s.tags.rotate then rotation = tonumber(s.tags.rotate) or 0 end
+    if math.abs(rotation) % 180 == 90 then return { w = h, h = w, sar = 1 / sar } end
+    return { w = w, h = h, sar = sar }
+end
 
 local function get_media_info(input_file)
     local probe_data = common.ffprobe_get_json(input_file, {
@@ -17,7 +34,7 @@ local function get_media_info(input_file)
         elseif s.codec_type == "video" then
             local fps = nil
             if s.avg_frame_rate and s.avg_frame_rate ~= "0/0" and s.avg_frame_rate ~= "N/A" then fps = s.avg_frame_rate end
-            info.video[#info.video + 1] = { fps = fps, full_range = s.color_range == "pc" }
+            info.video[#info.video + 1] = { fps = fps, full_range = s.color_range == "pc", size = display_size(s) }
         end
     end
     return info
@@ -75,9 +92,13 @@ local function select_streams(info, opts, output_file)
     info.a_bitrate   = (opts.audio_bitrate or "") ~= "" and opts.audio_bitrate or nil
     info.full_range  = false
     info.v_fps       = nil
+    info.v_size      = nil
     for k, i in ipairs(info.video_pick) do
         local v = info.video[i + 1]
-        if k == 1 then info.full_range = v.full_range end
+        if k == 1 then
+            info.full_range = v.full_range
+            info.v_size     = v.size
+        end
         if not info.v_fps then info.v_fps = v.fps end
     end
     return info
@@ -259,12 +280,22 @@ function M.build_args(opts, input_file, output_file, creation_time)
             fps        = parse_fps(opts.fps_override or media_info.v_fps)
         })
     end
-    local lossless = opts.lossless_cut and #vf_effects == 0 and #af_effects == 0
+    local vf_resolution = {}
+    if opts.resolution and media_info.v_size then
+        local size         = media_info.v_size
+        local filters, err = resolution.filters(opts.resolution, size.w, size.h, size.sar)
+        if not filters then return nil, err end
+        vf_resolution = filters
+    end
+    local lossless = opts.lossless_cut and #vf_effects == 0 and #af_effects == 0 and #vf_resolution == 0
 
-    if accurate and opts.mark_in > 0 then
+    local trimmed = accurate and opts.mark_in > 0
+    if trimmed then
         if #vf_effects > 0 then table.insert(vf_effects, 1, "trim=start=" .. tostring(opts.mark_in)) end
         if #af_effects > 0 then table.insert(af_effects, 1, "atrim=start=" .. tostring(opts.mark_in)) end
     end
+    local at = (trimmed and #vf_effects > 0) and 2 or 1
+    for i, f in ipairs(vf_resolution) do table.insert(vf_effects, at + i - 1, f) end
 
     table.insert(args, "-fflags") table.insert(args, "+genpts")
 

@@ -216,7 +216,7 @@ local function adopt_orphan_queue(file)
         elseif (tonumber(it.mark_out) or 0) <= (tonumber(it.mark_in) or 0) then
             notify.show(lang.t("recovery_skipped", { reason = lang.t("recovery_bad_marks"), name = it.final_name }), true, "warn")
         else
-            table.insert(queue.jobs, queue.build_job({
+            local job, err = queue.build_job({
                 input_file          = it.input_file,
                 output_file         = it.output_file,
                 final_name          = it.final_name,
@@ -230,6 +230,7 @@ local function adopt_orphan_queue(file)
                 fps_override        = it.fps_override,
                 keyframe_interval   = it.keyframe_interval,
                 effects             = it.effects,
+                resolution          = it.resolution,
                 lossless_cut        = it.lossless_cut,
                 accurate_cut        = it.accurate_cut,
                 audio_encoder       = it.audio_encoder,
@@ -245,8 +246,13 @@ local function adopt_orphan_queue(file)
                 show_stats_screen   = it.show_stats_screen,
                 show_stats_terminal = it.show_stats_terminal,
                 stats_osd_time      = it.stats_osd_time
-            }))
-            adopted = adopted + 1
+            })
+            if job then
+                table.insert(queue.jobs, job)
+                adopted = adopted + 1
+            else
+                notify.show(lang.t("recovery_skipped", { reason = err, name = it.final_name }), true, "warn")
+            end
         end
     end
     os.remove(file.path)

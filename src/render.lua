@@ -331,7 +331,7 @@ function M.start(opts)
     local final_name                  = target_name_ext
     common.ensure_dir(target_dir)
 
-    local job = queue.build_job({
+    local job, err = queue.build_job({
         input_file          = input_file,
         output_file         = output_file,
         final_name          = final_name,
@@ -344,6 +344,7 @@ function M.start(opts)
         fps_override        = opts.fps_override,
         keyframe_interval   = opts.keyframe_interval,
         effects             = opts.effects,
+        resolution          = opts.resolution,
         lossless_cut        = opts.lossless_cut,
         accurate_cut        = opts.accurate_cut,
         audio_encoder       = opts.audio_encoder,
@@ -361,6 +362,11 @@ function M.start(opts)
         stats_osd_time      = opts.stats_osd_time,
         rename_callback     = opts.rename_callback
     })
+    if not job then
+        notify.show(err, true, "error")
+        if opts.on_complete then opts.on_complete() end
+        return
+    end
 
     verify_and_queue(job, output_file, opts.on_complete)
 end

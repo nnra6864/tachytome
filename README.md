@@ -26,6 +26,7 @@ Keyboard Driven, AV1/H265/H264/Lossless, MPV Video Cutter.
   - [Config](#config)
   - [Recovery](#recovery)
   - [Go To](#go-to)
+  - [Resolution](#resolution)
   - [Effects](#effects)
   - [Path](#path)
 - [Contributing](#contributing)
@@ -563,6 +564,46 @@ Their current values are listed right below the input.
 | `50ms` | 50 milliseconds     |
 | `-60f` | 60 frames back      |
 | `5%`   | 5%                  |
+
+### Resolution
+
+The `resolution` option sets the output resolution as a chain of layers applied in order, empty keeps the source.<br>
+Each size token starts a new layer, a mode or scaler word right after it applies to that layer.
+
+| Token          | Layer                                               |
+|----------------|-----------------------------------------------------|
+| `0.5x`, `50%`  | Multiplier, keeps the aspect.                       |
+| `1920x1080`    | Box, how the frame gets into it is set by the mode. |
+| `1280w`        | Width, keeps the aspect.                            |
+| `720h`, `720p` | Height, keeps the aspect.                           |
+| `4:3`          | Aspect, keeps the res, the box depends on the mode. |
+
+An aspect is the largest box of it inside the frame for `cover` and `crop`, the smallest one around it for `fit`, and keeps the height for `stretch`.
+
+| Mode      | Description                                                                 |
+|-----------|-----------------------------------------------------------------------------|
+| `fit`     | Scales the frame to fit inside, pads the rest with `pad_color`. Default.    |
+| `cover`   | Scales the frame to cover it, crops what's left over from the center.       |
+| `stretch` | Scales to the exact size, ignoring the aspect.                              |
+| `crop`    | Cuts the center out without scaling, can't be bigger than the frame.        |
+
+Scalers are `fast_bilinear`, `bilinear`, `bicubic`, `bicublin`, `neighbor`, `area`, `gauss`, `sinc`, `lanczos` and `spline`.<br>
+Layers without one use `scaler_down` when they shrink the frame and `scaler_up` when they grow it, both `lanczos` by default.<br>
+`resolution_mode` sets the mode for layers without one, modes only matter for boxes and aspects.<br>
+Sizes are rounded to even numbers, the chain runs before the effects and turns Lossless Cut off for the render.
+
+| Chain               | 1920x1080 source                                                                  |
+|---------------------|-----------------------------------------------------------------------------------|
+| `0.5x`              | 960x540.                                                                          |
+| `720p`              | 1280x720.                                                                         |
+| `5:4 crop 0.5x`     | Cuts the side bars off a stretched 5:4 game, then halves it to 676x540.           |
+| `1080x1920 cover`   | Vertical 1080x1920, cutting the sides off.                                        |
+| `1080x1920`         | Vertical 1080x1920, the whole frame with bars above and below.                    |
+| `4:3 stretch`       | 1440x1080, squeezed.                                                              |
+| `200% neighbor`     | 3840x2160, keeping hard pixel edges.                                              |
+
+Recorders that stretch a lower game res over the whole screen, e.g. 1280x1024 recorded as 2560x1440, are undone with `1280x1024 stretch`, which gives back the native frame.<br>
+Use `1024p` instead to keep it looking the way it did on screen.
 
 ### Effects
 

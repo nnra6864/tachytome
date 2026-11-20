@@ -152,6 +152,9 @@ return {
     render_invalid_marks = "Invalid marks, In {mark_in} must be before Out {mark_out}",
     render_exists        = "File already exists",
 
+    resolution_unknown = "Resolution: unknown '{token}'",
+    resolution_too_big = "Resolution: '{token}' can't crop a {size} frame",
+
     recovery_title     = "Interrupted Renders Found",
     recovery_owner     = "From a closed or crashed mpv",
     recovery_more      = "+{count} more",
