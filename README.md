@@ -618,7 +618,7 @@ Each size token starts a new layer, a mode or scaler word right after it applies
 | `720h`         | Height, keeps the aspect.                           |
 | `720p`         | Short side, keeps the aspect, so vertical works.    |
 | `4:3`          | Aspect, keeps the res, the box depends on the mode. |
-| `fhd`          | A [preset](#resolution-presets), expands in place.  |
+| `half`         | A [preset](#resolution-presets), expands in place.  |
 | `auto`         | Crops black bars, see [Auto Crop](#auto-crop).      |
 
 An aspect is the largest box of it inside the frame for `cover` and `crop`, the smallest one around it for `fit`, and keeps the height for `stretch`.
@@ -675,8 +675,7 @@ cs       = 1280x1024 stretch
 - The same name in two files is fine, `file/name` picks a specific one, e.g. `mine/vertical`, a bare name picks the first file.
 - The Resolution List opens them with `p` or the Presets row, 0-9/Enter uses one, `a` adds it to the chain.
 
-`default.res` holds `hd`, `fhd`, `qhd`, `2k`, `uhd`, `4k` and `8k` on the short side, with `2k` as 1440p like in gaming, `autocrop`, `half` and `vertical`.<br>
-Redefine `2k` in your own file if you mean 1080p or DCI 2048x1080.
+`default.res` holds `autocrop` and `half`, with commented examples to uncomment: `hd` to `8k` on the short side, `vertical` and `cs`.
 
 ### Effects
 

@@ -100,7 +100,7 @@ return {
     hint_space         = "Replaces spaces in the output name, empty removes them",
     hint_path          = "Empty resets to the default path",
     hint_easing        = "Easing, e.g. linear or ease_out_cubic",
-    hint_resolution    = "e.g. 0.5x, 720p, 1280w, fhd, 1080x1920 cover or 5:4 crop 0.5x",
+    hint_resolution    = "e.g. auto, 0.5x, 720p, 1280w, half, 1080x1920 cover or 5:4 crop 0.5x",
     quality_global     = "Global Quality",
 
     goto_not_seekable = "Cannot seek in this file",
