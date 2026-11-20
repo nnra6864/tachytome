@@ -54,9 +54,8 @@ function M.show(configs, on_apply, on_close)
     end
 
     local function move_cursor(delta)
-        local target = cursor + delta
-        if target < 1 or target > #rows then return end
-        cursor = target
+        if #rows == 0 then return end
+        cursor = ui.wrap(cursor, delta, #rows)
         draw()
     end
 

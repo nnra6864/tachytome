@@ -170,9 +170,10 @@ function M.show(on_close)
 
     local function bind()
         local function move(delta)
-            local target = cursor + delta
-            while rows[target] and rows[target].kind == "header" do target = target + delta end
-            if rows[target] then cursor = target; draw() end
+            local target = ui.wrap(cursor, delta, #rows)
+            while rows[target].kind == "header" do target = ui.wrap(target, delta, #rows) end
+            cursor = target
+            draw()
         end
 
         local function move_up() move(-1) end

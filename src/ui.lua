@@ -28,6 +28,22 @@ function M.tooltip(hints)
     return M.dim("(" .. table.concat(parts, ", ") .. ")")
 end
 
+function M.wrap(index, delta, count)
+    if count < 1 then return index end
+    return (index - 1 + delta) % count + 1
+end
+
+function M.number_key(i)
+    if i <= 9 then return tostring(i) end
+    if i == 10 then return "0" end
+    return nil
+end
+
+function M.number_prefix(i)
+    local key = M.number_key(i)
+    return key and key .. " -> " or string.rep("\\h", 5)
+end
+
 function M.list(count, cursor, line)
     local start_idx = math.max(1, cursor - math.floor(visible_rows / 2))
     local end_idx   = math.min(count, start_idx + visible_rows - 1)

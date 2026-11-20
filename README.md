@@ -304,12 +304,14 @@ See the `cursor_` options in the [builtin config](./tachytome.conf) for its colo
 
 #### Lists (Render Queue, Preset etc.)
 
-| Keybind     | Action        | Description              |
-|-------------|---------------|--------------------------|
-| Up/k        | Navigate Up   | Navigates to item above. |
-| Down/j      | Navigate Down | Navigates to item below. |
-| 1-9         | Select        | Selects the item number. |
+| Keybind     | Action        | Description                                     |
+|-------------|---------------|-------------------------------------------------|
+| Up/k        | Navigate Up   | Navigates to item above, the top wraps around.  |
+| Down/j      | Navigate Down | Navigates to item below, the bottom wraps around. |
+| 0-9         | Select        | Selects the item number, `0` is the 10th.       |
 
+Number keys are shown next to the first 10 items of lists that have them, the rest are reached with Up/Down.<br>
+Lists put what's rarely needed last, so with wrapping it's only a few Up presses away from the top.<br>
 Inputs like the Path prompt use ctrl+k/ctrl+j instead, since plain letters are typed into the input.
 
 #### Effects List
@@ -344,12 +346,12 @@ Setting a chain turns Resolution on, an empty Chain keeps the source.
 |-----------|------------|------------------------------------------------|
 | a         | Pick Audio | Show the audio tracks.                         |
 | v         | Pick Video | Show the video tracks.                         |
-| 1-9       | Toggle     | Keep or drop the track with that number.       |
+| 0-9       | Toggle     | Keep or drop the track with that number.       |
 | Enter     | Toggle     | Keep or drop the track under the cursor.       |
 | Esc       | Close      | Close the list.                                |
 
 Each track shows its number, title, on/off state and its codec, channels or size and language.<br>
-Tracks past the 9th have no number key, reach them with Up/Down and toggle them with Enter.<br>
+`0` is the 10th track, tracks past it have no number key, reach them with Up/Down and toggle them with Enter.<br>
 The list opens on audio, set `tracks_type=video` to open on video instead.<br>
 `audio_tracks` and `video_tracks` pick the tracks kept by default for every loaded file, `all`, a list like `1,3`, or empty for none.<br>
 Only the file's own tracks are listed, external audio files loaded into mpv aren't part of the render.<br>

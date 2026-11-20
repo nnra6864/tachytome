@@ -6,7 +6,7 @@ local ui    = require 'src.ui'
 local M = {}
 
 local bindings = { "list-up", "list-down", "list-j", "list-k", "list-enter", "list-esc" }
-for i = 1, 9 do bindings[#bindings + 1] = "list-" .. i end
+for i = 1, 10 do bindings[#bindings + 1] = "list-" .. i end
 
 function M.show(title, items, current_val, on_select, on_cancel)
     ui.clear_osd()
@@ -39,19 +39,20 @@ function M.show(title, items, current_val, on_select, on_cancel)
     local function draw()
         local body = ui.list(#items, cursor, function(i)
             local marker = items[i] == current_val and string.format(" %s%s", theme.c("on_color"), state.opts.on_text) or ""
-            local key    = i <= 9 and tostring(i) .. " -> " or string.rep("\\h", 5)
-            return key .. theme.escape(items[i]) .. marker
+            return ui.number_prefix(i) .. theme.escape(items[i]) .. marker
         end)
-        ov.data = ui.title(title) .. "\\N" .. body .. "\\N" .. ui.tooltip({ { "Up/Down", "navigate" }, { "1-9/Enter", "select" }, { "Esc", "cancel" } })
+        ov.data = ui.title(title) .. "\\N" .. body .. "\\N" .. ui.tooltip({ { "Up/Down", "navigate" }, { "0-9/Enter", "select" }, { "Esc", "cancel" } })
         ov:update()
     end
 
     local function move_up()
-        if cursor > 1 then cursor = cursor - 1; draw() end
+        cursor = ui.wrap(cursor, -1, #items)
+        draw()
     end
 
     local function move_down()
-        if cursor < #items then cursor = cursor + 1; draw() end
+        cursor = ui.wrap(cursor, 1, #items)
+        draw()
     end
 
     mp.add_forced_key_binding("UP", "list-up", move_up, {repeatable = true})
@@ -67,8 +68,8 @@ function M.show(title, items, current_val, on_select, on_cancel)
     end
 
     mp.add_forced_key_binding("ENTER", "list-enter", function() pick(cursor) end)
-    for i = 1, 9 do
-        mp.add_forced_key_binding(tostring(i), "list-" .. i, function() pick(i) end)
+    for i = 1, 10 do
+        mp.add_forced_key_binding(ui.number_key(i), "list-" .. i, function() pick(i) end)
     end
 
     mp.add_forced_key_binding("ESC", "list-esc", cleanup)

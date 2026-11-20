@@ -10,7 +10,7 @@ local ui     = require 'src.ui'
 local M = {}
 
 local bindings = { "tr-up", "tr-down", "tr-j", "tr-k", "tr-enter", "tr-a", "tr-v", "tr-esc" }
-for i = 1, 9 do bindings[#bindings + 1] = "tr-" .. i end
+for i = 1, 10 do bindings[#bindings + 1] = "tr-" .. i end
 
 local function track_label(t, n)
     return t.title or lang.t("tracks_track", { n = n })
@@ -61,14 +61,14 @@ function M.show(on_close)
             body = ui.list(#list, cursor, function(i)
                 local label   = track_label(list[i], i)
                 local details = track_details(list[i])
-                local key     = i <= 9 and tostring(i) .. " -> " or string.rep("\\h", 5)
+                local key     = ui.number_prefix(i)
                 local pad     = string.rep("\\h", max_label - common.text_len(label) + 1)
                 local line    = string.format("%s%s%s> %s", key, theme.escape(label), pad, toggle(selected[i]))
                 if details ~= "" then line = string.format("%s %s%s", line, theme.c("dim_text_color"), theme.escape(details)) end
                 return line
             end)
         end
-        local hints = { { "a", "audio" }, { "v", "video" }, { "1-9/Enter", "toggle" }, { "Up/Down", "navigate" }, { "Esc", "close" } }
+        local hints = { { "a", "audio" }, { "v", "video" }, { "0-9/Enter", "toggle" }, { "Up/Down", "navigate" }, { "Esc", "close" } }
         ov.data = ui.title(title) .. "\\N" .. body .. "\\N" .. ui.tooltip(hints)
         ov:update()
     end
@@ -90,11 +90,13 @@ function M.show(on_close)
     end
 
     local function move_up()
-        if cursor > 1 then cursor = cursor - 1; draw() end
+        cursor = ui.wrap(cursor, -1, #list)
+        draw()
     end
 
     local function move_down()
-        if cursor < #list then cursor = cursor + 1; draw() end
+        cursor = ui.wrap(cursor, 1, #list)
+        draw()
     end
 
     mp.add_forced_key_binding("UP", "tr-up", move_up, {repeatable = true})
@@ -104,8 +106,8 @@ function M.show(on_close)
     mp.add_forced_key_binding("ENTER", "tr-enter", function() toggle_track(cursor) end)
     mp.add_forced_key_binding("a", "tr-a", function() switch("audio") end)
     mp.add_forced_key_binding("v", "tr-v", function() switch("video") end)
-    for i = 1, 9 do
-        mp.add_forced_key_binding(tostring(i), "tr-" .. i, function() toggle_track(i) end)
+    for i = 1, 10 do
+        mp.add_forced_key_binding(ui.number_key(i), "tr-" .. i, function() toggle_track(i) end)
     end
     mp.add_forced_key_binding("ESC", "tr-esc", cleanup)
     draw()

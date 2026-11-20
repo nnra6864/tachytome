@@ -227,10 +227,8 @@ function M.show(on_close)
 
     local function bind()
         local function move(delta)
-            if rows[cursor + delta] then
-                cursor = cursor + delta
-                draw()
-            end
+            cursor = ui.wrap(cursor, delta, #rows)
+            draw()
         end
 
         mp.add_forced_key_binding("UP", "res-up", function() move(-1) end, {repeatable = true})

@@ -162,11 +162,13 @@ function M.show(on_close)
 
     local function bind()
         local function move_up()
-            if cursor > 1 then cursor = cursor - 1; draw() end
+            cursor = ui.wrap(cursor, -1, #jobs)
+            draw()
         end
 
         local function move_down()
-            if cursor < #jobs then cursor = cursor + 1; draw() end
+            cursor = ui.wrap(cursor, 1, #jobs)
+            draw()
         end
 
         mp.add_forced_key_binding("UP", "qm-up", move_up, {repeatable = true})
