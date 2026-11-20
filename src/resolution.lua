@@ -309,7 +309,7 @@ function M.filters(res, src_w, src_h, sar, step)
 
         if layer.kind == "auto" then
             if res.crop == nil then
-                note = "pending"
+                note = res.idle and "idle" or "pending"
             elseif res.crop == false then
                 note = "none"
             else
@@ -411,7 +411,14 @@ function M.trace(text)
     if not res then return nil, err end
     local src = M.source()
     if not src then return nil end
-    if has_auto(res.layers) then res.crop = autocrop.request() end
+    if has_auto(res.layers) then
+        if state.resolution_enabled then
+            res.crop = autocrop.request()
+        else
+            res.crop = autocrop.peek()
+            res.idle = res.crop == nil
+        end
+    end
     local _, ferr, steps = M.filters(res, src.w, src.h, src.sar, M.step(state.opts.video_encoder))
     return steps, ferr
 end

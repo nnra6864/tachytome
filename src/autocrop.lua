@@ -83,16 +83,30 @@ local function detect(entry, path, a, b, w, h)
     end
 end
 
-function M.request(on_done)
+local function current()
     local path = mp.get_property("path")
-    local w, h = frame_size()
-    if not path or not w then
-        if on_done then on_done(false) end
-        return false
-    end
+    if not path or not frame_size() then return nil end
     local a = state.mark_in or 0
     local b = state.mark_out or 0
     if b <= a then b = mp.get_property_number("duration", a) end
+    return path, a, b
+end
+
+function M.peek()
+    local path, a, b = current()
+    if not path then return false end
+    local entry = cache[key(path, a, b)]
+    if entry and not entry.pending then return entry.box end
+    return nil
+end
+
+function M.request(on_done)
+    local path, a, b = current()
+    local w, h       = frame_size()
+    if not path then
+        if on_done then on_done(false) end
+        return false
+    end
     local k     = key(path, a, b)
     local entry = cache[k]
     if not entry then

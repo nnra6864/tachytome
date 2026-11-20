@@ -604,7 +604,8 @@ Their current values are listed right below the input.
 
 ### Resolution
 
-The `resolution` option sets the output resolution as a chain of layers applied in order, empty keeps the source.<br>
+The `resolution` option sets the chain you start with, layers applied in order, empty keeps the source.<br>
+It defaults to `auto` with `resolution_enabled` off, so turning Resolution on crops black bars right away.<br>
 Change it on the fly in the [Resolution List](#resolution-list), Video > Resolution.<br>
 It's applied while `resolution_enabled` is on, which stays on across files like Effects, and is incompatible with Lossless Cut, turning either on turns the other off.<br>
 Each size token starts a new layer, a mode or scaler word right after it applies to that layer.
@@ -654,7 +655,7 @@ Use `1024p` instead to keep it looking the way it did on screen.<br>
 - It samples 8 spots spread over the cut range, never just its start, and keeps the box that fits all of them, so a dark scene can't cut into the picture.
 - Fully black moments, like fades, are ignored.
 - Bars thinner than 0.5% of the frame are left alone.
-- Detection starts as soon as the chain holds `auto`, the layer shows `detecting...`, then the size or `no bars`.
+- Detection starts as soon as Resolution is on with `auto` in the chain, the layer shows `detecting...`, then the size or `no bars`, while off it shows `detects when on`.
 - Results are kept per file and cut range, moving a mark detects again.
 - A render waits for a running detection before it starts.
 - Mode and scaler don't apply, put `auto` first, e.g. `auto 720p`, it measures the bars on the source.
@@ -674,7 +675,7 @@ cs       = 1280x1024 stretch
 - The same name in two files is fine, `file/name` picks a specific one, e.g. `mine/vertical`, a bare name picks the first file.
 - The Resolution List opens them with `p` or the Presets row, 0-9/Enter uses one, `a` adds it to the chain.
 
-`default.res` holds `hd`, `fhd`, `qhd`, `2k`, `uhd`, `4k` and `8k` on the short side, with `2k` as 1440p like in gaming, and `vertical`.<br>
+`default.res` holds `hd`, `fhd`, `qhd`, `2k`, `uhd`, `4k` and `8k` on the short side, with `2k` as 1440p like in gaming, `autocrop`, `half` and `vertical`.<br>
 Redefine `2k` in your own file if you mean 1080p or DCI 2048x1080.
 
 ### Effects

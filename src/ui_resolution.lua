@@ -131,7 +131,7 @@ function M.show(on_close)
             sc          = layer.scaler and theme.c("value_color") .. sc .. theme.c("text_color") or sc
             local sizes = ""
             if step and step.auto then
-                sizes = string.format("%s%s", theme.c("dim_text_color"), theme.escape(lang.t(step.auto == "pending" and "resolution_pending" or "resolution_no_bars")))
+                sizes = string.format("%s%s", theme.c("dim_text_color"), theme.escape(lang.t("resolution_auto_" .. step.auto)))
             elseif step and prev then
                 sizes = string.format("%s%s -> %s", theme.c("dim_text_color"), resolution.dims(prev), resolution.dims(step))
             elseif err and row.index == #steps + 1 then
