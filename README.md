@@ -350,6 +350,7 @@ Inputs like the Path prompt use ctrl+k/ctrl+j instead, since plain letters are t
 The title shows the source and output size, each layer shows its mode, the scaler it uses and the size it goes from and to.<br>
 Modes and scalers set on the layer are highlighted, the rest come from the defaults, `-` means it doesn't apply.<br>
 The inputs show the resulting size while typing and share a history kept across restarts, an input can hold several layers, e.g. `5:4 crop 0.5x`.<br>
+In the inputs Up walks the history and Down walks the [presets](#resolution-presets).<br>
 Setting a chain turns Resolution on, an empty Chain keeps the source.
 
 #### Tracks List
@@ -611,8 +612,10 @@ Each size token starts a new layer, a mode or scaler word right after it applies
 | `0.5x`, `50%`  | Multiplier, keeps the aspect.                       |
 | `1920x1080`    | Box, how the frame gets into it is set by the mode. |
 | `1280w`        | Width, keeps the aspect.                            |
-| `720h`, `720p` | Height, keeps the aspect.                           |
+| `720h`         | Height, keeps the aspect.                           |
+| `720p`         | Short side, keeps the aspect, so vertical works.    |
 | `4:3`          | Aspect, keeps the res, the box depends on the mode. |
+| `fhd`          | A [preset](#resolution-presets), expands in place.  |
 
 An aspect is the largest box of it inside the frame for `cover` and `crop`, the smallest one around it for `fit`, and keeps the height for `stretch`.
 
@@ -640,6 +643,24 @@ Sizes are rounded to even numbers for encoders that need it, `av1` and `nv_h264`
 
 Recorders that stretch a lower game res over the whole screen, e.g. 1280x1024 recorded as 2560x1440, are undone with `1280x1024 stretch`, which gives back the native frame.<br>
 Use `1024p` instead to keep it looking the way it did on screen.
+
+#### Resolution Presets
+
+Presets are named chains in `.res` files in `mpv/script-opts/tachytome/`, `default.res` gets generated when there are none.<br>
+Every `.res` file is read in alphabetical order, one preset per line as `name = chain`, `#` starts a comment:
+```
+fhd      = 1080p
+vertical = 1080x1920 cover
+cs       = 1280x1024 stretch
+```
+- A preset name works anywhere in a chain, e.g. `fhd`, `cs 0.5x` or `vertical`, and can use other presets.
+- A mode or scaler right after a preset applies to all of its layers, e.g. `vertical fit` or `4k neighbor`.
+- Names ignore case and can't hold spaces, `=` or `/`, or be a size, mode or scaler.
+- The same name in two files is fine, `file/name` picks a specific one, e.g. `mine/vertical`, a bare name picks the first file.
+- In a Resolution List input, Down past what you typed walks the presets, Up walks the history.
+
+`default.res` holds `hd`, `fhd`, `qhd`, `2k`, `uhd`, `4k` and `8k` on the short side, with `2k` as 1440p like in gaming, and `vertical`.<br>
+Redefine `2k` in your own file if you mean 1080p or DCI 2048x1080.
 
 ### Effects
 

@@ -2,6 +2,7 @@ local mp     = require 'mp'
 local utils  = require 'mp.utils'
 local common = require 'src.common'
 local state  = require 'src.state'
+local notify = require 'src.notify'
 local lang   = require 'src.lang'
 
 local M = {}
@@ -49,10 +50,15 @@ local function size(token)
         n = number(n)
         return n and { kind = "width", n = n }
     end
-    n = token:match("^(%d+)[hp]$")
+    n = token:match("^(%d+)h$")
     if n then
         n = number(n)
         return n and { kind = "height", n = n }
+    end
+    n = token:match("^(%d+)p$")
+    if n then
+        n = number(n)
+        return n and { kind = "short", n = n }
     end
     local a, b = token:match("^(%d*%.?%d+):(%d*%.?%d+)$")
     if a then
@@ -63,12 +69,25 @@ local function size(token)
     return nil
 end
 
-function M.parse(text)
+local presets = {}
+
+local function find_preset(word)
+    for _, p in ipairs(presets) do
+        if p.id == word then return p end
+    end
+    for _, p in ipairs(presets) do
+        if p.name == word then return p end
+    end
+    return nil
+end
+
+local function parse(text, depth)
     local layers = {}
     for token in text:gmatch("%S+") do
-        local word  = token:lower()
-        local layer = size(word)
-        local last  = layers[#layers]
+        local word   = token:lower()
+        local layer  = size(word)
+        local last   = layers[#layers]
+        local preset = not layer and find_preset(word)
         if layer then
             layer.size          = token
             layers[#layers + 1] = layer
@@ -76,11 +95,83 @@ function M.parse(text)
             last.mode = word
         elseif last and scalers[word] then
             last.scaler = word
+        elseif preset and depth < 8 then
+            local inner, bad = parse(preset.chain, depth + 1)
+            if not inner then return nil, bad end
+            layers[#layers + 1] = { kind = "preset", size = token, chain = preset.chain, layers = inner }
         else
             return nil, token
         end
     end
     return layers
+end
+
+function M.parse(text)
+    return parse(text, 0)
+end
+
+local function preset_files(dir)
+    local files = {}
+    for _, file in ipairs(utils.readdir(dir, "files") or {}) do
+        if file:match("%.res$") then files[#files + 1] = file end
+    end
+    table.sort(files)
+    return files
+end
+
+local function upsert(preset)
+    preset.id = preset.file .. "/" .. preset.name
+    for i, p in ipairs(presets) do
+        if p.id == preset.id then
+            notify.show(lang.t("warn_redefined", { name = preset.name, where = preset.where }), false, "warn")
+            presets[i] = preset
+            return
+        end
+    end
+    presets[#presets + 1] = preset
+end
+
+local function parse_presets_file(path, file)
+    local f = io.open(path, "r")
+    if not f then return end
+    local n = 0
+    for line in f:lines() do
+        n = n + 1
+        local where   = string.format("%s.res:%d", file, n)
+        local content = line:gsub("\r$", "")
+        local hash    = content:find("#", 1, true)
+        if hash then content = content:sub(1, hash - 1) end
+        content = content:match("^%s*(.-)%s*$")
+        if content ~= "" then
+            local name, chain = content:match("^([^%s=/]+)%s*=%s*(.+)$")
+            local word        = name and name:lower()
+            if not word or size(word) or modes[word] or scalers[word] then
+                notify.show(lang.t("warn_invalid_line", { where = where, line = content }), false, "warn")
+            else
+                upsert({ name = word, file = file, chain = chain, where = where })
+            end
+        end
+    end
+    f:close()
+end
+
+function M.reload()
+    presets     = {}
+    local dir   = common.get_conf_dir()
+    local files = preset_files(dir)
+    if #files == 0 then
+        common.ensure_default_conf("tachytome-resolutions.conf", "default.res")
+        files = preset_files(dir)
+    end
+    for _, file in ipairs(files) do parse_presets_file(utils.join_path(dir, file), (file:gsub("%.res$", ""))) end
+end
+
+function M.preset_names()
+    local count = {}
+    for _, p in ipairs(presets) do count[p.name] = (count[p.name] or 0) + 1 end
+    local names = {}
+    for _, p in ipairs(presets) do names[#names + 1] = count[p.name] > 1 and p.id or p.name end
+    return names
 end
 
 function M.layer_text(layer)
@@ -97,7 +188,7 @@ function M.format(layers)
 end
 
 function M.keeps_aspect(layer)
-    return layer.kind == "scale" or layer.kind == "width" or layer.kind == "height"
+    return layer.kind == "scale" or layer.kind == "width" or layer.kind == "height" or layer.kind == "short"
 end
 
 function M.step(encoder)
@@ -118,10 +209,20 @@ function M.build(text)
     if not modes[o.resolution_mode] then return nil, lang.t("resolution_unknown", { token = o.resolution_mode }) end
     local layers, bad = M.parse(text)
     if not layers then return nil, lang.t("resolution_unknown", { token = bad }) end
-    for _, layer in ipairs(layers) do
-        layer.token = M.layer_text(layer)
-        layer.mode  = layer.mode or o.resolution_mode
+
+    local function resolve(list, mode, scaler)
+        for _, layer in ipairs(list) do
+            layer.token = M.layer_text(layer)
+            if layer.kind == "preset" then
+                resolve(layer.layers, mode or layer.mode, scaler or layer.scaler)
+            else
+                layer.mode   = mode or layer.mode or o.resolution_mode
+                layer.scaler = scaler or layer.scaler
+            end
+        end
     end
+
+    resolve(layers, nil, nil)
     return {
         layers      = layers,
         scaler_down = o.scaler_down,
@@ -195,17 +296,26 @@ function M.filters(res, src_w, src_h, sar, step)
     if sar and sar ~= 1 then scale(snapped(w * sar), h) end
     steps.source = { w = w, h = h }
 
-    for _, layer in ipairs(res.layers) do
+    local function apply(layer)
+        if layer.kind == "preset" then
+            for _, inner in ipairs(layer.layers) do
+                local err = apply(inner)
+                if err then return err end
+            end
+            return nil
+        end
+
         local mode = layer.mode
+        local kind = layer.kind
         local tw, th
-        used = nil
-        if layer.kind == "scale" then
+        if kind == "short" then kind = w >= h and "height" or "width" end
+        if kind == "scale" then
             tw, th, mode = snapped(w * layer.n), snapped(h * layer.n), "stretch"
-        elseif layer.kind == "width" then
+        elseif kind == "width" then
             tw, th, mode = snapped(layer.n), snapped(h * layer.n / w), "stretch"
-        elseif layer.kind == "height" then
+        elseif kind == "height" then
             tw, th, mode = snapped(w * layer.n / h), snapped(layer.n), "stretch"
-        elseif layer.kind == "aspect" then
+        elseif kind == "aspect" then
             tw, th = aspect_box(mode, layer.n, w, h, step)
             if mode == "cover" then mode = "crop" end
         else
@@ -216,7 +326,7 @@ function M.filters(res, src_w, src_h, sar, step)
             scale(tw, th, layer.scaler)
         elseif mode == "crop" then
             if tw > w or th > h then
-                return nil, lang.t("resolution_too_big", { token = layer.token, size = string.format("%dx%d", w, h) }), steps
+                return lang.t("resolution_too_big", { token = layer.token, size = string.format("%dx%d", w, h) })
             end
             crop(tw, th)
         elseif mode == "cover" then
@@ -232,6 +342,13 @@ function M.filters(res, src_w, src_h, sar, step)
                 h             = th
             end
         end
+        return nil
+    end
+
+    for _, layer in ipairs(res.layers) do
+        used      = nil
+        local err = apply(layer)
+        if err then return nil, err, steps end
         steps[#steps + 1] = { w = w, h = h, scaler = used }
     end
 
@@ -284,6 +401,7 @@ function M.remember(text)
     common.write_json_file(history_path, M.history)
 end
 
+M.reload()
 M.seed()
 
 return M

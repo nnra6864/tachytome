@@ -20,12 +20,14 @@ local current_preview         = nil
 local current_hint            = nil
 
 local history      = {}
+local suggestions  = {}
 local history_idx  = 1
 local draft_buffer = ""
 
 local function render()
     local hints = { { "Enter", "confirm" }, { "Esc", "cancel" } }
-    if #history > 0 then table.insert(hints, 1, { "Up/Down", "history" }) end
+    if #suggestions > 0 then table.insert(hints, 1, { "Down", "presets" }) end
+    if #history > 0 then table.insert(hints, 1, { "Up", "history" }) end
 
     local preview     = current_preview and current_preview(buffer) or ""
     local preview_str = preview ~= "" and string.format("\\N%s%s-> %s%s", theme.f(true), theme.c("value_color"), theme.escape(preview), theme.reset()) or ""
@@ -74,7 +76,7 @@ end
 
 local function apply_edit(fn)
     local text, pos = fn(buffer, cursor)
-    if text ~= buffer and history_idx <= #history then history_idx = #history + 1 end
+    if text ~= buffer and history_idx ~= #history + 1 then history_idx = #history + 1 end
     buffer = text
     cursor = pos
     render()
@@ -84,29 +86,28 @@ local function add_char(c)
     apply_edit(function(t, p) return edit.insert(t, p, c) end)
 end
 
-local function history_up()
-    if #history == 0 then return end
+local function entry(i)
+    if i <= #history then return history[i] end
+    if i == #history + 1 then return draft_buffer end
+    return suggestions[i - #history - 1]
+end
+
+local function history_go(delta)
+    local target = history_idx + delta
+    if target < 1 or target > #history + 1 + #suggestions then return end
     if history_idx == #history + 1 then draft_buffer = buffer end
-    if history_idx > 1 then
-        history_idx = history_idx - 1
-        buffer = history[history_idx]
-        cursor = #buffer
-        render()
-    end
+    history_idx = target
+    buffer      = entry(target)
+    cursor      = #buffer
+    render()
+end
+
+local function history_up()
+    history_go(-1)
 end
 
 local function history_down()
-    if #history == 0 then return end
-    if history_idx <= #history then
-        history_idx = history_idx + 1
-        if history_idx > #history then
-            buffer = draft_buffer
-        else
-            buffer = history[history_idx]
-        end
-        cursor = #buffer
-        render()
-    end
+    history_go(1)
 end
 
 function M.show(opts)
@@ -123,6 +124,7 @@ function M.show(opts)
     cursor                  = 0
 
     history      = opts.history or {}
+    suggestions  = opts.suggestions or {}
     history_idx  = #history + 1
     draft_buffer = ""
 

@@ -88,7 +88,7 @@ function M.show(on_close)
         local width   = { 0, 0, 0 }
         for i, layer in ipairs(layers) do
             local step   = steps[i]
-            local mode   = resolution.keeps_aspect(layer) and "-" or (layer.mode or o.resolution_mode)
+            local mode   = resolution.keeps_aspect(layer) and "-" or (layer.mode or (layer.kind == "preset" and "-" or o.resolution_mode))
             local scaler = layer.scaler or (step and (step.scaler or "-")) or default
             local cell   = { layer.size, mode, scaler }
             for c = 1, 3 do width[c] = math.max(width[c], common.text_len(cell[c])) end
@@ -140,6 +140,7 @@ function M.show(on_close)
             current     = current,
             hint        = lang.t("hint_resolution"),
             history     = resolution.history,
+            suggestions = resolution.preset_names(),
             allow_space = true,
             on_cancel   = open_ui,
             preview     = function(input)

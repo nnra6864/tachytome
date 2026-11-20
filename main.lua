@@ -62,6 +62,7 @@ end
 local function reload()
     conf.read_options(state.opts)
     effects.reload()
+    resolution.reload()
     resolution.seed()
     tracks.reset()
     lang.load()
