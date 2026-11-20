@@ -348,7 +348,7 @@ Inputs like the Path prompt use ctrl+k/ctrl+j instead, since plain letters are t
 | Shift+Down/J | Move Down | Move the layer down, after the one below.                                |
 | Esc          | Close     | Close the list.                                                          |
 
-The title shows the source and output size, each layer shows its mode, the scaler it uses and the size it goes from and to.<br>
+The title shows the source and output size, the chain's layers are listed under Layers, each with its mode, the scaler it uses and the size it goes from and to.<br>
 Modes and scalers set on the layer are highlighted, the rest come from the defaults, `-` means it doesn't apply.<br>
 The Presets row shows the [preset](#resolution-presets) in use, its list shows each preset's chain and the size it gives, numbered and searchable like the other lists.<br>
 In it 0-9/Enter replaces the whole chain with the preset, `a` adds it after the selected layer or at the end.<br>
@@ -618,7 +618,7 @@ Each size token starts a new layer, a mode or scaler word right after it applies
 | `720h`         | Height, keeps the aspect.                           |
 | `720p`         | Short side, keeps the aspect, so vertical works.    |
 | `4:3`          | Aspect, keeps the res, the box depends on the mode. |
-| `half`         | A [preset](#resolution-presets), expands in place.  |
+| `halfres`      | A [preset](#resolution-presets), expands in place.  |
 | `auto`         | Crops black bars, see [Auto Crop](#auto-crop).      |
 
 An aspect is the largest box of it inside the frame for `cover` and `crop`, the smallest one around it for `fit`, and keeps the height for `stretch`.
@@ -675,7 +675,7 @@ cs       = 1280x1024 stretch
 - The same name in two files is fine, `file/name` picks a specific one, e.g. `mine/vertical`, a bare name picks the first file.
 - The Resolution List opens them with `p` or the Presets row, 0-9/Enter uses one, `a` adds it to the chain.
 
-`default.res` holds `autocrop` and `half`, with commented examples to uncomment: `hd` to `8k` on the short side, `vertical` and `cs`.
+`default.res` holds `autocrop` and `halfres`, with commented examples to uncomment: `hd` to `8k` on the short side, `vertical` and `cs`.
 
 ### Effects
 

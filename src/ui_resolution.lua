@@ -70,8 +70,17 @@ function M.show(on_close)
     local function rebuild_rows()
         layers = resolution.parse(state.resolution) or {}
         rows   = { { kind = "toggle" }, { kind = "chain" }, { kind = "presets" } }
+        if #layers > 0 then
+            rows[#rows + 1] = { kind = "gap" }
+            rows[#rows + 1] = { kind = "header" }
+        end
         for i in ipairs(layers) do rows[#rows + 1] = { kind = "layer", index = i } end
         if cursor > #rows then cursor = #rows end
+        if rows[cursor].kind == "gap" or rows[cursor].kind == "header" then cursor = 3 end
+    end
+
+    local function navigable()
+        return ui.visible(#rows, function(i) return rows[i].kind ~= "gap" and rows[i].kind ~= "header" end)
     end
 
     local function commit(list)
@@ -108,7 +117,11 @@ function M.show(on_close)
 
         local body = ui.list(#rows, cursor, function(i)
             local row = rows[i]
-            if row.kind == "toggle" then
+            if row.kind == "gap" then
+                return ""
+            elseif row.kind == "header" then
+                return string.format("%s%s", theme.c("dim_text_color"), theme.escape(lang.t("resolution_layers")))
+            elseif row.kind == "toggle" then
                 local val = state.resolution_enabled
                     and string.format("%s%s", theme.c("on_color"), state.opts.on_text)
                     or  string.format("%s%s", theme.c("off_color"), state.opts.off_text)
@@ -286,7 +299,7 @@ function M.show(on_close)
 
     local function bind()
         local function move(delta)
-            cursor = ui.wrap(cursor, delta, #rows)
+            cursor = ui.step(navigable(), cursor, delta)
             draw()
         end
 
