@@ -139,15 +139,15 @@ function M.snapshot()
 end
 
 local function snap(x, step)
-    return math.max(step, math.floor(x / step + 0.5) * step)
+    return math.max(2, math.floor(x / step + 0.5) * step)
 end
 
 local function snap_down(x, step)
-    return math.max(step, math.floor(x / step) * step)
+    return math.max(2, math.floor(x / step) * step)
 end
 
 local function snap_up(x, step)
-    return math.max(step, math.ceil(x / step) * step)
+    return math.max(2, math.ceil(x / step) * step)
 end
 
 local function offset(space)

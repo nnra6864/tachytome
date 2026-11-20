@@ -79,14 +79,18 @@ function M.show(on_close)
 
     local function draw()
         local steps, err = resolution.trace(state.resolution)
+        local source     = resolution.source()
         steps            = steps or {}
 
-        local cells = {}
-        local width = { 0, 0, 0 }
+        local o       = state.opts
+        local default = o.scaler_down == o.scaler_up and o.scaler_down or o.scaler_down .. "/" .. o.scaler_up
+        local cells   = {}
+        local width   = { 0, 0, 0 }
         for i, layer in ipairs(layers) do
-            local step = steps[i]
-            local mode = resolution.keeps_aspect(layer) and "-" or (layer.mode or state.opts.resolution_mode)
-            local cell = { layer.size, mode, step and step.scaler or "-" }
+            local step   = steps[i]
+            local mode   = resolution.keeps_aspect(layer) and "-" or (layer.mode or o.resolution_mode)
+            local scaler = layer.scaler or (step and (step.scaler or "-")) or default
+            local cell   = { layer.size, mode, scaler }
             for c = 1, 3 do width[c] = math.max(width[c], common.text_len(cell[c])) end
             cells[i] = cell
         end
@@ -120,7 +124,7 @@ function M.show(on_close)
             return string.format("\\h%s\\h\\h%s\\h\\h%s\\h\\h%s", pad(cell[1], width[1]), mode, sc, sizes)
         end)
 
-        local summary = err or resolution.describe(state.resolution)
+        local summary = err or (source and resolution.describe(state.resolution) or lang.t("no_video"))
         local head    = ui.title(lang.t("menu_resolution"))
         if summary ~= "" then head = head .. ui.dim(summary) end
 
