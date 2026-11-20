@@ -7,7 +7,9 @@ Resolution strings are English only until the feature is final, no `sr`.
 
 ## 1. Resolution menu
 - Video -> Resolution on `r`.
-- Quick row on top: one input that replaces the whole chain, Up walks the
+- Toggle row on top for `resolution_enabled`, like the Effects list,
+  setting a chain turns it on.
+- Quick row: one input that replaces the whole chain, Up walks the
   history, Down past the newest entry walks the presets.
 - One row per layer showing size, mode, scaler and `in -> out` sizes,
   the title shows the whole `source -> ... -> output` path from

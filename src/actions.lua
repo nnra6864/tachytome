@@ -361,6 +361,10 @@ function M.toggle_lossless()
             state.effects_enabled = false
             notify_set("effects", on_off(false))
         end
+        if state.resolution_enabled then
+            state.resolution_enabled = false
+            notify_set("resolution", on_off(false))
+        end
     end
     notify_set("lossless_cut", on_off(state.opts.lossless_cut))
 end
@@ -576,6 +580,7 @@ function M.select_configs(on_reload, on_complete)
         conf.write_configs(list)
         conf.read_options(state.opts)
         effects.seed()
+        resolution.seed()
         tracks.reset()
         lang.load()
         if on_reload then on_reload() end

@@ -80,12 +80,19 @@ function M.parse(text, mode)
     return layers
 end
 
+function M.seed()
+    state.resolution         = state.opts.resolution
+    state.resolution_enabled = state.opts.resolution_enabled
+    if state.resolution_enabled then state.opts.lossless_cut = false end
+end
+
 function M.snapshot()
+    if not state.resolution_enabled then return nil end
     local o = state.opts
     if not modes[o.resolution_mode] then return nil, lang.t("resolution_unknown", { token = o.resolution_mode }) end
     if not scalers[o.scaler_down] then return nil, lang.t("resolution_unknown", { token = o.scaler_down }) end
     if not scalers[o.scaler_up] then return nil, lang.t("resolution_unknown", { token = o.scaler_up }) end
-    local layers, bad = M.parse(o.resolution, o.resolution_mode)
+    local layers, bad = M.parse(state.resolution, o.resolution_mode)
     if not layers then return nil, lang.t("resolution_unknown", { token = bad }) end
     if #layers == 0 then return nil end
     return {
@@ -96,38 +103,42 @@ function M.snapshot()
     }
 end
 
-local function even(x)
-    return math.max(2, math.floor(x / 2 + 0.5) * 2)
+local function snap(x, step)
+    return math.max(step, math.floor(x / step + 0.5) * step)
 end
 
-local function floor_even(x)
-    return math.max(2, math.floor(x / 2) * 2)
+local function snap_down(x, step)
+    return math.max(step, math.floor(x / step) * step)
 end
 
-local function ceil_even(x)
-    return math.max(2, math.ceil(x / 2) * 2)
+local function snap_up(x, step)
+    return math.max(step, math.ceil(x / step) * step)
 end
 
 local function offset(space)
     return math.floor(space / 4) * 2
 end
 
-local function aspect_box(mode, r, w, h)
+local function aspect_box(mode, r, w, h, step)
     local wide = w / h > r
     if mode == "fit" then
-        if wide then return w, ceil_even(w / r) end
-        return ceil_even(h * r), h
+        if wide then return snap_up(w, step), snap_up(w / r, step) end
+        return snap_up(h * r, step), snap_up(h, step)
     elseif mode == "stretch" then
-        return even(h * r), h
+        return snap(h * r, step), snap(h, step)
     end
-    if wide then return floor_even(h * r), h end
-    return w, floor_even(w / r)
+    if wide then return snap_down(h * r, step), snap_down(h, step) end
+    return snap_down(w, step), snap_down(w / r, step)
 end
 
-function M.filters(res, src_w, src_h, sar)
+function M.filters(res, src_w, src_h, sar, step)
     local out = {}
     local w   = src_w
     local h   = src_h
+
+    local function snapped(x)
+        return snap(x, step)
+    end
 
     local function scale(sw, sh, scaler)
         if sw == w and sh == h then return end
@@ -144,22 +155,22 @@ function M.filters(res, src_w, src_h, sar)
         h             = ch
     end
 
-    if sar and sar ~= 1 then scale(even(w * sar), h) end
+    if sar and sar ~= 1 then scale(snapped(w * sar), h) end
 
     for _, layer in ipairs(res.layers) do
         local mode = layer.mode
         local tw, th
         if layer.kind == "scale" then
-            tw, th, mode = even(w * layer.n), even(h * layer.n), "stretch"
+            tw, th, mode = snapped(w * layer.n), snapped(h * layer.n), "stretch"
         elseif layer.kind == "width" then
-            tw, th, mode = even(layer.n), even(h * layer.n / w), "stretch"
+            tw, th, mode = snapped(layer.n), snapped(h * layer.n / w), "stretch"
         elseif layer.kind == "height" then
-            tw, th, mode = even(w * layer.n / h), even(layer.n), "stretch"
+            tw, th, mode = snapped(w * layer.n / h), snapped(layer.n), "stretch"
         elseif layer.kind == "aspect" then
-            tw, th = aspect_box(mode, layer.n, w, h)
+            tw, th = aspect_box(mode, layer.n, w, h, step)
             if mode == "cover" then mode = "crop" end
         else
-            tw, th = even(layer.w), even(layer.h)
+            tw, th = snapped(layer.w), snapped(layer.h)
         end
 
         if mode == "stretch" then
@@ -171,11 +182,11 @@ function M.filters(res, src_w, src_h, sar)
             crop(tw, th)
         elseif mode == "cover" then
             local s = math.max(tw / w, th / h)
-            scale(ceil_even(w * s), ceil_even(h * s), layer.scaler)
+            scale(snap_up(w * s, step), snap_up(h * s, step), layer.scaler)
             crop(tw, th)
         else
             local s = math.min(tw / w, th / h)
-            scale(math.min(tw, even(w * s)), math.min(th, even(h * s)), layer.scaler)
+            scale(math.min(tw, snapped(w * s)), math.min(th, snapped(h * s)), layer.scaler)
             if tw ~= w or th ~= h then
                 out[#out + 1] = string.format("pad=%d:%d:%d:%d:color=%s", tw, th, offset(tw - w), offset(th - h), res.pad_color)
                 w             = tw
@@ -187,5 +198,7 @@ function M.filters(res, src_w, src_h, sar)
     if #out > 0 then out[#out + 1] = "setsar=1" end
     return out, w, h
 end
+
+M.seed()
 
 return M

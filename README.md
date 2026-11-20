@@ -568,6 +568,7 @@ Their current values are listed right below the input.
 ### Resolution
 
 The `resolution` option sets the output resolution as a chain of layers applied in order, empty keeps the source.<br>
+It's applied while `resolution_enabled` is on, which stays on across files like Effects, and is incompatible with Lossless Cut, turning either on turns the other off.<br>
 Each size token starts a new layer, a mode or scaler word right after it applies to that layer.
 
 | Token          | Layer                                               |
@@ -590,13 +591,13 @@ An aspect is the largest box of it inside the frame for `cover` and `crop`, the 
 Scalers are `fast_bilinear`, `bilinear`, `bicubic`, `bicublin`, `neighbor`, `area`, `gauss`, `sinc`, `lanczos` and `spline`.<br>
 Layers without one use `scaler_down` when they shrink the frame and `scaler_up` when they grow it, both `lanczos` by default.<br>
 `resolution_mode` sets the mode for layers without one, modes only matter for boxes and aspects.<br>
-Sizes are rounded to even numbers, the chain runs before the effects and turns Lossless Cut off for the render.
+Sizes are rounded to even numbers for encoders that need it, `av1` and `nv_h264` keep odd sizes, the chain runs before the effects.
 
 | Chain               | 1920x1080 source                                                                  |
 |---------------------|-----------------------------------------------------------------------------------|
 | `0.5x`              | 960x540.                                                                          |
 | `720p`              | 1280x720.                                                                         |
-| `5:4 crop 0.5x`     | Cuts the side bars off a stretched 5:4 game, then halves it to 676x540.           |
+| `5:4 crop 0.5x`     | Cuts the side bars off a stretched 5:4 game, then halves it to 675x540 with av1.  |
 | `1080x1920 cover`   | Vertical 1080x1920, cutting the sides off.                                        |
 | `1080x1920`         | Vertical 1080x1920, the whole frame with bars above and below.                    |
 | `4:3 stretch`       | 1440x1080, squeezed.                                                              |

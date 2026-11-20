@@ -13,6 +13,7 @@ local menu       = require 'src.menu'
 local notify     = require 'src.notify'
 local recovery   = require 'src.recovery'
 local effects    = require 'src.effects'
+local resolution = require 'src.resolution'
 local tracks     = require 'src.tracks'
 local ui_confirm = require 'src.ui_confirm'
 local ui_migrate = require 'src.ui_migrate'
@@ -61,6 +62,7 @@ end
 local function reload()
     conf.read_options(state.opts)
     effects.reload()
+    resolution.seed()
     tracks.reset()
     lang.load()
     menu.reload()

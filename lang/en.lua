@@ -18,6 +18,7 @@ return {
     menu_combined_audio_only = "Combined Only",
     menu_tracks              = "Tracks",
     menu_effects             = "Effects",
+    menu_resolution          = "Resolution",
     menu_space_replacement   = "Space Replacement",
     menu_path                = "Path",
     menu_trash_source        = "Trash Source",
