@@ -72,8 +72,8 @@ return {
     key_audio    = "pick audio",
     key_video    = "pick video",
     key_add      = "add",
-    key_mode     = "cycle mode",
-    key_scaler   = "cycle scaler",
+    key_mode     = "pick mode",
+    key_scaler   = "pick scaler",
 
     choice_yes       = "Yes",
     choice_no        = "No",
@@ -162,6 +162,9 @@ return {
     resolution_chain   = "Chain",
     resolution_layer   = "Layer",
     resolution_add     = "Add Layer",
+    resolution_mode    = "Mode",
+    resolution_scaler  = "Scaler",
+    resolution_default = "Default ({value})",
 
     recovery_title     = "Interrupted Renders Found",
     recovery_owner     = "From a closed or crashed mpv",

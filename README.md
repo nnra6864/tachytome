@@ -308,6 +308,7 @@ See the `cursor_` options in the [builtin config](./tachytome.conf) for its colo
 |-------------|---------------|--------------------------|
 | Up/k        | Navigate Up   | Navigates to item above. |
 | Down/j      | Navigate Down | Navigates to item below. |
+| 1-9         | Select        | Selects the item number. |
 
 Inputs like the Path prompt use ctrl+k/ctrl+j instead, since plain letters are typed into the input.
 
@@ -325,8 +326,8 @@ Inputs like the Path prompt use ctrl+k/ctrl+j instead, since plain letters are t
 |--------------|-----------|--------------------------------------------------------------------------|
 | Enter        | Edit      | Toggle Resolution, type the whole chain or replace the selected layer.   |
 | a            | Add       | Add layers after the selected one, or at the end.                        |
-| m            | Mode      | Cycle the layer's mode, the last step goes back to `resolution_mode`.    |
-| s            | Scaler    | Cycle the layer's scaler, the last step goes back to the default.        |
+| m            | Mode      | Pick the layer's mode from a list, Default follows `resolution_mode`.    |
+| s            | Scaler    | Pick the layer's scaler from a list, Default follows the scaler options. |
 | d            | Delete    | Delete the layer.                                                        |
 | Shift+Up/K   | Move Up   | Move the layer up, before the one above.                                 |
 | Shift+Down/J | Move Down | Move the layer down, after the one below.                                |
@@ -608,7 +609,7 @@ An aspect is the largest box of it inside the frame for `cover` and `crop`, the 
 | `stretch` | Scales to the exact size, ignoring the aspect.                              |
 | `crop`    | Cuts the center out without scaling, can't be bigger than the frame.        |
 
-Scalers are `fast_bilinear`, `bilinear`, `bicubic`, `bicublin`, `neighbor`, `area`, `gauss`, `sinc`, `lanczos` and `spline`.<br>
+Scalers are `lanczos`, `spline`, `bicubic`, `area`, `bilinear`, `neighbor`, `fast_bilinear`, `bicublin`, `gauss` and `sinc`.<br>
 Layers without one use `scaler_down` when they shrink the frame and `scaler_up` when they grow it, both `lanczos` by default.<br>
 `resolution_mode` sets the mode for layers without one, modes only matter for boxes and aspects.<br>
 Sizes are rounded to even numbers for encoders that need it, `av1` and `nv_h264` keep odd sizes, the chain runs before the effects.

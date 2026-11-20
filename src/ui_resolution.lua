@@ -2,6 +2,7 @@ local mp         = require 'mp'
 local common     = require 'src.common'
 local resolution = require 'src.resolution'
 local ui_input   = require 'src.ui_input'
+local ui_list    = require 'src.ui_list'
 local state      = require 'src.state'
 local notify     = require 'src.notify'
 local theme      = require 'src.theme'
@@ -32,13 +33,6 @@ local function splice(list, at, remove, insert)
     for _, item in ipairs(insert) do out[#out + 1] = item end
     for i = at + remove, #list do out[#out + 1] = list[i] end
     return out
-end
-
-local function cycle(list, current)
-    for i, val in ipairs(list) do
-        if val == current then return list[i + 1] end
-    end
-    return list[1]
 end
 
 local function pad(text, width)
@@ -184,25 +178,32 @@ function M.show(on_close)
         end)
     end
 
-    local function change_layer(fn)
+    local function pick_option(key, options, default)
         local row = rows[cursor]
         if not row or row.kind ~= "layer" then return end
-        fn(layers[row.index])
-        commit(layers)
-        draw()
+        local layer = layers[row.index]
+        if key == "mode" and resolution.keeps_aspect(layer) then return end
+
+        local fallback = lang.t("resolution_default", { value = default })
+        local items    = { fallback }
+        for _, opt in ipairs(options) do items[#items + 1] = opt end
+        local title    = string.format("%s %s %s", lang.t("menu_resolution"), state.opts.menu_path_separator, lang.t("resolution_" .. key))
+
+        teardown()
+        ui_list.show(title, items, layer[key] or fallback, function(val)
+            layer[key] = val ~= fallback and val or nil
+            commit(layers)
+            open_ui()
+        end, open_ui)
     end
 
-    local function cycle_mode()
-        change_layer(function(layer)
-            if resolution.keeps_aspect(layer) then return end
-            layer.mode = cycle(resolution.modes, layer.mode)
-        end)
+    local function pick_mode()
+        pick_option("mode", resolution.modes, state.opts.resolution_mode)
     end
 
-    local function cycle_scaler()
-        change_layer(function(layer)
-            layer.scaler = cycle(resolution.scalers, layer.scaler)
-        end)
+    local function pick_scaler()
+        local o = state.opts
+        pick_option("scaler", resolution.scalers, o.scaler_down == o.scaler_up and o.scaler_down or o.scaler_down .. "/" .. o.scaler_up)
     end
 
     local function delete_layer()
@@ -242,8 +243,8 @@ function M.show(on_close)
         mp.add_forced_key_binding("J", "res-J", function() move_layer(1) end, {repeatable = true})
         mp.add_forced_key_binding("ENTER", "res-enter", edit_row)
         mp.add_forced_key_binding("a", "res-a", add_layer)
-        mp.add_forced_key_binding("m", "res-m", cycle_mode, {repeatable = true})
-        mp.add_forced_key_binding("s", "res-s", cycle_scaler, {repeatable = true})
+        mp.add_forced_key_binding("m", "res-m", pick_mode)
+        mp.add_forced_key_binding("s", "res-s", pick_scaler)
         mp.add_forced_key_binding("d", "res-d", delete_layer)
         mp.add_forced_key_binding("ESC", "res-esc", cleanup)
     end

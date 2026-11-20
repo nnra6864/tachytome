@@ -7,7 +7,7 @@ local lang   = require 'src.lang'
 local M = {}
 
 M.modes   = { "fit", "cover", "stretch", "crop" }
-M.scalers = { "fast_bilinear", "bilinear", "bicubic", "bicublin", "neighbor", "area", "gauss", "sinc", "lanczos", "spline" }
+M.scalers = { "lanczos", "spline", "bicubic", "area", "bilinear", "neighbor", "fast_bilinear", "bicublin", "gauss", "sinc" }
 
 local history_path = utils.join_path(common.get_state_dir(), "resolution_history.json")
 local odd_sizes    = { av1 = true, nv_h264 = true }
