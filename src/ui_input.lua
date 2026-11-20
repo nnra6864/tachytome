@@ -18,18 +18,10 @@ local current_callback        = nil
 local current_cancel_callback = nil
 local current_preview         = nil
 local current_hint            = nil
-local current_below           = nil
 
 local history      = {}
 local history_idx  = 1
 local draft_buffer = ""
-
-local key_mappings   = { ["SHARP"] = "#" }
-local standard_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.,:;/\\|()[]~@$%^&*+=<>?'\"!`"
-for i = 1, #standard_chars do
-    local c = standard_chars:sub(i, i)
-    key_mappings[c] = c
-end
 
 local function render()
     local hints = { { "Enter", "confirm" }, { "Esc", "cancel" } }
@@ -39,10 +31,9 @@ local function render()
     local preview_str = preview ~= "" and string.format("\\N%s%s-> %s%s", theme.f(true), theme.c("value_color"), theme.escape(preview), theme.reset()) or ""
     local current_str = current_value ~= "" and ui.dim(lang.t("value_current", { value = current_value })) or ""
     local hint_str    = current_hint and ui.dim(current_hint) or ""
-    local below_str   = current_below and current_below(buffer) or ""
 
     local line = edit.render(layers, theme.align(7) .. theme.f() .. theme.c("text_color"), current_title .. " > ", buffer, cursor)
-    overlay.data = string.format("%s%s%s%s%s%s%s", line, theme.reset(), preview_str, current_str, hint_str, below_str, ui.tooltip(hints))
+    overlay.data = string.format("%s%s%s%s%s%s", line, theme.reset(), preview_str, current_str, hint_str, ui.tooltip(hints))
     overlay:update()
 end
 
@@ -59,8 +50,7 @@ local function cleanup_bindings()
     mp.remove_key_binding("osd-input-down")
     mp.remove_key_binding("osd-input-cj")
     mp.remove_key_binding("osd-input-ck")
-    mp.remove_key_binding("osd-input-space")
-    for key, _ in pairs(key_mappings) do mp.remove_key_binding("osd-input-char-" .. key) end
+    edit.remove_char_bindings("osd-input")
 end
 
 local function cancel()
@@ -129,9 +119,8 @@ function M.show(opts)
     current_cancel_callback = opts.on_cancel
     current_preview         = opts.preview
     current_hint            = opts.hint
-    current_below           = opts.below
-    buffer                  = opts.text or ""
-    cursor                  = #buffer
+    buffer                  = ""
+    cursor                  = 0
 
     history      = opts.history or {}
     history_idx  = #history + 1
@@ -147,13 +136,7 @@ function M.show(opts)
     mp.add_forced_key_binding("DOWN", "osd-input-down", history_down, {repeatable=true})
     mp.add_forced_key_binding("ctrl+j", "osd-input-cj", history_down, {repeatable=true})
     mp.add_forced_key_binding("ctrl+k", "osd-input-ck", history_up, {repeatable=true})
-    if opts.allow_space then
-        mp.add_forced_key_binding("SPACE", "osd-input-space", function() add_char(" ") end, {repeatable=true})
-    end
-
-    for key, char in pairs(key_mappings) do
-        mp.add_forced_key_binding(key, "osd-input-char-" .. key, function() add_char(char) end, {repeatable=true})
-    end
+    edit.add_char_bindings("osd-input", add_char, opts.allow_space)
 end
 
 return M

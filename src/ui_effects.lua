@@ -1,12 +1,12 @@
-local mp        = require 'mp'
-local effects   = require 'src.effects'
-local ui_input  = require 'src.ui_input'
-local ui_list   = require 'src.ui_list'
-local state     = require 'src.state'
-local notify    = require 'src.notify'
-local theme     = require 'src.theme'
-local lang      = require 'src.lang'
-local ui        = require 'src.ui'
+local mp          = require 'mp'
+local effects     = require 'src.effects'
+local ui_input    = require 'src.ui_input'
+local list_search = require 'src.list_search'
+local state       = require 'src.state'
+local notify      = require 'src.notify'
+local theme       = require 'src.theme'
+local lang        = require 'src.lang'
+local ui          = require 'src.ui'
 
 local M = {}
 
@@ -15,6 +15,7 @@ function M.show(on_close)
     local active = false
     local cursor = 1
     local rows   = {}
+    local search
 
     local function remove_bindings()
         mp.remove_key_binding("fx-up")
@@ -31,6 +32,7 @@ function M.show(on_close)
         if not active then return end
         active         = false
         state.ui_owner = nil
+        search.close()
         ov:remove()
         remove_bindings()
     end
@@ -53,9 +55,45 @@ function M.show(on_close)
         end
     end
 
+    local function labels()
+        local out = {}
+        for i, row in ipairs(rows) do out[i] = row.kind == "preset" and row.preset.file .. "/" .. row.preset.label or "" end
+        return out
+    end
+
+    local function visible()
+        local names = labels()
+        local keep  = {}
+        for i, row in ipairs(rows) do
+            if row.kind == "preset" and search.keep(names[i]) then
+                keep[i] = true
+                for h = i - 1, 1, -1 do
+                    if rows[h].kind == "header" then
+                        keep[h] = true
+                        break
+                    end
+                end
+            elseif row.kind == "toggle" then
+                keep[i] = not search.filtering()
+            end
+        end
+        return ui.visible(#rows, function(i) return keep[i] end)
+    end
+
+    local function navigable(vis)
+        local out = {}
+        for _, i in ipairs(vis) do
+            if rows[i].kind ~= "header" then out[#out + 1] = i end
+        end
+        return out
+    end
+
     local function draw()
-        local body = ui.list(#rows, cursor, function(i)
-            local row = rows[i]
+        local vis = visible()
+        local nav = navigable(vis)
+        if #nav > 0 and ui.position(nav, cursor) == 0 then cursor = nav[1] end
+        local body = ui.list(#vis, ui.position(vis, cursor), function(k)
+            local row = rows[vis[k]]
             if row.kind == "toggle" then
                 local val = state.effects_enabled
                     and string.format("%s%s", theme.c("on_color"), state.opts.on_text)
@@ -67,8 +105,9 @@ function M.show(on_close)
             local marker = effects.instance(row.preset.id) and string.format(" %s%s", theme.c("on_color"), state.opts.on_text) or ""
             return string.format("\\h%s%s", theme.escape(row.preset.label), marker)
         end)
-        local hints = { { "Up/Down", "navigate" }, { "Enter", "toggle" }, { "d", "edit" }, { "/", "search" }, { "Esc", "close" } }
-        ov.data = ui.title(lang.t("menu_effects")) .. "\\N" .. body .. "\\N" .. ui.tooltip(hints)
+        if #vis == 0 then body = search.empty() end
+        local hints = search.hints({ { "Up/Down", "navigate" }, { "Enter", "toggle" }, { "d", "edit" }, { "/", "search" }, { "Esc", "close" } })
+        ov.data = search.title(lang.t("menu_effects")) .. "\\N" .. body .. "\\N" .. ui.tooltip(hints)
         ov:update()
     end
 
@@ -170,14 +209,23 @@ function M.show(on_close)
         prompt_params(p, params, 1)
     end
 
-    local function bind()
-        local function move(delta)
-            local target = ui.wrap(cursor, delta, #rows)
-            while rows[target].kind == "header" do target = ui.wrap(target, delta, #rows) end
-            cursor = target
-            draw()
-        end
+    local function move(delta)
+        cursor = ui.step(navigable(visible()), cursor, delta)
+        draw()
+    end
 
+    search = list_search.new({
+        prefix = "fx",
+        labels = labels,
+        redraw = draw,
+        move   = move,
+        pick   = function(i)
+            cursor = i
+            toggle_preset(rows[i].preset)
+        end
+    })
+
+    local function bind()
         local function move_up() move(-1) end
         local function move_down() move(1) end
 
@@ -188,7 +236,7 @@ function M.show(on_close)
 
         mp.add_forced_key_binding("ENTER", "fx-enter", function()
             local row = rows[cursor]
-            if not row then return end
+            if not row or #navigable(visible()) == 0 then return end
             if row.kind == "toggle" then
                 set_enabled(not state.effects_enabled)
                 draw()
@@ -202,21 +250,11 @@ function M.show(on_close)
             if row and row.kind == "preset" then edit_preset(row.preset) end
         end)
 
-        mp.add_forced_key_binding("/", "fx-search", function()
-            local presets = effects.list()
-            local labels  = {}
-            for i, p in ipairs(presets) do labels[i] = p.file .. "/" .. p.label end
-            teardown()
-            ui_list.search(lang.t("menu_effects"), labels, function(i)
-                open_ui()
-                for r, row in ipairs(rows) do
-                    if row.preset and row.preset.id == presets[i].id then cursor = r end
-                end
-                toggle_preset(presets[i])
-            end, open_ui)
+        mp.add_forced_key_binding("/", "fx-search", search.start)
+        mp.add_forced_key_binding("ESC", "fx-esc", function()
+            if search.filtering() then return search.clear() end
+            cleanup()
         end)
-
-        mp.add_forced_key_binding("ESC", "fx-esc", cleanup)
     end
 
     open_ui = function()

@@ -1,16 +1,16 @@
-local mp        = require 'mp'
-local utils     = require 'mp.utils'
-local common    = require 'src.common'
-local queue     = require 'src.queue'
-local render    = require 'src.render'
-local state     = require 'src.state'
-local notify    = require 'src.notify'
-local theme     = require 'src.theme'
-local ui_input  = require 'src.ui_input'
-local ui_choice = require 'src.ui_choice'
-local ui_list   = require 'src.ui_list'
-local lang      = require 'src.lang'
-local ui        = require 'src.ui'
+local mp          = require 'mp'
+local utils       = require 'mp.utils'
+local common      = require 'src.common'
+local queue       = require 'src.queue'
+local render      = require 'src.render'
+local state       = require 'src.state'
+local notify      = require 'src.notify'
+local theme       = require 'src.theme'
+local ui_input    = require 'src.ui_input'
+local ui_choice   = require 'src.ui_choice'
+local list_search = require 'src.list_search'
+local lang        = require 'src.lang'
+local ui          = require 'src.ui'
 
 local M = {}
 
@@ -33,6 +33,7 @@ function M.show(on_close)
     local cursor        = 1
     local refresh_timer = nil
     local jobs          = {}
+    local search
 
     local function remove_bindings()
         mp.remove_key_binding("qm-up")
@@ -51,6 +52,7 @@ function M.show(on_close)
         active         = false
         state.ui_owner = nil
         if refresh_timer then refresh_timer:kill(); refresh_timer = nil end
+        search.close()
         ov:remove()
         remove_bindings()
     end
@@ -61,16 +63,45 @@ function M.show(on_close)
         if on_close then on_close() end
     end
 
+    local function labels()
+        local out = {}
+        for i, job in ipairs(jobs) do out[i] = job.title end
+        return out
+    end
+
+    local function visible()
+        return ui.visible(#jobs, function(i) return search.keep(jobs[i].title) end)
+    end
+
     local function draw()
-        local body = ui.list(#jobs, cursor, function(i)
-            local job    = jobs[i]
+        local vis = visible()
+        if #vis > 0 and ui.position(vis, cursor) == 0 then cursor = vis[1] end
+        local body = ui.list(#vis, ui.position(vis, cursor), function(k)
+            local job    = jobs[vis[k]]
             local status = job.is_active and string.format(" %s%s", theme.c("on_color"), state.opts.on_text) or ""
             return theme.escape(job.title) .. status
         end)
-        local hints = { { "Up/Down", "navigate" }, { "Enter", "pause" }, { "p", "path" }, { "d", "delete" }, { "/", "search" }, { "Esc", "close" } }
-        ov.data = ui.title(lang.t("menu_render_queue")) .. "\\N" .. body .. "\\N" .. ui.tooltip(hints)
+        if #vis == 0 then body = search.empty() end
+        local hints = search.hints({ { "Up/Down", "navigate" }, { "Enter", "pause" }, { "p", "path" }, { "d", "delete" }, { "/", "search" }, { "Esc", "close" } })
+        ov.data = search.title(lang.t("menu_render_queue")) .. "\\N" .. body .. "\\N" .. ui.tooltip(hints)
         ov:update()
     end
+
+    local function move(delta)
+        cursor = ui.step(visible(), cursor, delta)
+        draw()
+    end
+
+    search = list_search.new({
+        prefix = "qm",
+        labels = labels,
+        redraw = draw,
+        move   = move,
+        pick   = function(i)
+            cursor = i
+            draw()
+        end
+    })
 
     local function refresh()
         if not active then return end
@@ -163,15 +194,8 @@ function M.show(on_close)
     end
 
     local function bind()
-        local function move_up()
-            cursor = ui.wrap(cursor, -1, #jobs)
-            draw()
-        end
-
-        local function move_down()
-            cursor = ui.wrap(cursor, 1, #jobs)
-            draw()
-        end
+        local function move_up() move(-1) end
+        local function move_down() move(1) end
 
         mp.add_forced_key_binding("UP", "qm-up", move_up, {repeatable = true})
         mp.add_forced_key_binding("DOWN", "qm-down", move_down, {repeatable = true})
@@ -215,17 +239,12 @@ function M.show(on_close)
 
         mp.add_forced_key_binding("p", "qm-path", change_path_selected)
 
-        mp.add_forced_key_binding("/", "qm-search", function()
-            local labels = {}
-            for i, job in ipairs(jobs) do labels[i] = job.title end
-            teardown()
-            ui_list.search(lang.t("menu_render_queue"), labels, function(i)
-                cursor = i
-                open_ui()
-            end, open_ui)
-        end)
+        mp.add_forced_key_binding("/", "qm-search", search.start)
 
-        mp.add_forced_key_binding("ESC", "qm-esc", cleanup)
+        mp.add_forced_key_binding("ESC", "qm-esc", function()
+            if search.filtering() then return search.clear() end
+            cleanup()
+        end)
     end
 
     open_ui = function()

@@ -44,6 +44,28 @@ function M.number_prefix(i)
     return key and key .. " -> " or string.rep("\\h", 5)
 end
 
+function M.visible(count, keep)
+    local out = {}
+    for i = 1, count do
+        if keep(i) then out[#out + 1] = i end
+    end
+    return out
+end
+
+function M.position(vis, index)
+    for k, i in ipairs(vis) do
+        if i == index then return k end
+    end
+    return 0
+end
+
+function M.step(vis, index, delta)
+    if #vis == 0 then return index end
+    local at = M.position(vis, index)
+    if at == 0 then return vis[1] end
+    return vis[M.wrap(at, delta, #vis)]
+end
+
 function M.list(count, cursor, line)
     local start_idx = math.max(1, cursor - math.floor(visible_rows / 2))
     local end_idx   = math.min(count, start_idx + visible_rows - 1)

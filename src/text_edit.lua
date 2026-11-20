@@ -82,6 +82,27 @@ function M.remove_bindings(prefix)
     for _, b in ipairs(bindings) do mp.remove_key_binding(prefix .. "-" .. b.name) end
 end
 
+local char_keys      = { ["SHARP"] = "#" }
+local standard_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.,:;/\\|()[]~@$%^&*+=<>?'\"!`"
+for i = 1, #standard_chars do
+    local c = standard_chars:sub(i, i)
+    char_keys[c] = c
+end
+
+function M.add_char_bindings(prefix, insert, allow_space)
+    for key, char in pairs(char_keys) do
+        mp.add_forced_key_binding(key, prefix .. "-char-" .. key, function() insert(char) end, {repeatable=true})
+    end
+    if allow_space then
+        mp.add_forced_key_binding("SPACE", prefix .. "-space", function() insert(" ") end, {repeatable=true})
+    end
+end
+
+function M.remove_char_bindings(prefix)
+    for key in pairs(char_keys) do mp.remove_key_binding(prefix .. "-char-" .. key) end
+    mp.remove_key_binding(prefix .. "-space")
+end
+
 local function cursor_key()
     return state.opts.cursor_color ~= "" and "cursor_color" or "value_color"
 end
