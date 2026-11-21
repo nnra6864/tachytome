@@ -60,11 +60,8 @@ function M.chain(o)
     if audio then parts[#parts + 1] = "keep " .. audio end
     if yes(o.combine_audio) then
         local name = o.combined_audio_name
-        if name and name ~= "" and name ~= "Combined" and not name:find("[\",#]") then
-            parts[#parts + 1] = "mix \"" .. name .. "\""
-        else
-            parts[#parts + 1] = "mix"
-        end
+        if not name or name == "" or name:find("[\",#]") then name = "Combined" end
+        parts[#parts + 1] = "mix \"" .. name .. "\""
         if yes(o.combined_audio_only) then parts[#parts + 1] = "only" end
     end
     if video then parts[#parts + 1] = "video " .. video end

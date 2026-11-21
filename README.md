@@ -144,8 +144,8 @@ Updates that cross a major version, e.g. `2.4.1 -> 3.0.0`, are pointed out befor
 
 #### 2.0.0 -> 2.1.0
 
-- `combine_audio`, `combined_audio_only`, `combined_audio_name`, `audio_tracks` and `video_tracks` become one [`tracks`](#tracks) chain in the same config file, e.g. `audio_tracks=1,3` with `combine_audio=yes` becomes `tracks=keep 1,3 mix`.
-- A name other than `Combined` moves into the mix, e.g. `mix "Voice"`, and Combined Only becomes `only`.
+- `combine_audio`, `combined_audio_only`, `combined_audio_name`, `audio_tracks` and `video_tracks` become one [`tracks`](#tracks) chain in the same config file, e.g. `audio_tracks=1,3` with `combine_audio=yes` becomes `tracks=keep 1,3 mix "Combined"`.
+- `combined_audio_name` moves into the mix, `Combined` when it wasn't set, so the track keeps its old title, e.g. `mix "Voice"`, and Combined Only becomes `only`.
 - Interrupted render queues are converted too, Skip leaves the old options in place, where they're ignored with a warning.
 
 ## Usage
@@ -703,7 +703,7 @@ Change it on the fly in the [Tracks List](#tracks-list) and with Combine Audio a
 - Track numbers count the file's own tracks from 1 and always mean the original track, so adding a mix never renumbers anything.
 - Numbers the file doesn't have are skipped, a mix needs 2 tracks or it's skipped too, so a chain works on any file.
 - `at N` puts the mix at output position N, the end by default.
-- Unnamed mixes are `Combined`, `Combined 2`, ..., names are unique, can't be `all`, `none`, a number or an op word, and need quotes when they hold spaces.
+- Unnamed mixes are `Mix`, `Mix 2`, ..., names are unique, can't be `all`, `none`, a number or an op word, and need quotes when they hold spaces.
 - `all` in a later layer includes earlier mixes, so `mix mix all` mixes the source tracks again together with the first mix, making them louder in it.
 - The first mix is the default track, mixes use the Audio Encoder, or the codec of their first track with `copy`, the rest is copied unless something needs re-encoding.
 - Combine Audio and Combined Only add or remove a trailing `mix` and `only`.

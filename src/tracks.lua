@@ -259,7 +259,7 @@ function M.evaluate(chain, audio_count, video_count)
             if not name then
                 repeat
                     unnamed = unnamed + 1
-                    name    = unnamed == 1 and lang.t("tracks_combined") or lang.t("tracks_combined_n", { n = unnamed })
+                    name    = unnamed == 1 and lang.t("tracks_mix") or lang.t("tracks_mix_n", { n = unnamed })
                 until names[name:lower()] == nil
             elseif names[name:lower()] ~= nil then
                 return nil, lang.t("tracks_name_taken", { name = name })

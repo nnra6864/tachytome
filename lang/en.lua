@@ -128,8 +128,8 @@ return {
     tracks_unknown    = "Tracks: unknown '{token}'",
     tracks_needs_list = "Tracks: '{token}' needs a track list",
     tracks_name_taken = "Tracks: the name '{name}' is already used",
-    tracks_combined   = "Combined",
-    tracks_combined_n = "Combined {n}",
+    tracks_mix        = "Mix",
+    tracks_mix_n      = "Mix {n}",
     tracks_mix_of     = "mix {list}",
 
     configs_empty   = "No .conf files in {dir}",
