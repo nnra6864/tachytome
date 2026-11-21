@@ -118,6 +118,7 @@ return {
     effects_removed   = "Efekat uklonjen: {name}",
     effects_numeric   = "Efekat '{name}': animacija zahteva numeričke vrednosti i trajanje",
     effects_unknown   = "effects_presets: nepoznat efekat '{name}'",
+    effects_disabled  = "effects_presets: efekat '{name}' je isključen",
     effects_duplicate = "{label} ({file})",
 
     tracks_audio    = "Audio",
@@ -162,6 +163,7 @@ return {
     render_exists        = "Datoteka već postoji",
 
     resolution_unknown      = "Rezolucija: nepoznato '{token}'",
+    resolution_disabled     = "Rezolucija: preset '{token}' je isključen",
     resolution_too_big      = "Rezolucija: '{token}' ne može da iseče kadar {size}",
     resolution_chain        = "Lanac",
     resolution_layer        = "Sloj",

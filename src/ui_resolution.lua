@@ -194,13 +194,13 @@ function M.show(on_close)
             end,
             preview     = function(input)
                 local parsed, bad = resolution.parse(input)
-                if not parsed then return lang.t("resolution_unknown", { token = bad }) end
+                if not parsed then return resolution.unknown(bad) end
                 return resolution.describe(resolution.format(compose(parsed)))
             end,
             on_submit   = function(input)
                 local parsed, bad = resolution.parse(input)
                 if not parsed then
-                    notify.show(lang.t("resolution_unknown", { token = bad }), true, "warn")
+                    notify.show(resolution.unknown(bad), true, "warn")
                 elseif #parsed > 0 or allow_empty then
                     resolution.remember(input)
                     commit(compose(parsed))

@@ -27,12 +27,12 @@ local timed_atoms = {
     aanimate = true
 }
 
-local function preset_index(id)
+local function preset_index(id, disabled)
     for i, p in ipairs(presets) do
-        if p.id == id then return i end
+        if p.id == id and not p.disabled == not disabled then return i end
     end
     for i, p in ipairs(presets) do
-        if p.name == id then return i end
+        if p.name == id and not p.disabled == not disabled then return i end
     end
     return nil
 end
@@ -243,7 +243,11 @@ function M.preset(id)
 end
 
 function M.list()
-    return presets
+    local list = {}
+    for _, p in ipairs(presets) do
+        if not p.disabled then list[#list + 1] = p end
+    end
+    return list
 end
 
 function M.instance(name)
@@ -395,15 +399,17 @@ local function parse_effects_file(path, file)
                 else
                     notify.show(lang.t("warn_invalid_line", { where = where, line = content }), false, "warn")
                 end
-            elseif head == "effect" and #words == 2 then
+            elseif (head == "effect" and #words == 2) or (head == "disabled" and words[2] == "effect" and #words == 3) then
+                local name = words[#words]
                 current = {
-                    name   = words[2],
-                    label  = words[2],
-                    anchor = "start",
-                    file   = file,
-                    where  = where,
-                    params = {},
-                    atoms  = {}
+                    name     = name,
+                    label    = name,
+                    anchor   = "start",
+                    file     = file,
+                    where    = where,
+                    params   = {},
+                    atoms    = {},
+                    disabled = head == "disabled"
                 }
             else
                 notify.show(lang.t("warn_invalid_line", { where = where, line = content }), false, "warn")
@@ -433,7 +439,8 @@ local function seed_from_opts()
                 state.effects[#state.effects + 1] = { name = p.id, params = {} }
             end
         else
-            notify.show(lang.t("effects_unknown", { name = name }), false, "warn")
+            local key = preset_index(name, true) and "effects_disabled" or "effects_unknown"
+            notify.show(lang.t(key, { name = name }), false, "warn")
         end
     end
 end

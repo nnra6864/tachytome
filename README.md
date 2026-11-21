@@ -147,6 +147,7 @@ Updates that cross a major version, e.g. `2.4.1 -> 3.0.0`, are pointed out befor
 - `combine_audio`, `combined_audio_only`, `combined_audio_name`, `audio_tracks` and `video_tracks` become one [`tracks`](#tracks) chain in the same config file, e.g. `audio_tracks=1,3` with `combine_audio=yes` becomes `tracks=keep 1,3 mix "Combined" at 1`, first like the old combined track.
 - `combined_audio_name` moves into the mix, `Combined` when it wasn't set, so the track keeps its old title, e.g. `mix "Voice"`, and Combined Only becomes `keep @mixes`.
 - Interrupted render queues are converted too, Skip leaves the old options in place, where they're ignored with a warning.
+- A `default.eff` you never changed is replaced with the new one, its commented out examples become [disabled](#effects) effects, a changed one is left as it is.
 
 ## Usage
 
@@ -728,14 +729,17 @@ Every `.res` file is read in alphabetical order, one preset per line as `name = 
 fhd      = 1080p
 vertical = 1080x1920 cover
 cs       = 1280x1024 stretch
+disabled 4k = 2160p
 ```
 - A preset name works anywhere in a chain, e.g. `fhd`, `cs 0.5x` or `vertical`, and can use other presets.
 - A mode or scaler right after a preset applies to all of its layers, e.g. `vertical fit` or `4k neighbor`.
 - Names ignore case and can't hold spaces, `=` or `/`, or be a size, mode or scaler.
 - The same name in two files is fine, `file/name` picks a specific one, e.g. `mine/vertical`, a bare name picks the first file.
 - The Resolution List opens them with `p` or the Presets row, 0-9/Enter uses one, `a` adds it to the chain.
+- `disabled` before a preset turns it off, e.g. `disabled vertical = 1080x1920 cover`, removing it turns the preset back on.<br>
+  A disabled preset isn't listed, a bare name skips it for the next file that defines it, and using it says it's disabled.
 
-`default.res` holds `autocrop` and `halfres`, with commented examples to uncomment: `hd` to `8k` on the short side, `vertical` and `cs`.
+`default.res` holds `autocrop` and `halfres`, with disabled examples to turn on: `hd` to `8k` on the short side, `vertical` and `cs`.
 
 ### Tracks
 
@@ -788,7 +792,7 @@ Every `.trk` file is read in alphabetical order, one preset per line as `name = 
 combined      = mix at 1
 combined_only = mix keep @mixes
 voice_mix     = mix 2,3 "Voices" at 1
-audio_only    = video none
+disabled audio_only = video none
 ```
 - A preset name works anywhere a layer can start, e.g. `combined_only`, `drop 2 combined` or `voice_mix audio_only`, and can use other presets.
 - A preset can hold audio layers and `video` together, its `video` applies unless a `video` after it replaces it.
@@ -797,8 +801,10 @@ audio_only    = video none
 - A track or mix named like a preset needs quotes in lists, e.g. `keep "combined"`.
 - The same name in two files is fine, `file/name` picks a specific one, e.g. `mine/combined`, a bare name picks the first file.
 - The Tracks List opens them with `p` or the Presets row, 0-9/Enter uses one, `a` adds it to the chain.
+- `disabled` before a preset turns it off, e.g. `disabled audio_only = video none`, removing it turns the preset back on.<br>
+  A disabled preset isn't listed, a bare name skips it for the next file that defines it, using it says it's disabled, and tracks named like it don't need quotes.
 
-`default.trk` holds `combined` and `combined_only`, the same as Combine Audio and Combine Audio with Combined Only, with commented examples to uncomment: `voice_mix` and `audio_only`.
+`default.trk` holds `combined` and `combined_only`, the same as Combine Audio and Combine Audio with Combined Only, with disabled examples to turn on: `voice_mix` and `audio_only`.
 
 ### Effects
 
@@ -818,6 +824,9 @@ You can find an example config with every option explained [here](./tachytome-ef
   ```
 - Names only need to be unique within a file, different files can each have their own `fade`.
 - `effects_presets` picks a preset from a specific file with `file/name`, e.g. `nnra6864/dissolve`, a bare name picks the first file that defines it.
+- `disabled` before `effect` turns an effect off, e.g. `disabled effect grain`, removing it turns the effect back on.<br>
+  A disabled effect isn't listed, a bare name skips it for the next file that defines it, and `effects_presets` warns that it's disabled.<br>
+  `default.eff` holds `fade` and `blur_fade`, with disabled examples to turn on: `drop_in`, `color_in`, `grain` and `duck_out`.
 
 ```
 effect blur_fade

@@ -8,7 +8,8 @@ local M = {
     skipped = "migrate_tracks_skipped"
 }
 
-local old_keys = { combine_audio = true, combined_audio_only = true, combined_audio_name = true, audio_tracks = true, video_tracks = true }
+local old_keys  = { combine_audio = true, combined_audio_only = true, combined_audio_name = true, audio_tracks = true, video_tracks = true }
+local stock_eff = utils.join_path(mp.get_script_directory() or "", "src/migrations/2.0.0/tachytome-effects.conf")
 
 local function read_lines(path)
     local lines = {}
@@ -115,6 +116,14 @@ local function fix_queue(path)
     common.write_json_file(path, data)
 end
 
+local function renew_default_eff()
+    local path  = utils.join_path(common.get_conf_dir(), "default.eff")
+    local stock = read_lines(stock_eff)
+    if #stock == 0 or table.concat(read_lines(path), "\n") ~= table.concat(stock, "\n") then return end
+    os.remove(path)
+    common.ensure_default_conf("tachytome-effects.conf", "default.eff")
+end
+
 function M.detect()
     return #scan() > 0
 end
@@ -124,6 +133,7 @@ function M.prepare()
     for _, name in ipairs(utils.readdir(dir, "files") or {}) do
         if name:match("^queue%-%d+%.json$") then fix_queue(utils.join_path(dir, name)) end
     end
+    renew_default_eff()
 end
 
 function M.plan()

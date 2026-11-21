@@ -121,6 +121,7 @@ return {
     effects_removed   = "Effect removed: {name}",
     effects_numeric   = "Effect '{name}': animation needs numeric values and a duration",
     effects_unknown   = "effects_presets: unknown effect '{name}'",
+    effects_disabled  = "effects_presets: effect '{name}' is disabled",
     effects_duplicate = "{label} ({file})",
 
     tracks_audio      = "Audio",
@@ -130,6 +131,7 @@ return {
     tracks_no_audio   = "No audio tracks",
     tracks_no_video   = "No video tracks",
     tracks_unknown    = "Tracks: unknown '{token}'",
+    tracks_disabled   = "Tracks: preset '{token}' is disabled",
     tracks_needs_list = "Tracks: '{token}' needs a track list",
     tracks_name_taken = "Tracks: the name '{name}' is already used",
     tracks_mix        = "Mix",
@@ -196,6 +198,7 @@ return {
     render_exists        = "File already exists",
 
     resolution_unknown      = "Resolution: unknown '{token}'",
+    resolution_disabled     = "Resolution: preset '{token}' is disabled",
     resolution_too_big      = "Resolution: '{token}' can't crop a {size} frame",
     resolution_chain        = "Chain",
     resolution_layer        = "Layer",

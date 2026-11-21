@@ -50,12 +50,12 @@ end
 
 local presets = {}
 
-local function find_preset(word)
+local function find_preset(word, disabled)
     for _, p in ipairs(presets) do
-        if p.id:lower() == word then return p end
+        if p.id:lower() == word and not p.disabled == not disabled then return p end
     end
     for _, p in ipairs(presets) do
-        if p.name == word then return p end
+        if p.name == word and not p.disabled == not disabled then return p end
     end
     return nil
 end
@@ -124,7 +124,8 @@ local function parse(text, depth)
     local i      = 1
 
     local function fail(token)
-        return nil, lang.t("tracks_unknown", { token = token })
+        local key = find_preset(token:lower(), true) and "tracks_disabled" or "tracks_unknown"
+        return nil, lang.t(key, { token = token })
     end
 
     local function lists()
@@ -255,12 +256,13 @@ local function parse_presets_file(path, file)
         if hash then content = content:sub(1, hash - 1) end
         content = content:match("^%s*(.-)%s*$")
         if content ~= "" then
-            local name, chain = content:match("^([^%s=/]+)%s*=%s*(.+)$")
+            local rest        = content:match("^disabled%s+([^=%s].*)$")
+            local name, chain = (rest or content):match("^([^%s=/]+)%s*=%s*(.+)$")
             local word        = name and name:lower()
             if not word or not plain_word(word) then
                 notify.show(lang.t("warn_invalid_line", { where = where, line = content }), false, "warn")
             else
-                upsert({ name = word, file = file, chain = chain, where = where })
+                upsert({ name = word, file = file, chain = chain, where = where, disabled = rest ~= nil })
             end
         end
     end
@@ -279,10 +281,16 @@ function M.reload()
 end
 
 function M.presets()
+    local list  = {}
     local count = {}
-    for _, p in ipairs(presets) do count[p.name] = (count[p.name] or 0) + 1 end
-    for _, p in ipairs(presets) do p.label = count[p.name] > 1 and find_preset(p.name) ~= p and p.id or p.name end
-    return presets
+    for _, p in ipairs(presets) do
+        if not p.disabled then
+            list[#list + 1] = p
+            count[p.name]   = (count[p.name] or 0) + 1
+        end
+    end
+    for _, p in ipairs(list) do p.label = count[p.name] > 1 and find_preset(p.name) ~= p and p.id or p.name end
+    return list
 end
 
 local function item_text(item)

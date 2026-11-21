@@ -73,12 +73,12 @@ end
 
 local presets = {}
 
-local function find_preset(word)
+local function find_preset(word, disabled)
     for _, p in ipairs(presets) do
-        if p.id == word then return p end
+        if p.id == word and not p.disabled == not disabled then return p end
     end
     for _, p in ipairs(presets) do
-        if p.name == word then return p end
+        if p.name == word and not p.disabled == not disabled then return p end
     end
     return nil
 end
@@ -110,6 +110,11 @@ end
 
 function M.parse(text)
     return parse(text, 0)
+end
+
+function M.unknown(token)
+    local key = find_preset(token:lower(), true) and "resolution_disabled" or "resolution_unknown"
+    return lang.t(key, { token = token })
 end
 
 local function preset_files(dir)
@@ -145,12 +150,13 @@ local function parse_presets_file(path, file)
         if hash then content = content:sub(1, hash - 1) end
         content = content:match("^%s*(.-)%s*$")
         if content ~= "" then
-            local name, chain = content:match("^([^%s=/]+)%s*=%s*(.+)$")
+            local rest        = content:match("^disabled%s+([^=%s].*)$")
+            local name, chain = (rest or content):match("^([^%s=/]+)%s*=%s*(.+)$")
             local word        = name and name:lower()
             if not word or size(word) or modes[word] or scalers[word] then
                 notify.show(lang.t("warn_invalid_line", { where = where, line = content }), false, "warn")
             else
-                upsert({ name = word, file = file, chain = chain, where = where })
+                upsert({ name = word, file = file, chain = chain, where = where, disabled = rest ~= nil })
             end
         end
     end
@@ -169,10 +175,16 @@ function M.reload()
 end
 
 function M.presets()
+    local list  = {}
     local count = {}
-    for _, p in ipairs(presets) do count[p.name] = (count[p.name] or 0) + 1 end
-    for _, p in ipairs(presets) do p.label = count[p.name] > 1 and find_preset(p.name) ~= p and p.id or p.name end
-    return presets
+    for _, p in ipairs(presets) do
+        if not p.disabled then
+            list[#list + 1] = p
+            count[p.name]   = (count[p.name] or 0) + 1
+        end
+    end
+    for _, p in ipairs(list) do p.label = count[p.name] > 1 and find_preset(p.name) ~= p and p.id or p.name end
+    return list
 end
 
 function M.layer_text(layer)
@@ -209,7 +221,7 @@ function M.build(text)
     end
     if not modes[o.resolution_mode] then return nil, lang.t("resolution_unknown", { token = o.resolution_mode }) end
     local layers, bad = M.parse(text)
-    if not layers then return nil, lang.t("resolution_unknown", { token = bad }) end
+    if not layers then return nil, M.unknown(bad) end
 
     local function resolve(list, mode, scaler)
         for _, layer in ipairs(list) do
