@@ -8,7 +8,7 @@ local ui          = require 'src.ui'
 
 local M = {}
 
-local bindings = { "cfg-up", "cfg-down", "cfg-j", "cfg-k", "cfg-move-up", "cfg-move-down", "cfg-K", "cfg-J", "cfg-enter", "cfg-search", "cfg-esc" }
+local bindings = { "cfg-up", "cfg-down", "cfg-j", "cfg-k", "cfg-move-up", "cfg-move-down", "cfg-K", "cfg-J", "cfg-tab", "cfg-enter", "cfg-search", "cfg-esc" }
 
 function M.show(configs, on_apply, on_close)
     local ov      = mp.create_osd_overlay("ass-events")
@@ -40,6 +40,12 @@ function M.show(configs, on_apply, on_close)
         end
     end
 
+    local function cancel()
+        if not active then return end
+        teardown()
+        if on_close then on_close() end
+    end
+
     local function labels()
         local out = {}
         for i, row in ipairs(rows) do out[i] = row.name end
@@ -67,7 +73,7 @@ function M.show(configs, on_apply, on_close)
             body = search.empty()
         end
 
-        local hints = search.hints({ { "Up/Down", "navigate" }, { "Enter", "toggle" }, { "Shift+Up/Down", "move" }, { "/", "search" }, { "Esc", "apply" } })
+        local hints = search.hints({ { "Up/Down", "navigate" }, { "Tab", "toggle" }, { "Shift+Up/Down", "move" }, { "/", "search" }, { "Enter", "apply" }, { "Esc", "cancel" } })
         ov.data = search.title(lang.t("menu_configs")) .. "\\N" .. body .. "\\N" .. ui.tooltip(hints)
         ov:update()
     end
@@ -113,11 +119,12 @@ function M.show(configs, on_apply, on_close)
     mp.add_forced_key_binding("shift+DOWN", "cfg-move-down", function() move_row(1) end, {repeatable = true})
     mp.add_forced_key_binding("K", "cfg-K", function() move_row(-1) end, {repeatable = true})
     mp.add_forced_key_binding("J", "cfg-J", function() move_row(1) end, {repeatable = true})
-    mp.add_forced_key_binding("ENTER", "cfg-enter", toggle)
+    mp.add_forced_key_binding("TAB", "cfg-tab", toggle)
+    mp.add_forced_key_binding("ENTER", "cfg-enter", close)
     mp.add_forced_key_binding("/", "cfg-search", search.start)
     mp.add_forced_key_binding("ESC", "cfg-esc", function()
         if search.filtering() then return search.clear() end
-        close()
+        cancel()
     end)
     draw()
 end

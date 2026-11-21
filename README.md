@@ -320,6 +320,13 @@ See the `cursor_` options in the [builtin config](./tachytome.conf) for its colo
 
 Number keys are shown next to the first 10 items of lists that have them, the rest are reached with Up/Down.<br>
 Lists put what's rarely needed last, so with wrapping it's only a few Up presses away from the top.<br>
+Lists you toggle things in, Effects, Configs and the tracks picker, all work the same way:
+- Tab toggles the item under the cursor, and number keys toggle by number where the list has them.
+- Enter applies the changes and closes the list.
+- Esc cancels, putting back everything as it was when the list opened.
+
+The Resolution and Tracks Lists hold rows you open, so Enter edits the row, and Esc closes keeping what you changed, since each edit already has its own Enter and Esc.<br>
+Their toggles work with Tab too, and Enter on a toggle row closes the list.<br>
 
 Search opens a `/` line under the list title, the list stays and hides what doesn't match as you type, ignoring case, then:
 - Enter with one match, or one exact name, selects it, e.g. `/av1` picks `av1` even though `nv_av1` also matches.
@@ -327,7 +334,7 @@ Search opens a `/` line under the list title, the list stays and hides what does
 - Up/Down stop typing and move through the matches.
 - Esc while typing, or on the kept matches, clears the search and shows the whole list again.
 
-Selecting a match does what Enter does in that list: picks it, toggles the effect or config, uses the resolution preset, or moves to the render.<br>
+Selecting a match picks it, toggles the effect or config, uses the resolution preset, or moves to the render.<br>
 Configs can't be moved until the search is cleared.<br>
 Effects are searched as `file/name`, so `/default` lists one file's effects and `/fade` picks `fade`.<br>
 The Resolution and Tracks Lists have no search, their rows are your own few layers and tracks, the Resolution Presets list does.<br>
@@ -335,17 +342,19 @@ Inputs like the Path prompt use ctrl+k/ctrl+j instead, since plain letters are t
 
 #### Effects List
 
-| Keybind | Action | Description                                 |
-|---------|--------|---------------------------------------------|
-| Enter   | Toggle | Select or deselect the preset.              |
-| d       | Edit   | Edit the duration and params of the preset. |
-| Esc     | Close  | Close the list.                             |
+| Keybind | Action | Description                                         |
+|---------|--------|-----------------------------------------------------|
+| Tab     | Toggle | Select or deselect the preset, or toggle Effects.   |
+| d       | Edit   | Edit the duration and params of the preset.         |
+| Enter   | Apply  | Keep the changes and close the list.                |
+| Esc     | Cancel | Put the effects back as they were and close.        |
 
 #### Resolution List
 
 | Keybind      | Action    | Description                                                              |
 |--------------|-----------|--------------------------------------------------------------------------|
-| Enter        | Edit      | Toggle, type the chain, open Presets or replace the selected layer.      |
+| Tab          | Toggle    | Turn Resolution on or off on the toggle row.                             |
+| Enter        | Edit      | Type the chain, open Presets or replace the selected layer.              |
 | a            | Add       | Add layers after the selected one, or at the end.                        |
 | p            | Presets   | Open the Presets list from any row.                                      |
 | m            | Mode      | Pick the layer's mode from a list, Default follows `resolution_mode`.    |
@@ -367,8 +376,8 @@ Setting a chain or using a preset turns Resolution on, an empty Chain keeps the 
 
 | Keybind      | Action    | Description                                                              |
 |--------------|-----------|--------------------------------------------------------------------------|
-| 0-9          | Toggle    | Keep or drop the track with that number under Tracks.                    |
-| Enter        | Edit      | Toggle a track, type the chain or replace the selected layer.            |
+| Tab/0-9      | Toggle    | Keep or drop the track under the cursor, or with that number.            |
+| Enter        | Edit      | Type the chain or replace the selected layer, on a track it closes.      |
 | a            | Add       | Add a layer after the selected one, or at the end.                       |
 | s            | Tracks    | Pick the layer's tracks.                                                 |
 | n            | Name      | Name the mix, empty uses the default name.                               |
@@ -388,10 +397,11 @@ The Chain row, the whole chain as one line, sits under the layers.<br>
 
 The title shows how many tracks go in and out, e.g. `3 in > 1 out`.<br>
 Each track shows its title, codec, channels or size and language, mixes show the tracks they're mixed from.<br>
-`0` is the 10th track, tracks past it have no number key, reach them with Up/Down and toggle them with Enter.<br>
+`0` is the 10th track, tracks past it have no number key, reach them with Up/Down and toggle them with Tab.<br>
 `a` offers `mix`, `keep`, `drop` and `only`, or Type... to write layers yourself, a picked layer opens its tracks right away.<br>
-The tracks picker lists the tracks present at that layer, 0-9/Enter toggles one and `A` switches between Include, keeping the picked ones like `1,3`, and All except, keeping everything but the unpicked ones like `-2`, which keeps working on files with more tracks.<br>
-Changes apply as you make them, Esc goes back. The chain and layer inputs show the result while typing and share a history kept across restarts.<br>
+The tracks picker lists the tracks present at that layer, Tab/0-9 toggles one and `A` switches between Include, keeping the picked ones like `1,3`, and All except, keeping everything but the unpicked ones like `-2`, which keeps working on files with more tracks.<br>
+Its `in > out` count updates as you pick, Enter keeps the picks, Esc cancels them, and cancels the layer too when `a` just added it.<br>
+The chain and layer inputs show the result while typing and share a history kept across restarts.<br>
 `v` shows the video tracks as a plain toggle list, `a` goes back to audio, set `tracks_type=video` to open on video.<br>
 Only the file's own tracks are listed, external audio files loaded into mpv aren't part of the render, dropping every video track renders audio only.
 
@@ -399,10 +409,11 @@ Only the file's own tracks are listed, external audio files loaded into mpv aren
 
 | Keybind      | Action    | Description                                 |
 |--------------|-----------|---------------------------------------------|
-| Enter        | Toggle    | Enable or disable the config.               |
+| Tab          | Toggle    | Enable or disable the config.               |
 | Shift+Up/K   | Move Up   | Move the config up, before the one above.   |
 | Shift+Down/J | Move Down | Move the config down, after the one below.  |
-| Esc          | Close     | Save the changes to your config and reload. |
+| Enter        | Apply     | Save the changes to your config and reload. |
+| Esc          | Cancel    | Close without changing anything.            |
 
 ### Config
 

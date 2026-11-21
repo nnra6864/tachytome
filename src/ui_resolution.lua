@@ -12,7 +12,7 @@ local ui         = require 'src.ui'
 
 local M = {}
 
-local bindings = { "up", "down", "j", "k", "move-up", "move-down", "J", "K", "enter", "a", "m", "s", "p", "d", "esc" }
+local bindings = { "up", "down", "j", "k", "move-up", "move-down", "J", "K", "tab", "enter", "a", "m", "s", "p", "d", "esc" }
 
 function M.set_enabled(enabled)
     state.resolution_enabled = enabled
@@ -163,6 +163,8 @@ function M.show(on_close)
         local hints = { { "Up/Down", "navigate" }, { "Enter", "edit" }, { "a", "add" }, { "p", "presets" }, { "Esc", "close" } }
         if row and row.kind == "layer" then
             hints = { { "Up/Down", "navigate" }, { "Enter", "edit" }, { "a", "add" }, { "m", "mode" }, { "s", "scaler" }, { "p", "presets" }, { "d", "delete" }, { "Shift+Up/Down", "move" }, { "Esc", "close" } }
+        elseif row and row.kind == "toggle" then
+            hints = { { "Up/Down", "navigate" }, { "Tab", "toggle" }, { "a", "add" }, { "p", "presets" }, { "Enter/Esc", "close" } }
         end
         ov.data = head .. "\\N" .. body .. "\\N" .. ui.tooltip(hints)
         ov:update()
@@ -199,8 +201,7 @@ function M.show(on_close)
         local row = rows[cursor]
         if not row then return end
         if row.kind == "toggle" then
-            M.set_enabled(not state.resolution_enabled)
-            draw()
+            cleanup()
         elseif row.kind == "presets" then
             pick_preset()
         elseif row.kind == "chain" then
@@ -209,6 +210,13 @@ function M.show(on_close)
             local i = row.index
             prompt(lang.t("resolution_layer"), resolution.layer_text(layers[i]), false, function(parsed) return splice(layers, i, 1, parsed) end)
         end
+    end
+
+    local function toggle_row()
+        local row = rows[cursor]
+        if not row or row.kind ~= "toggle" then return end
+        M.set_enabled(not state.resolution_enabled)
+        draw()
     end
 
     local function add_layer()
@@ -313,6 +321,7 @@ function M.show(on_close)
         mp.add_forced_key_binding("shift+DOWN", "res-move-down", function() move_layer(1) end, {repeatable = true})
         mp.add_forced_key_binding("K", "res-K", function() move_layer(-1) end, {repeatable = true})
         mp.add_forced_key_binding("J", "res-J", function() move_layer(1) end, {repeatable = true})
+        mp.add_forced_key_binding("TAB", "res-tab", toggle_row)
         mp.add_forced_key_binding("ENTER", "res-enter", edit_row)
         mp.add_forced_key_binding("a", "res-a", add_layer)
         mp.add_forced_key_binding("m", "res-m", pick_mode)

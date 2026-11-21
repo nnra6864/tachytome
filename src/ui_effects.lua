@@ -15,13 +15,20 @@ function M.show(on_close)
     local active = false
     local cursor = 1
     local rows   = {}
+    local saved  = { enabled = state.effects_enabled, lossless = state.opts.lossless_cut, effects = {} }
     local search
+    for i, inst in ipairs(state.effects) do
+        local params = {}
+        for k, v in pairs(inst.params) do params[k] = v end
+        saved.effects[i] = { name = inst.name, params = params }
+    end
 
     local function remove_bindings()
         mp.remove_key_binding("fx-up")
         mp.remove_key_binding("fx-down")
         mp.remove_key_binding("fx-j")
         mp.remove_key_binding("fx-k")
+        mp.remove_key_binding("fx-tab")
         mp.remove_key_binding("fx-enter")
         mp.remove_key_binding("fx-d")
         mp.remove_key_binding("fx-search")
@@ -41,6 +48,13 @@ function M.show(on_close)
         if not active then return end
         teardown()
         if on_close then on_close() end
+    end
+
+    local function cancel()
+        state.effects_enabled   = saved.enabled
+        state.opts.lossless_cut = saved.lossless
+        state.effects           = saved.effects
+        cleanup()
     end
 
     local function rebuild_rows()
@@ -106,7 +120,7 @@ function M.show(on_close)
             return string.format("\\h%s%s", theme.escape(row.preset.label), marker)
         end)
         if #vis == 0 then body = search.empty() end
-        local hints = search.hints({ { "Up/Down", "navigate" }, { "Enter", "toggle" }, { "d", "edit" }, { "/", "search" }, { "Esc", "close" } })
+        local hints = search.hints({ { "Up/Down", "navigate" }, { "Tab", "toggle" }, { "d", "edit" }, { "/", "search" }, { "Enter", "apply" }, { "Esc", "cancel" } })
         ov.data = search.title(lang.t("menu_effects")) .. "\\N" .. body .. "\\N" .. ui.tooltip(hints)
         ov:update()
     end
@@ -234,7 +248,7 @@ function M.show(on_close)
         mp.add_forced_key_binding("j", "fx-j", move_down, {repeatable = true})
         mp.add_forced_key_binding("k", "fx-k", move_up, {repeatable = true})
 
-        mp.add_forced_key_binding("ENTER", "fx-enter", function()
+        mp.add_forced_key_binding("TAB", "fx-tab", function()
             local row = rows[cursor]
             if not row or #navigable(visible()) == 0 then return end
             if row.kind == "toggle" then
@@ -244,6 +258,7 @@ function M.show(on_close)
                 toggle_preset(row.preset)
             end
         end)
+        mp.add_forced_key_binding("ENTER", "fx-enter", cleanup)
 
         mp.add_forced_key_binding("d", "fx-d", function()
             local row = rows[cursor]
@@ -253,7 +268,7 @@ function M.show(on_close)
         mp.add_forced_key_binding("/", "fx-search", search.start)
         mp.add_forced_key_binding("ESC", "fx-esc", function()
             if search.filtering() then return search.clear() end
-            cleanup()
+            cancel()
         end)
     end
 

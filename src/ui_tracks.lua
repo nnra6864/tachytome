@@ -11,8 +11,8 @@ local ui       = require 'src.ui'
 
 local M = {}
 
-local bindings = { "up", "down", "j", "k", "move-up", "move-down", "J", "K", "enter", "a", "v", "s", "n", "o", "d", "esc" }
-local picks    = { "up", "down", "j", "k", "enter", "A", "esc" }
+local bindings = { "up", "down", "j", "k", "move-up", "move-down", "J", "K", "tab", "enter", "a", "v", "s", "n", "o", "d", "esc" }
+local picks    = { "up", "down", "j", "k", "tab", "enter", "A", "esc" }
 for i = 1, 10 do
     bindings[#bindings + 1] = tostring(i)
     picks[#picks + 1]       = tostring(i)
@@ -217,14 +217,14 @@ function M.show(on_close)
         local hints
         if kind == "video" then
             if #rows == 0 then body = string.format("\\N%s\\h\\h%s%s", theme.c("dim_text_color"), theme.escape(lang.t("tracks_no_video")), theme.reset()) end
-            hints = { { "0-9/Enter", "toggle" }, { "Up/Down", "navigate" }, { "a", "audio" }, { "Esc", "close" } }
+            hints = { { "Tab/0-9", "toggle" }, { "Up/Down", "navigate" }, { "a", "audio" }, { "Enter/Esc", "close" } }
         else
             local sum = chain and summary(state.tracks) or err
             if sum and sum ~= "" then head = head .. ui.dim(sum) end
             local row = rows[cursor]
             hints     = { { "Up/Down", "navigate" }, { "Enter", "edit" }, { "a", "add" }, { "v", "video" }, { "Esc", "close" } }
             if row and row.kind == "track" then
-                hints = { { "0-9/Enter", "toggle" }, { "Up/Down", "navigate" }, { "a", "add" }, { "v", "video" }, { "Esc", "close" } }
+                hints = { { "Tab/0-9", "toggle" }, { "Up/Down", "navigate" }, { "a", "add" }, { "v", "video" }, { "Enter/Esc", "close" } }
             elseif row and row.kind == "layer" then
                 local layer = chain.layers[row.index]
                 hints       = { { "Up/Down", "navigate" }, { "Enter", "edit" }, { "a", "add" } }
@@ -343,10 +343,15 @@ function M.show(on_close)
         refresh({ kind = "track", k = k })
     end
 
+    local function tab_row()
+        local row = rows[cursor]
+        if row and row.kind == "track" then toggle_track(row.k) end
+    end
+
     local function edit_row()
         local row = rows[cursor]
         if not row then return end
-        if row.kind == "track" then return toggle_track(row.k) end
+        if row.kind == "track" then return cleanup() end
         if not chain then return edit_chain() end
         if row.kind == "chain" then return edit_chain() end
         if row.kind == "layer" then
@@ -362,6 +367,7 @@ function M.show(on_close)
         local at    = (row and row.kind == "layer") and row.index + 1 or #chain.layers + 1
         local items = { "mix", "keep", "drop", "only", lang.t("tracks_type") }
         local title = string.format("%s %s %s", lang.t("menu_tracks"), state.opts.menu_path_separator, lang.t("tracks_add"))
+        local before = state.tracks
         teardown()
         ui_list.show(title, items, nil, function(op)
             if op == lang.t("tracks_type") then
@@ -374,7 +380,7 @@ function M.show(on_close)
             if op == "drop" then layer.list = { { kind = "none" } } end
             commit(splice(chain.layers, at, 0, { layer }))
             if op == "only" then return open_ui() end
-            open_picker(at)
+            open_picker(at, before)
         end, open_ui)
     end
 
@@ -414,7 +420,8 @@ function M.show(on_close)
         refresh()
     end
 
-    open_picker = function(index)
+    open_picker = function(index, before)
+        local restore = before or state.tracks
         teardown()
         local audio          = tracks.list("audio")
         local present, names = tracks.run(chain.layers, #audio, index)
@@ -431,10 +438,11 @@ function M.show(on_close)
         end
         state.ui_owner = "tracks"
 
-        local function close()
+        local function close(keep)
             pov:remove()
             for _, name in ipairs(picks) do mp.remove_key_binding("trp-" .. name) end
             state.ui_owner = nil
+            if not keep then state.tracks = restore end
             open_ui()
         end
 
@@ -456,7 +464,7 @@ function M.show(on_close)
             if #present == 0 then body = string.format("\\N%s\\h\\h%s%s", theme.c("dim_text_color"), theme.escape(lang.t("tracks_no_audio")), theme.reset()) end
             local title = string.format("%s %s %s", lang.t("menu_tracks"), state.opts.menu_path_separator, tracks.layer_text(layer))
             local head  = ui.title(title) .. ui.dim(lang.t(exclude and "tracks_all_except" or "tracks_include") .. ", " .. summary(state.tracks))
-            local hints = { { "0-9/Enter", "toggle" }, { "Up/Down", "navigate" }, { "A", "mode" }, { "Esc", "back" } }
+            local hints = { { "Tab/0-9", "toggle" }, { "Up/Down", "navigate" }, { "A", "mode" }, { "Enter", "apply" }, { "Esc", "cancel" } }
             pov.data    = head .. "\\N" .. body .. "\\N" .. ui.tooltip(hints)
             pov:update()
         end
@@ -480,7 +488,8 @@ function M.show(on_close)
         mp.add_forced_key_binding("DOWN", "trp-down", function() move(1) end, {repeatable = true})
         mp.add_forced_key_binding("k", "trp-k", function() move(-1) end, {repeatable = true})
         mp.add_forced_key_binding("j", "trp-j", function() move(1) end, {repeatable = true})
-        mp.add_forced_key_binding("ENTER", "trp-enter", function() flip(pcursor) end)
+        mp.add_forced_key_binding("TAB", "trp-tab", function() flip(pcursor) end)
+        mp.add_forced_key_binding("ENTER", "trp-enter", function() close(true) end)
         mp.add_forced_key_binding("A", "trp-A", function()
             exclude = not exclude
             write()
@@ -489,7 +498,7 @@ function M.show(on_close)
         for n = 1, 10 do
             mp.add_forced_key_binding(ui.number_key(n), "trp-" .. n, function() flip(n) end)
         end
-        mp.add_forced_key_binding("ESC", "trp-esc", close)
+        mp.add_forced_key_binding("ESC", "trp-esc", function() close(false) end)
         draw_picker()
     end
 
@@ -507,6 +516,7 @@ function M.show(on_close)
         mp.add_forced_key_binding("shift+DOWN", "tr-move-down", function() move_layer(1) end, {repeatable = true})
         mp.add_forced_key_binding("K", "tr-K", function() move_layer(-1) end, {repeatable = true})
         mp.add_forced_key_binding("J", "tr-J", function() move_layer(1) end, {repeatable = true})
+        mp.add_forced_key_binding("TAB", "tr-tab", tab_row)
         mp.add_forced_key_binding("ENTER", "tr-enter", edit_row)
         mp.add_forced_key_binding("a", "tr-a", function()
             if kind == "video" then return switch("audio") end
