@@ -1,6 +1,7 @@
 local common     = require 'src.common'
 local effects    = require 'src.effects'
 local resolution = require 'src.resolution'
+local tracks     = require 'src.tracks'
 
 local M = {}
 
@@ -30,7 +31,8 @@ local function get_media_info(input_file)
 
     for _, s in ipairs(probe_data.streams) do
         if s.codec_type == "audio" then
-            info.audio[#info.audio + 1] = { codec = s.codec_name, sample_rate = s.sample_rate, bit_rate = s.bit_rate, channels = tonumber(s.channels) }
+            local title = s.tags and (s.tags.title or s.tags.TITLE)
+            info.audio[#info.audio + 1] = { codec = s.codec_name, sample_rate = s.sample_rate, bit_rate = s.bit_rate, channels = tonumber(s.channels), title = title }
         elseif s.codec_type == "video" then
             local fps = nil
             if s.avg_frame_rate and s.avg_frame_rate ~= "0/0" and s.avg_frame_rate ~= "N/A" then fps = s.avg_frame_rate end
@@ -66,33 +68,35 @@ local audio_formats = {
     wav  = { encoder = "pcm",    codecs = wav_codecs,      single = true }
 }
 
-local function pick_tracks(list, count)
-    local out = {}
-    if not list then
-        for i = 0, count - 1 do out[#out + 1] = i end
-        return out
+local function first_mix(out)
+    for _, e in ipairs(out) do
+        if e.kind == "mix" then return e end
     end
-    for _, n in ipairs(list) do
-        if n >= 1 and n <= count then out[#out + 1] = n - 1 end
-    end
-    return out
+    return out[1]
 end
 
 local function select_streams(info, opts, output_file)
-    local ext        = (output_file:match("%.([a-zA-Z0-9]+)$") or ""):lower()
-    info.format      = audio_formats[ext]
-    info.audio_only  = info.format ~= nil
-    info.single      = info.format ~= nil and info.format.single == true
-    info.mix_only    = opts.combined_audio_only or info.single
-    info.audio_pick  = pick_tracks(opts.audio_tracks, #info.audio)
-    info.video_pick  = info.audio_only and {} or pick_tracks(opts.video_tracks, #info.video)
-    info.audio_count = #info.audio_pick
-    info.a_meta      = info.audio_pick[1] and info.audio[info.audio_pick[1] + 1] or nil
-    info.a_choice    = audio_encoders[opts.audio_encoder] and opts.audio_encoder or nil
-    info.a_bitrate   = (opts.audio_bitrate or "") ~= "" and opts.audio_bitrate or nil
-    info.full_range  = false
-    info.v_fps       = nil
-    info.v_size      = nil
+    local result, err = tracks.build(opts.tracks or "", #info.audio, #info.video)
+    if not result then return nil, err end
+    local ext       = (output_file:match("%.([a-zA-Z0-9]+)$") or ""):lower()
+    info.format     = audio_formats[ext]
+    info.audio_only = info.format ~= nil
+    info.single     = info.format ~= nil and info.format.single == true
+    info.audio_out  = result.audio
+    if info.single and #info.audio_out > 1 then info.audio_out = { first_mix(info.audio_out) } end
+    info.has_mix    = (first_mix(info.audio_out) or {}).kind == "mix"
+    info.video_pick = {}
+    if not info.audio_only then
+        for i = 1, #info.video do
+            if tracks.kept(result.video, i) then info.video_pick[#info.video_pick + 1] = i - 1 end
+        end
+    end
+    info.a_meta     = info.audio_out[1] and info.audio[tracks.leaf(info.audio_out[1])] or nil
+    info.a_choice   = audio_encoders[opts.audio_encoder] and opts.audio_encoder or nil
+    info.a_bitrate  = (opts.audio_bitrate or "") ~= "" and opts.audio_bitrate or nil
+    info.full_range = false
+    info.v_fps      = nil
+    info.v_size     = nil
     for k, i in ipairs(info.video_pick) do
         local v = info.video[i + 1]
         if k == 1 then
@@ -153,8 +157,9 @@ local function map_source(args, media_info, audio)
 end
 
 local function kept_audio(media_info)
-    if media_info.single then return { media_info.audio_pick[1] } end
-    return media_info.audio_pick
+    local out = {}
+    for _, e in ipairs(media_info.audio_out) do out[#out + 1] = e.n - 1 end
+    return out
 end
 
 local function audio_encoder(a_meta)
@@ -208,50 +213,91 @@ local function renamed_chain(chain, suffix)
     return (chain:gsub("@(%w+)", "@%1" .. suffix))
 end
 
-local function append_combine_audio(args, opts, media_info, af_effects)
+local function append_mixes(args, media_info, af_effects)
     local chain = #af_effects > 0 and table.concat(af_effects, ",") or nil
-    local picks = media_info.audio_pick
+    local out   = media_info.audio_out
+    local uses  = {}
+    local pads  = {}
+    local parts = {}
+    local ids   = 0
 
-    if chain and not media_info.mix_only then
-        local parts  = {}
+    local function need(e)
+        uses[e] = (uses[e] or 0) + 1
+        if uses[e] == 1 and e.kind == "mix" then
+            for _, input in ipairs(e.inputs) do need(input) end
+        end
+    end
+
+    local function label()
+        ids = ids + 1
+        return "t" .. ids
+    end
+
+    local function split(src, e)
+        if uses[e] == 1 then
+            pads[e] = { src }
+            return
+        end
+        local outs  = {}
+        local names = ""
+        for _ = 1, uses[e] do
+            local l         = label()
+            outs[#outs + 1] = l
+            names           = names .. "[" .. l .. "]"
+        end
+        parts[#parts + 1] = string.format("[%s]asplit=%d%s", src, uses[e], names)
+        pads[e]           = outs
+    end
+
+    local function emit(e)
+        if pads[e] then return end
+        if e.kind == "source" then return split("0:a:" .. (e.n - 1), e) end
+        for _, input in ipairs(e.inputs) do emit(input) end
         local inputs = ""
-        for k, i in ipairs(picks) do
-            parts[#parts + 1] = string.format("[0:a:%d]asplit=2[m%d][c%d]", i, k, k)
-            inputs           = inputs .. string.format("[m%d]", k)
-        end
-        local mix = string.format("%samix=inputs=%d:normalize=0", inputs, media_info.audio_count)
-        parts[#parts + 1] = mix .. "," .. renamed_chain(chain, "mix") .. "[aout0]"
-        for k in ipairs(picks) do
-            parts[#parts + 1] = string.format("[c%d]%s[aout%d]", k, renamed_chain(chain, "t" .. (k - 1)), k)
-        end
-
-        table.insert(args, "-filter_complex") table.insert(args, table.concat(parts, ";"))
-        table.insert(args, "-map") table.insert(args, "[aout0]")
-        for i = 1, media_info.audio_count do
-            table.insert(args, "-map") table.insert(args, string.format("[aout%d]", i))
-        end
-        map_source(args, media_info, {})
-    else
-        local filter_inputs = ""
-        for _, i in ipairs(picks) do filter_inputs = filter_inputs .. string.format("[0:a:%d]", i) end
-        local mix            = string.format("%samix=inputs=%d:normalize=0", filter_inputs, media_info.audio_count)
-        if chain then mix = mix .. "," .. chain end
-
-        table.insert(args, "-filter_complex") table.insert(args, mix .. "[aout]")
-        table.insert(args, "-map") table.insert(args, "[aout]")
-        map_source(args, media_info, media_info.mix_only and {} or picks)
+        for _, input in ipairs(e.inputs) do inputs = inputs .. "[" .. table.remove(pads[input], 1) .. "]" end
+        local l           = label()
+        parts[#parts + 1] = string.format("%samix=inputs=%d:normalize=0[%s]", inputs, #e.inputs, l)
+        split(l, e)
     end
 
-    audio_codec_args(args, media_info, 0, media_info.a_meta, true)
+    for _, e in ipairs(out) do
+        if e.kind == "mix" or chain then need(e) end
+    end
 
-    if not media_info.mix_only then
-        for k, i in ipairs(picks) do
-            audio_codec_args(args, media_info, k, media_info.audio[i + 1], chain ~= nil)
+    local maps = {}
+    for k, e in ipairs(out) do
+        if e.kind == "source" and not chain then
+            maps[k] = string.format("0:a:%d", e.n - 1)
+        else
+            emit(e)
+            local pad = table.remove(pads[e], 1)
+            if chain then
+                parts[#parts + 1] = string.format("[%s]%s[aout%d]", pad, renamed_chain(chain, "t" .. (k - 1)), k)
+                pad               = "aout" .. k
+            end
+            maps[k] = "[" .. pad .. "]"
         end
     end
 
-    table.insert(args, "-disposition:a:0") table.insert(args, "default")
-    table.insert(args, "-metadata:s:a:0")  table.insert(args, string.format("TITLE=%s", opts.combined_audio_name))
+    table.insert(args, "-filter_complex") table.insert(args, table.concat(parts, ";"))
+    map_source(args, media_info, {})
+    for k = 1, #out do
+        table.insert(args, "-map") table.insert(args, maps[k])
+    end
+
+    local default = nil
+    for k, e in ipairs(out) do
+        local meta = media_info.audio[tracks.leaf(e)]
+        local title = e.kind == "mix" and e.name or (chain and meta.title)
+        audio_codec_args(args, media_info, k - 1, meta, e.kind == "mix" or chain ~= nil)
+        if e.kind == "mix" then default = default or k end
+        if title then
+            table.insert(args, "-metadata:s:a:" .. (k - 1)) table.insert(args, string.format("TITLE=%s", title))
+        end
+    end
+    for k = 1, #out do
+        table.insert(args, "-disposition:a:" .. (k - 1)) table.insert(args, k == default and "default" or "0")
+    end
 end
 
 local function append_audio_effects(args, media_info, af_effects)
@@ -265,11 +311,12 @@ local function append_audio_effects(args, media_info, af_effects)
 end
 
 function M.build_args(opts, input_file, output_file, creation_time)
-    local args       = { "ffmpeg", "-y", "-hide_banner" }
-    local duration   = opts.mark_out - opts.mark_in
-    local media_info = select_streams(get_media_info(input_file), opts, output_file)
-    local out_fps    = nil
-    local accurate   = opts.accurate_cut or opts.lossless_cut
+    local media_info, tracks_err = select_streams(get_media_info(input_file), opts, output_file)
+    if not media_info then return nil, tracks_err end
+    local args     = { "ffmpeg", "-y", "-hide_banner" }
+    local duration = opts.mark_out - opts.mark_in
+    local out_fps  = nil
+    local accurate = opts.accurate_cut or opts.lossless_cut
 
     local vf_effects = {}
     local af_effects = {}
@@ -332,8 +379,8 @@ function M.build_args(opts, input_file, output_file, creation_time)
             "-metadata",     "TACHYTOME_MODE=Lossless"
         }
         for _, v in ipairs(codec_args) do table.insert(args, v) end
-        if opts.combine_audio and media_info.audio_count > 1 and media_info.a_meta then
-            append_combine_audio(args, opts, media_info, af_effects)
+        if media_info.has_mix then
+            append_mixes(args, media_info, af_effects)
         else
             map_source(args, media_info, kept_audio(media_info))
             append_audio_effects(args, media_info, af_effects)
@@ -409,8 +456,8 @@ function M.build_args(opts, input_file, output_file, creation_time)
             table.insert(args, "-g") table.insert(args, tostring(gop))
         end
 
-        if opts.combine_audio and media_info.audio_count > 1 and media_info.a_meta then
-            append_combine_audio(args, opts, media_info, af_effects)
+        if media_info.has_mix then
+            append_mixes(args, media_info, af_effects)
         else
             map_source(args, media_info, kept_audio(media_info))
             append_audio_effects(args, media_info, af_effects)

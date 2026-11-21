@@ -13,11 +13,18 @@ local M = {}
 local bindings = { "tr-up", "tr-down", "tr-j", "tr-k", "tr-enter", "tr-a", "tr-v", "tr-search", "tr-esc" }
 for i = 1, 10 do bindings[#bindings + 1] = "tr-" .. i end
 
-local function track_label(t, n)
-    return t.title or lang.t("tracks_track", { n = n })
+local function track_label(row)
+    if not row.track then return row.entry.name end
+    return row.track.title or lang.t("tracks_track", { n = row.entry.n })
 end
 
-local function track_details(t)
+local function track_details(row)
+    if not row.track then
+        local inputs = {}
+        for _, e in ipairs(row.entry.inputs) do inputs[#inputs + 1] = tracks.entry_label(e) end
+        return lang.t("tracks_mix_of", { list = table.concat(inputs, "+") })
+    end
+    local t     = row.track
     local parts = {}
     if t.codec then parts[#parts + 1] = t.codec end
     if t["demux-channel-count"] then parts[#parts + 1] = t["demux-channel-count"] .. "ch" end
@@ -38,9 +45,16 @@ function M.show(on_close)
     local ov     = mp.create_osd_overlay("ass-events")
     local active = true
     local kind   = state.opts.tracks_type == "video" and "video" or "audio"
-    local list   = tracks.list(kind)
+    local list   = {}
+    local err    = nil
     local cursor = 1
     local search
+
+    local function refresh()
+        local rows, rows_err = tracks.rows(kind)
+        list                 = rows or {}
+        err                  = rows_err
+    end
 
     local function cleanup()
         if not active then return end
@@ -54,9 +68,9 @@ function M.show(on_close)
 
     local function labels()
         local out = {}
-        for i, t in ipairs(list) do
-            local details = track_details(t)
-            out[i] = string.format("%d %s", i, track_label(t, i)) .. (details ~= "" and " " .. details or "")
+        for i, row in ipairs(list) do
+            local details = track_details(row)
+            out[i] = string.format("%d %s", i, track_label(row)) .. (details ~= "" and " " .. details or "")
         end
         return out
     end
@@ -70,22 +84,23 @@ function M.show(on_close)
         local title = string.format("%s %s %s", lang.t("menu_tracks"), state.opts.menu_path_separator, lang.t("tracks_" .. kind))
         local vis   = visible()
         local body  = ""
-        if #list == 0 then
+        if err then
+            body = string.format("\\N%s\\h\\h%s%s", theme.c("error_color"), theme.escape(err), theme.reset())
+        elseif #list == 0 then
             body = string.format("\\N%s\\h\\h%s%s", theme.c("dim_text_color"), theme.escape(lang.t("tracks_no_" .. kind)), theme.reset())
         elseif #vis == 0 then
             body = search.empty()
         else
             if ui.position(vis, cursor) == 0 then cursor = vis[1] end
-            local selected  = tracks.selected(kind)
             local max_label = 0
-            for i, t in ipairs(list) do max_label = math.max(max_label, common.text_len(track_label(t, i))) end
+            for _, row in ipairs(list) do max_label = math.max(max_label, common.text_len(track_label(row))) end
             body = ui.list(#vis, ui.position(vis, cursor), function(k)
                 local i       = vis[k]
-                local label   = track_label(list[i], i)
+                local label   = track_label(list[i])
                 local details = track_details(list[i])
                 local key     = ui.number_prefix(i)
                 local pad     = string.rep("\\h", max_label - common.text_len(label) + 1)
-                local line    = string.format("%s%s%s> %s", key, theme.escape(label), pad, toggle(selected[i]))
+                local line    = string.format("%s%s%s> %s", key, theme.escape(label), pad, toggle(list[i].on))
                 if details ~= "" then line = string.format("%s %s%s", line, theme.c("dim_text_color"), theme.escape(details)) end
                 return line
             end)
@@ -98,16 +113,18 @@ function M.show(on_close)
     local function switch(to)
         if to == kind then return end
         kind   = to
-        list   = tracks.list(kind)
         cursor = 1
+        refresh()
         search.clear()
     end
 
     local function toggle_track(i)
         if not list[i] then return end
-        cursor = i
-        local on = tracks.toggle(kind, i)
-        notify.show(lang.t("value_set", { label = lang.t("tracks_" .. kind) .. " " .. i, value = lang.t(on and "value_on" or "value_off") }))
+        cursor         = i
+        local on, terr = tracks.toggle(kind, list[i].entry)
+        if on == nil then return notify.show(terr, true, "error") end
+        notify.show(lang.t("value_set", { label = lang.t("tracks_" .. kind) .. " " .. track_label(list[i]), value = lang.t(on and "value_on" or "value_off") }))
+        refresh()
         draw()
     end
 
@@ -141,6 +158,7 @@ function M.show(on_close)
         if search.filtering() then return search.clear() end
         cleanup()
     end)
+    refresh()
     draw()
 end
 

@@ -1,7 +1,8 @@
-local mp     = require 'mp'
-local utils  = require 'mp.utils'
-local common = require 'src.common'
-local conf   = require 'src.conf'
+local mp          = require 'mp'
+local utils       = require 'mp.utils'
+local common      = require 'src.common'
+local conf        = require 'src.conf'
+local tracks_step = require 'src.migrations.2_1_0'
 
 local M = {
     version       = "2.0.0",
@@ -14,6 +15,7 @@ local old_eff   = utils.join_path(opts_dir, "tachytome-effects.conf")
 local stock_dir = utils.join_path(mp.get_script_directory() or "", "src/migrations/1.0.0")
 local actions   = { ignore = "none", first_audio_only = "combined_audio_only" }
 local options   = { first_audio_only = "combined_audio_only" }
+local legacy    = { combine_audio = true, combined_audio_only = true, combined_audio_name = true }
 local bases     = { builtin = "simple", default = "simple", example = "simple", nested = "default" }
 
 local function read_lines(path)
@@ -194,17 +196,22 @@ function M.plan()
         local user   = parse_conf(old_conf)
         local stocks = by_name(stock.blocks)
 
+        local old_tracks = {}
         for _, key in ipairs(user.order) do
             local val = user.opts[key]
             local new = options[key] or key
             if key ~= "selected_keymap" and val ~= stock.opts[key] then
-                if known[new] then
+                if legacy[new] then
+                    old_tracks[new] = val
+                elseif known[new] then
                     plan.options[#plan.options + 1] = { key = new, val = val }
                 else
                     plan.dropped[#plan.dropped + 1] = key
                 end
             end
         end
+        local chain = tracks_step.chain(old_tracks)
+        if chain ~= "" then plan.options[#plan.options + 1] = { key = "tracks", val = chain } end
 
         local renamed = {}
         local kept    = {}

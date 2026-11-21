@@ -125,7 +125,6 @@ return {
     tracks_summary  = "Audio {audio}, Video {video}",
     tracks_no_audio = "Nema audio traka",
     tracks_no_video = "Nema video traka",
-    tracks_invalid  = "{key}: neispravna traka '{value}'",
 
     configs_empty   = "Nema .conf datoteka u {dir}",
     configs_missing = "(nedostaje)",

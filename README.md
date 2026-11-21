@@ -27,6 +27,7 @@ Keyboard Driven, AV1/H265/H264/Lossless, MPV Video Cutter.
   - [Recovery](#recovery)
   - [Go To](#go-to)
   - [Resolution](#resolution)
+  - [Tracks](#tracks)
   - [Effects](#effects)
   - [Path](#path)
 - [Contributing](#contributing)
@@ -133,13 +134,19 @@ Updates that cross a major version, e.g. `2.4.1 -> 3.0.0`, are pointed out befor
 #### 1.0.0 -> 2.0.0
 
 - `mpv/script-opts/tachytome.conf` becomes `mpv/script-opts/tachytome/default.conf`, sourced by a new `tachytome.conf`.<br>
-  Only options you changed from the 1.0.0 defaults are kept, `first_audio_only` is renamed to `combined_audio_only`, and options that no longer exist are dropped.
+  Only options you changed from the 1.0.0 defaults are kept, `combine_audio`, `first_audio_only` and `combined_audio_name` become a [`tracks`](#tracks) chain, and options that no longer exist are dropped.
 - Everyone moves to the new `default` menu, `selected_keymap` is dropped.<br>
   Your own keymaps become menus, e.g. `keymap mine ... end` turns into `menu mine { ... }`, with `ignore` becoming `none` and `base builtin` or `base default` becoming `base simple`, `base nested` becoming `base default`.<br>
   Keymaps named like a builtin menu get an `old_` prefix, and flat rebinds like `keymap r render` become `menu r render`.
 - `mpv/script-opts/tachytome-effects.conf` is replaced by `.eff` files in `mpv/script-opts/tachytome/`, effects you added or changed go to `custom.eff`.
 - Path history, stats and render queues move from `~/.local/share/tachytome` to `~/.local/state/tachytome` on Linux.
 - A git install that 1.0.0's updater left on `master` switches to the latest release when that's the same commit.
+
+#### 2.0.0 -> 2.1.0
+
+- `combine_audio`, `combined_audio_only`, `combined_audio_name`, `audio_tracks` and `video_tracks` become one [`tracks`](#tracks) chain in the same config file, e.g. `audio_tracks=1,3` with `combine_audio=yes` becomes `tracks=keep 1,3 mix`.
+- A name other than `Combined` moves into the mix, e.g. `mix "Voice"`, and Combined Only becomes `only`.
+- Interrupted render queues are converted too, Skip leaves the old options in place, where they're ignored with a warning.
 
 ## Usage
 
@@ -221,8 +228,8 @@ The `simple` menu keeps every item on a single level, switch to it with `s-s` `m
 |---------|------------------|-------------------------------------------------------------------------------------|
 | e       | Audio Encoder    | Set the audio encoder, `copy` keeps the source audio.                               |
 | b       | Audio Bitrate    | Set the bitrate, e.g. `128k`, shows the source or `Best`.<br>Empty resets it.       |
-| c       | Combine Audio    | Toggle the combine audio option.                                                    |
-| o       | Combined Only    | Keep only the combined track, dropping the tracks it was mixed from.                |
+| c       | Combine Audio    | Mix the kept tracks into a new one, a trailing `mix` in [Tracks](#tracks).          |
+| o       | Combined Only    | Keep only the mix, a trailing `only`, turns Combine Audio on too.                   |
 
 ##### Audio Export
 
@@ -230,9 +237,9 @@ End the [Path](#path) with an audio extension to export audio only, e.g. `clip.o
 Supported formats are `mka`, `opus`, `ogg`, `oga`, `m4a`, `mp3`, `aac`, `flac` and `wav`, video and subtitles are dropped.<br>
 With the `copy` encoder the audio is copied when the format can hold it, otherwise it's re-encoded with the format's own codec, e.g. Opus for `.opus`, AAC for `.m4a`.<br>
 The typed format also wins over a picked Audio Encoder it can't hold, e.g. the `mp3` encoder with `clip.opus` gives Opus.<br>
-Audio is only re-encoded when needed: a codec the format can't hold, audio effects, the combined track, a picked encoder or a set bitrate.<br>
+Audio is only re-encoded when needed: a codec the format can't hold, audio effects, a mixed track, a picked encoder or a set bitrate.<br>
 Re-encoded audio keeps the source bitrate when the codec stays the same, otherwise it uses the highest quality, 256k per channel for Opus and AAC, 320k for MP3 and quality 10 for Vorbis.<br>
-`opus`, `mp3`, `aac`, `flac` and `wav` hold a single track, the first selected one, or the combined one with Combine Audio.<br>
+`opus`, `mp3`, `aac`, `flac` and `wav` hold a single track, the first mix, or the first kept track without one.<br>
 Dropping every video track in the [Tracks](#tracks-list) list switches the default name to an audio format, so it's never re-encoded just to fit.<br>
 A single kept track uses its own format, e.g. `.opus` for Opus, `.m4a` for AAC or `.flac` for FLAC, several tracks use `.mka`, Matroska for audio.<br>
 Pick which audio tracks are exported in the [Tracks](#tracks-list) list.
@@ -365,12 +372,12 @@ Setting a chain or using a preset turns Resolution on, an empty Chain keeps the 
 | Enter     | Toggle     | Keep or drop the track under the cursor.       |
 | Esc       | Close      | Close the list.                                |
 
-Each track shows its number, title, on/off state and its codec, channels or size and language.<br>
+Each track shows its number, title, on/off state and its codec, channels or size and language, mixes show the tracks they're mixed from.<br>
 `0` is the 10th track, tracks past it have no number key, reach them with Up/Down and toggle them with Enter.<br>
 The list opens on audio, set `tracks_type=video` to open on video instead.<br>
-`audio_tracks` and `video_tracks` pick the tracks kept by default for every loaded file, `all`, a list like `1,3`, or empty for none.<br>
+The audio list shows the tracks your [`tracks`](#tracks) chain leaves, toggling one drops or restores it through a trailing `drop` layer.<br>
 Only the file's own tracks are listed, external audio files loaded into mpv aren't part of the render.<br>
-Combine Audio mixes only the selected ones, dropping every video track renders audio only.
+Combine Audio mixes the tracks that are on, dropping every video track renders audio only.
 
 #### Configs List
 
@@ -676,6 +683,38 @@ cs       = 1280x1024 stretch
 - The Resolution List opens them with `p` or the Presets row, 0-9/Enter uses one, `a` adds it to the chain.
 
 `default.res` holds `autocrop` and `halfres`, with commented examples to uncomment: `hd` to `8k` on the short side, `vertical` and `cs`.
+
+### Tracks
+
+The `tracks` option sets the chain every loaded file starts with, layers applied in order, empty keeps every track.<br>
+Each layer works on the tracks the ones before it left, an op word starts a new layer.<br>
+Change it on the fly in the [Tracks List](#tracks-list) and with Combine Audio and Combined Only in Audio.
+
+| Layer                         | Does                                                                       |
+|-------------------------------|----------------------------------------------------------------------------|
+| `keep <list>`                 | Keeps only these tracks.                                                   |
+| `drop <list>`                 | Drops these tracks.                                                        |
+| `mix [list] ["name"] [at N]`  | Adds a track mixed from the list, or from the kept tracks without one.     |
+| `only`                        | Keeps just the mixes, does nothing without any.                            |
+| `video <list>`                | The video tracks kept, dropping all of them renders audio only.            |
+
+- Lists are comma separated track numbers or mix names, `all` or `none`, e.g. `1,3` or `Voice,4`.
+- A leading `-` excludes, `-2,5` and `all -2,5` keep everything but 2 and 5, which keeps working when a file has more tracks.
+- Track numbers count the file's own tracks from 1 and always mean the original track, so adding a mix never renumbers anything.
+- Numbers the file doesn't have are skipped, a mix needs 2 tracks or it's skipped too, so a chain works on any file.
+- `at N` puts the mix at output position N, the end by default.
+- Unnamed mixes are `Combined`, `Combined 2`, ..., names are unique, can't be `all`, `none`, a number or an op word, and need quotes when they hold spaces.
+- `all` in a later layer includes earlier mixes, so `mix mix all` mixes the source tracks again together with the first mix, making them louder in it.
+- The first mix is the default track, mixes use the Audio Encoder, or the codec of their first track with `copy`, the rest is copied unless something needs re-encoding.
+- Combine Audio and Combined Only add or remove a trailing `mix` and `only`.
+
+| Chain                         | Desktop, Discord and Mic                                                   |
+|-------------------------------|----------------------------------------------------------------------------|
+| `mix only`                    | One track with all 3 mixed.                                                |
+| `mix -2 "Voice" at 1`         | Voice, Desktop and Mic mixed, first, then the 3 tracks.                    |
+| `keep 1,3 mix`                | Desktop, Mic and the 2 mixed.                                              |
+| `mix 1,3 "Voice" mix Voice,2` | The 3 tracks, Voice, then Voice and Discord mixed.                         |
+| `drop 2 video none`           | Desktop and Mic, no video.                                                 |
 
 ### Effects
 

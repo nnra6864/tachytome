@@ -5,6 +5,7 @@ local actions = require 'src.actions'
 local menus   = require 'src.menus'
 local notify  = require 'src.notify'
 local render  = require 'src.render'
+local tracks  = require 'src.tracks'
 local theme   = require 'src.theme'
 local easing  = require 'src.easing'
 local lang    = require 'src.lang'
@@ -185,14 +186,14 @@ local items = {
     {
         name      = "combine_audio",
         label_key = "menu_combine_audio",
-        get_val   = function() return toggle(state.opts.combine_audio) end,
+        get_val   = function() return toggle(tracks.combine_on()) end,
         action    = actions.toggle_combine_audio,
         keep_open = true
     },
     {
         name      = "combined_audio_only",
         label_key = "menu_combined_audio_only",
-        get_val   = function() return toggle(state.opts.combined_audio_only) end,
+        get_val   = function() return toggle(tracks.only_on()) end,
         action    = actions.toggle_combined_audio_only,
         keep_open = true
     },

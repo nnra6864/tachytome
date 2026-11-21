@@ -86,7 +86,7 @@ mp.register_event("file-loaded", function()
     state.mark_out           = mp.get_property_number("duration", 0)
     state.custom_output_name = ""
     state.fps_override       = nil
-    state.tracks             = {}
+    tracks.reset()
 
     local loaded_path = mp.get_property("path")
     if loaded_path then

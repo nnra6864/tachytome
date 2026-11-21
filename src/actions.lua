@@ -253,18 +253,16 @@ function M.select_audio_encoder(on_complete)
 end
 
 local function source_bitrate()
-    local set = tracks.selected("audio")
-    for i, t in ipairs(tracks.list("audio")) do
-        if set[i] then
-            local enc  = state.opts.audio_encoder
-            local same = enc == "copy" or t.codec == enc or (enc == "pcm" and (t.codec or ""):match("^pcm_"))
-            if not same then return nil, true end
-            local bps = tonumber(t["demux-bitrate"])
-            if bps and bps > 0 then return string.format("%dk", math.floor(bps / 1000 + 0.5)) end
-            return nil, enc ~= "copy"
-        end
-    end
-    return nil
+    local result = tracks.current()
+    local first  = result and result.audio[1]
+    local t      = first and tracks.list("audio")[tracks.leaf(first)]
+    if not t then return nil end
+    local enc  = state.opts.audio_encoder
+    local same = enc == "copy" or t.codec == enc or (enc == "pcm" and (t.codec or ""):match("^pcm_"))
+    if not same then return nil, true end
+    local bps = tonumber(t["demux-bitrate"])
+    if bps and bps > 0 then return string.format("%dk", math.floor(bps / 1000 + 0.5)) end
+    return nil, enc ~= "copy"
 end
 
 function M.get_audio_bitrate_display()
@@ -419,13 +417,15 @@ function M.tracks_menu(on_complete)
 end
 
 function M.toggle_combine_audio()
-    state.opts.combine_audio = not state.opts.combine_audio
-    notify_set("combine_audio", on_off(state.opts.combine_audio))
+    local on, err = tracks.toggle_combine()
+    if on == nil then return notify.show(err, true, "error") end
+    notify_set("combine_audio", on_off(on))
 end
 
 function M.toggle_combined_audio_only()
-    state.opts.combined_audio_only = not state.opts.combined_audio_only
-    notify_set("combined_audio_only", on_off(state.opts.combined_audio_only))
+    local on, err = tracks.toggle_only()
+    if on == nil then return notify.show(err, true, "error") end
+    notify_set("combined_audio_only", on_off(on))
 end
 
 function M.toggle_trash_source()
@@ -497,6 +497,10 @@ end
 
 function M.start_render(on_complete)
     local res, err = resolution.snapshot()
+    if not err then
+        local ok, tracks_err = tracks.current()
+        if not ok then err = tracks_err end
+    end
     if err then
         notify.show(err, true, "error")
         if on_complete then on_complete() end
@@ -518,11 +522,7 @@ function M.start_render(on_complete)
         resolution          = res,
         audio_encoder       = state.opts.audio_encoder,
         audio_bitrate       = state.opts.audio_bitrate,
-        combine_audio       = state.opts.combine_audio,
-        combined_audio_name = state.opts.combined_audio_name,
-        combined_audio_only = state.opts.combined_audio_only,
-        audio_tracks        = tracks.indices("audio"),
-        video_tracks        = tracks.indices("video"),
+        tracks              = state.tracks,
         trash_source        = state.opts.trash_source,
         trash_path          = state.trash_path,
         space_replacement   = state.opts.space_replacement,
