@@ -327,10 +327,10 @@ Search opens a `/` line under the list title, the list stays and hides what does
 - Up/Down stop typing and move through the matches.
 - Esc while typing, or on the kept matches, clears the search and shows the whole list again.
 
-Selecting a match does what Enter does in that list: picks it, toggles the effect, track or config, uses the resolution preset, or moves to the render.<br>
-Tracks keep their own numbers while searching, configs can't be moved until the search is cleared.<br>
+Selecting a match does what Enter does in that list: picks it, toggles the effect or config, uses the resolution preset, or moves to the render.<br>
+Configs can't be moved until the search is cleared.<br>
 Effects are searched as `file/name`, so `/default` lists one file's effects and `/fade` picks `fade`.<br>
-The Resolution List has no search, its rows are your own few layers, its Presets list does.<br>
+The Resolution and Tracks Lists have no search, their rows are your own few layers and tracks, the Resolution Presets list does.<br>
 Inputs like the Path prompt use ctrl+k/ctrl+j instead, since plain letters are typed into the input.
 
 #### Effects List
@@ -364,20 +364,33 @@ Setting a chain or using a preset turns Resolution on, an empty Chain keeps the 
 
 #### Tracks List
 
-| Keybind   | Action     | Description                                    |
-|-----------|------------|------------------------------------------------|
-| a         | Pick Audio | Show the audio tracks.                         |
-| v         | Pick Video | Show the video tracks.                         |
-| 0-9       | Toggle     | Keep or drop the track with that number.       |
-| Enter     | Toggle     | Keep or drop the track under the cursor.       |
-| Esc       | Close      | Close the list.                                |
+| Keybind      | Action    | Description                                                              |
+|--------------|-----------|--------------------------------------------------------------------------|
+| 0-9          | Toggle    | Keep or drop the track with that number under Tracks.                    |
+| Enter        | Edit      | Toggle a track, type the chain or replace the selected layer.            |
+| a            | Add       | Add a layer after the selected one, or at the end.                       |
+| s            | Tracks    | Pick the layer's tracks.                                                 |
+| n            | Name      | Name the mix, empty uses the default name.                               |
+| o            | Position  | Set the mix's output position, empty puts it at the end.                 |
+| d            | Delete    | Delete the layer.                                                        |
+| Shift+Up/K   | Move Up   | Move the layer up, before the one above.                                 |
+| Shift+Down/J | Move Down | Move the layer down, after the one below.                                |
+| v            | Video     | Show the video tracks.                                                   |
+| Esc          | Close     | Close the list.                                                          |
 
-Each track shows its number, title, on/off state and its codec, channels or size and language, mixes show the tracks they're mixed from.<br>
+The list shows your [`tracks`](#tracks) chain in three parts, updating live as you change it:
+- **Tracks**, the ones the chain leaves before its trailing Combine Audio `mix` and `only`, toggling one drops or restores it through a trailing `drop` layer, so Combine Audio mixes the ones that are on.
+- **Layers**, each with the tracks left after it, e.g. `mix -> 1, 3, Mix`, a `!` marks the layer that fails.
+- **Output**, the tracks rendered in their final order, with where each one comes from, e.g. `source 1` or `mix 1+3`.
+
+The title shows how many tracks go in and out, e.g. `3 in > 1 out`.<br>
+Each track shows its title, codec, channels or size and language, mixes show the tracks they're mixed from.<br>
 `0` is the 10th track, tracks past it have no number key, reach them with Up/Down and toggle them with Enter.<br>
-The list opens on audio, set `tracks_type=video` to open on video instead.<br>
-The audio list shows the tracks your [`tracks`](#tracks) chain leaves, toggling one drops or restores it through a trailing `drop` layer.<br>
-Only the file's own tracks are listed, external audio files loaded into mpv aren't part of the render.<br>
-Combine Audio mixes the tracks that are on, dropping every video track renders audio only.
+`a` offers `mix`, `keep`, `drop` and `only`, or Type... to write layers yourself, a picked layer opens its tracks right away.<br>
+The tracks picker lists the tracks present at that layer, 0-9/Enter toggles one and `A` switches between Include, keeping the picked ones like `1,3`, and All except, keeping everything but the unpicked ones like `-2`, which keeps working on files with more tracks.<br>
+Changes apply as you make them, Esc goes back. The chain and layer inputs show the result while typing and share a history kept across restarts.<br>
+`v` shows the video tracks as a plain toggle list, `a` goes back to audio, set `tracks_type=video` to open on video.<br>
+Only the file's own tracks are listed, external audio files loaded into mpv aren't part of the render, dropping every video track renders audio only.
 
 #### Configs List
 
@@ -703,7 +716,8 @@ Change it on the fly in the [Tracks List](#tracks-list) and with Combine Audio a
 - Track numbers count the file's own tracks from 1 and always mean the original track, so adding a mix never renumbers anything.
 - Numbers the file doesn't have are skipped, a mix needs 2 tracks or it's skipped too, so a chain works on any file.
 - `at N` puts the mix at output position N, the end by default.
-- Unnamed mixes are `Mix`, `Mix 2`, ..., names are unique, can't be `all`, `none`, a number or an op word, and need quotes when they hold spaces.
+- Unnamed mixes are `Mix`, `Mix 2`, ..., names are unique and can't hold `"`, `,` or `#`.
+- In lists a name needs quotes when it holds spaces or reads like something else, `all`, `none`, a number or an op word, e.g. `drop "Mix"` or `keep "Mix 2",1`.
 - `all` in a later layer includes earlier mixes, so `mix mix all` mixes the source tracks again together with the first mix, making them louder in it.
 - The first mix is the default track, mixes use the Audio Encoder, or the codec of their first track with `copy`, the rest is copied unless something needs re-encoding.
 - Combine Audio and Combined Only add or remove a trailing `mix` and `only`.

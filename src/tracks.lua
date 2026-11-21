@@ -1,9 +1,12 @@
-local mp    = require 'mp'
-local state = require 'src.state'
-local lang  = require 'src.lang'
+local mp     = require 'mp'
+local utils  = require 'mp.utils'
+local common = require 'src.common'
+local state  = require 'src.state'
+local lang   = require 'src.lang'
 
 local M = {}
 
+local history_path = utils.join_path(common.get_state_dir(), "tracks_history.json")
 local codec_exts   = { opus = "opus", aac = "m4a", alac = "m4a", mp3 = "mp3", flac = "flac", vorbis = "ogg" }
 local encoder_exts = { opus = "opus", aac = "m4a", mp3 = "mp3", flac = "flac", vorbis = "ogg", pcm = "wav" }
 local ops          = { keep = true, drop = true, mix = true, only = true, video = true }
@@ -34,9 +37,12 @@ local function tokenize(text)
 end
 
 local function valid_name(name)
+    return name ~= "" and name == name:match("^%s*(.-)%s*$") and not name:find("[\",#]")
+end
+
+local function bare_name(name)
     local word = name:lower()
-    return name ~= "" and name == name:match("^%s*(.-)%s*$") and not name:find("[\",#]") and name:sub(1, 1) ~= "-"
-        and not name:match("^%d+$") and not reserved[word] and not ops[word]
+    return valid_name(name) and not name:find("%s") and name:sub(1, 1) ~= "-" and not name:match("^%d+$") and not reserved[word] and not ops[word]
 end
 
 local function list_items(token)
@@ -72,7 +78,7 @@ local function list_items(token)
             item = { kind = word }
         elseif quoted and valid_name(quoted) then
             item = { kind = "name", name = quoted }
-        elseif valid_name(part) and not part:find("%s") then
+        elseif bare_name(part) then
             item = { kind = "name", name = part }
         else
             return nil
@@ -153,8 +159,8 @@ end
 local function item_text(item)
     if item.kind == "n" then return tostring(item.n) end
     if item.kind == "name" then
-        if item.name:find("%s") then return "\"" .. item.name .. "\"" end
-        return item.name
+        if bare_name(item.name) then return item.name end
+        return "\"" .. item.name .. "\""
     end
     return item.kind
 end
@@ -238,21 +244,23 @@ local function sources(count)
     return out
 end
 
-function M.evaluate(chain, audio_count, video_count)
+function M.run(layers, audio_count, upto)
     local present = sources(audio_count)
     local names   = {}
+    local steps   = {}
     local unnamed = 0
-    for _, layer in ipairs(chain.layers) do
+    for i, layer in ipairs(layers) do
+        if upto and i >= upto then break end
         if layer.op == "keep" or layer.op == "drop" then
             local set, err = resolve(layer.list, present, names)
-            if not set then return nil, err end
+            if not set then return nil, err, steps end
             local keep = layer.op == "keep"
             present    = filter(present, function(e) return (set[e] == true) == keep end)
         elseif layer.op == "mix" then
             local inputs = present
             if layer.list then
                 local set, err = resolve(layer.list, present, names)
-                if not set then return nil, err end
+                if not set then return nil, err, steps end
                 inputs = filter(present, function(e) return set[e] == true end)
             end
             local name = layer.name
@@ -262,7 +270,7 @@ function M.evaluate(chain, audio_count, video_count)
                     name    = unnamed == 1 and lang.t("tracks_mix") or lang.t("tracks_mix_n", { n = unnamed })
                 until names[name:lower()] == nil
             elseif names[name:lower()] ~= nil then
-                return nil, lang.t("tracks_name_taken", { name = name })
+                return nil, lang.t("tracks_name_taken", { name = name }), steps
             end
             if #inputs >= 2 then
                 local entry = { kind = "mix", name = name, inputs = filter(inputs, function() return true end) }
@@ -277,7 +285,16 @@ function M.evaluate(chain, audio_count, video_count)
             local mixes = filter(present, function(e) return e.kind == "mix" end)
             if #mixes > 0 then present = mixes end
         end
+        steps[i] = present
     end
+    return present, names, steps
+end
+
+M.resolve = resolve
+
+function M.evaluate(chain, audio_count, video_count)
+    local present, names = M.run(chain.layers, audio_count)
+    if not present then return nil, names end
 
     local video = nil
     if chain.video then
@@ -412,6 +429,40 @@ end
 local function entry_item(entry)
     if entry.kind == "mix" then return { kind = "name", name = entry.name } end
     return { kind = "n", n = entry.n }
+end
+
+M.tail = tail
+
+function M.excludes(list)
+    if not list then return true end
+    for _, item in ipairs(list) do
+        if not item.neg and item.kind ~= "all" then return false end
+    end
+    return true
+end
+
+function M.list_for(set, present, exclude, op)
+    local items = {}
+    for _, e in ipairs(present) do
+        if (set[e] == true) ~= exclude then
+            local item        = entry_item(e)
+            item.neg          = exclude or nil
+            items[#items + 1] = item
+        end
+    end
+    if #items > 0 then return items end
+    if not exclude then return { { kind = "none" } } end
+    if op == "mix" then return nil end
+    return { { kind = "all" } }
+end
+
+M.history = common.read_json_file(history_path)
+if type(M.history) ~= "table" then M.history = {} end
+
+function M.remember(text)
+    if text == "" then return end
+    common.add_to_history(M.history, text)
+    common.write_json_file(history_path, M.history)
 end
 
 function M.rows(kind)
