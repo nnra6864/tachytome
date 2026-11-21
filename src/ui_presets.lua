@@ -1,13 +1,13 @@
-local mp          = require 'mp'
-local utils       = require 'mp.utils'
-local common      = require 'src.common'
-local file_lines  = require 'src.file_lines'
-local list_search = require 'src.list_search'
-local state       = require 'src.state'
-local notify      = require 'src.notify'
-local theme       = require 'src.theme'
-local lang        = require 'src.lang'
-local ui          = require 'src.ui'
+local mp           = require 'mp'
+local common       = require 'src.common'
+local file_lines   = require 'src.file_lines'
+local preset_files = require 'src.preset_files'
+local list_search  = require 'src.list_search'
+local state        = require 'src.state'
+local notify       = require 'src.notify'
+local theme        = require 'src.theme'
+local lang         = require 'src.lang'
+local ui           = require 'src.ui'
 
 local M = {}
 
@@ -15,35 +15,6 @@ local UNDO_TIME = 5
 
 local bindings = { "up", "down", "j", "k", "tab", "d", "u", "search", "esc" }
 for i = 1, 10 do bindings[#bindings + 1] = tostring(i) end
-
-local function strip(line)
-    return (line:gsub("#.*$", "")):match("^%s*(.-)%s*$")
-end
-
-local function definition(line, block)
-    local body = strip(line)
-    local rest = body:match("^disabled%s+([^=%s].*)$")
-    local text = rest or body
-    local name = nil
-    if block then
-        name = text:match("^effect%s+(%S+)$")
-    else
-        name = text:match("^([^%s=/]+)%s*=")
-    end
-    return name and name:lower(), rest ~= nil
-end
-
-local function span(lines, first, last)
-    local top = first
-    while file_lines.comment(lines[top - 1]) do top = top - 1 end
-    if not (file_lines.blank(lines[top - 1]) and file_lines.blank(lines[last + 1])) then return first, last end
-    if lines[last + 1] then
-        last = last + 1
-    elseif lines[top - 1] then
-        top = top - 1
-    end
-    return top, last
-end
 
 function M.show(opts)
     local kind   = opts.kind
@@ -61,7 +32,7 @@ function M.show(opts)
     end
 
     local function path_of(file)
-        return utils.join_path(common.get_conf_dir(), file_name(file))
+        return preset_files.path(file, kind.ext)
     end
 
     local function label(p)
@@ -158,8 +129,8 @@ function M.show(opts)
     local function read_preset(p)
         local path, name, off = path_of(p.file), nil, nil
         local lines, eol      = file_lines.read(path)
-        if lines and lines[p.line] then name, off = definition(lines[p.line], kind.block) end
-        local closed = not kind.block or (lines and lines[p.last] and strip(lines[p.last]) == "end")
+        if lines and lines[p.line] then name, off = preset_files.definition(lines[p.line], kind.block) end
+        local closed = not kind.block or (lines and lines[p.last] and preset_files.strip(lines[p.last]) == "end")
         if name ~= p.name:lower() or off ~= (p.disabled == true) or not closed then
             notify.show(lang.t("presets_changed", { file = file_name(p.file) }), true, "warn")
             reload()
@@ -205,7 +176,7 @@ function M.show(opts)
         if not path then return end
         local before = {}
         for i, line in ipairs(lines) do before[i] = line end
-        local top, last = span(lines, p.line, kind.block and p.last or p.line)
+        local top, last = preset_files.span(lines, p.line, kind.block and p.last or p.line)
         for i = last, top, -1 do table.remove(lines, i) end
         if not write(path, p, lines, eol) then return end
         kind.reload()

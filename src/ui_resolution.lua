@@ -1,15 +1,16 @@
-local mp         = require 'mp'
-local common     = require 'src.common'
-local resolution = require 'src.resolution'
-local autocrop   = require 'src.autocrop'
-local ui_input   = require 'src.ui_input'
-local ui_list    = require 'src.ui_list'
-local ui_presets = require 'src.ui_presets'
-local state      = require 'src.state'
-local notify     = require 'src.notify'
-local theme      = require 'src.theme'
-local lang       = require 'src.lang'
-local ui         = require 'src.ui'
+local mp             = require 'mp'
+local common         = require 'src.common'
+local resolution     = require 'src.resolution'
+local autocrop       = require 'src.autocrop'
+local ui_input       = require 'src.ui_input'
+local ui_list        = require 'src.ui_list'
+local ui_presets     = require 'src.ui_presets'
+local ui_preset_save = require 'src.ui_preset_save'
+local state          = require 'src.state'
+local notify         = require 'src.notify'
+local theme          = require 'src.theme'
+local lang           = require 'src.lang'
+local ui             = require 'src.ui'
 
 local M = {}
 
@@ -98,7 +99,7 @@ function M.show(on_close)
     local function active_preset()
         local current = state.resolution:lower():match("^%s*(.-)%s*$")
         for _, p in ipairs(resolution.presets()) do
-            if current == p.label or current == p.id then return p end
+            if current == p.label:lower() or current == p.id:lower() then return p end
         end
         return nil
     end
@@ -257,14 +258,10 @@ function M.show(on_close)
         local title = string.format("%s %s %s", lang.t("menu_resolution"), state.opts.menu_path_separator, lang.t("resolution_presets"))
 
         local function manage()
-            teardown()
             view = nil
             ui_presets.show({
                 title    = string.format("%s %s %s", title, state.opts.menu_path_separator, lang.t("presets_manage")),
-                on_close = function()
-                    if #resolution.presets() > 0 then return pick_preset() end
-                    open_ui()
-                end,
+                on_close = pick_preset,
                 kind     = {
                     ext    = "res",
                     all    = resolution.all,
@@ -273,7 +270,22 @@ function M.show(on_close)
                 }
             })
         end
-        if #items == 0 then return manage() end
+
+        local function save()
+            view = nil
+            ui_preset_save.show({
+                title   = title,
+                chain   = state.resolution,
+                on_done = pick_preset,
+                kind    = {
+                    ext        = "res",
+                    all        = resolution.all,
+                    reload     = resolution.reload,
+                    valid_name = resolution.valid_name,
+                    name_hint  = lang.t("hint_resolution_name")
+                }
+            })
+        end
 
         local function detail(i)
             local p   = list[i]
@@ -287,13 +299,15 @@ function M.show(on_close)
             open_ui()
         end
 
+        local keys = { { "m", "manage", manage, any = true }, { "n", "new", save, any = true } }
+        if #items > 0 then table.insert(keys, 1, { "a", "add", add }) end
         teardown()
         view = ui_list.cancel
         ui_list.show(title, items, in_use and in_use.label, function(label)
             M.set_chain(label)
             focus = 1
             open_ui()
-        end, open_ui, { detail = detail, action = "use", keys = { { "a", "add", add }, { "m", "manage", manage } } })
+        end, open_ui, { detail = detail, action = "use", empty = lang.t("presets_none"), keys = keys })
     end
 
     local function pick_option(key, options, default)

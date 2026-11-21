@@ -75,7 +75,7 @@ local presets = {}
 
 local function find_preset(word, disabled)
     for _, p in ipairs(presets) do
-        if p.id == word and not p.disabled == not disabled then return p end
+        if p.id:lower() == word and not p.disabled == not disabled then return p end
     end
     for _, p in ipairs(presets) do
         if p.name == word and not p.disabled == not disabled then return p end
@@ -110,6 +110,11 @@ end
 
 function M.parse(text)
     return parse(text, 0)
+end
+
+function M.valid_name(name)
+    local word = name:lower()
+    return word:match("^[^%s=/#]+$") ~= nil and not size(word) and not modes[word] and not scalers[word]
 end
 
 function M.unknown(token)

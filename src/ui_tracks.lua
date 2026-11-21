@@ -532,14 +532,10 @@ function M.show(on_close)
         local title = string.format("%s %s %s", lang.t("menu_tracks"), state.opts.menu_path_separator, lang.t("tracks_presets"))
 
         local function manage()
-            teardown()
             view = nil
             ui_presets.show({
                 title    = string.format("%s %s %s", title, state.opts.menu_path_separator, lang.t("presets_manage")),
-                on_close = function()
-                    if #tracks.presets() > 0 then return pick_preset() end
-                    open_ui()
-                end,
+                on_close = pick_preset,
                 kind     = {
                     ext    = "trk",
                     all    = tracks.all,
@@ -548,7 +544,6 @@ function M.show(on_close)
                 }
             })
         end
-        if #items == 0 then return manage() end
 
         local function detail(i)
             return pad(list[i].chain, width) .. "\\h\\h" .. theme.escape(summary(list[i].label) or "")
@@ -563,15 +558,15 @@ function M.show(on_close)
             open_ui()
         end
 
-        local keys = { { "m", "manage", manage } }
-        if at then table.insert(keys, 1, { "a", "add", add }) end
+        local keys = { { "m", "manage", manage, any = true } }
+        if at and #items > 0 then table.insert(keys, 1, { "a", "add", add }) end
         teardown()
         view = ui_list.cancel
         ui_list.show(title, items, in_use and in_use.label, function(label)
             state.tracks = label
             focus        = { kind = "layer", index = 1 }
             open_ui()
-        end, open_ui, { detail = detail, action = "use", keys = keys })
+        end, open_ui, { detail = detail, action = "use", empty = lang.t("presets_none"), keys = keys })
     end
 
     open_picker = function(index, before)

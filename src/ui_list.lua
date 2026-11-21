@@ -73,7 +73,7 @@ function M.show(title, items, current_val, on_select, on_cancel, opts)
             end
             return ui.number_prefix(k) .. theme.escape(items[i]) .. detail .. marker
         end)
-        if #vis == 0 then body = search.empty() end
+        if #vis == 0 then body = #items == 0 and opts.empty and ui.dim(opts.empty) or search.empty() end
         local hints = { { "Up/Down", "navigate" }, { "0-9/Enter", opts.action or "select" } }
         for _, key in ipairs(keys) do hints[#hints + 1] = { key[1], key[2] } end
         hints[#hints + 1] = { "/", "search" }
@@ -124,7 +124,7 @@ function M.show(title, items, current_val, on_select, on_cancel, opts)
     end
     for _, key in ipairs(keys) do
         mp.add_forced_key_binding(key[1], "list-key-" .. key[1], function()
-            if #visible() == 0 then return end
+            if #visible() == 0 and not key.any then return end
             local i = cursor
             teardown()
             key[3](items[i], i)
