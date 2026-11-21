@@ -373,7 +373,8 @@ Modes and scalers set on the layer are highlighted, the rest come from the defau
 The Presets row shows the [preset](#resolution-presets) in use, its list shows each preset's chain and the size it gives, numbered and searchable like the other lists.<br>
 In it 0-9/Enter replaces the whole chain with the preset, `a` adds it after the selected layer or at the end.<br>
 The inputs show the resulting size while typing and share a history kept across restarts, an input can hold several layers, e.g. `5:4 crop 0.5x`.<br>
-Setting a chain or using a preset turns Resolution on, an empty Chain keeps the source.
+Setting a chain or using a preset turns Resolution on, an empty Chain keeps the source.<br>
+Layers added with `a`, or with `a` in the Presets list, get the cursor.
 
 #### Tracks List
 
@@ -391,13 +392,14 @@ Setting a chain or using a preset turns Resolution on, an empty Chain keeps the 
 | v            | Video     | Show the video tracks.                                                   |
 | Esc          | Close     | Close the list.                                                          |
 
-The list shows your [`tracks`](#tracks) chain in three parts, updating live as you change it:
+The list shows your [`tracks`](#tracks) chain in two parts, updating live as you change it:
 - **Tracks**, the ones the chain leaves before its trailing Combine Audio `mix` and `keep @mixes`, toggling one drops or restores it through a trailing `drop` layer, so Combine Audio mixes the ones that are on.
 - **Layers**, a `!` marks the layer that fails.
-- **Output**, the tracks rendered in their final order, with where each one comes from, e.g. `source 1` or `mix 1+3`, always shown in full under the list.
-  Hovering a layer previews it, Output then shows the tracks after that layer, titled e.g. `After mix -2`.
 
-With `layer_preview=no` Output always shows the final tracks, and each layer shows its result next to it instead, a mix the tracks it mixes, e.g. `mix -2 -> Mix = 1+3`, the rest the tracks left after it.<br>
+Hovering a layer previews it in place of Tracks, titled e.g. `After mix -2`, listing the tracks left after that layer in order, with where each one comes from, e.g. `source 1` or `mix 1+3`.<br>
+Hovering the last layer shows what gets rendered, moving back up to Tracks brings the toggles back.<br>
+With `layer_preview=no` Tracks always stays, and each layer shows its result next to it instead, a mix the tracks it mixes, e.g. `mix -2 -> Mix = 1+3`, the rest the tracks left after it.<br>
+A layer added with `a` gets the cursor once it's kept.<br>
 
 The Chain row, the whole chain as one line, sits under the layers.<br>
 
@@ -410,6 +412,7 @@ The tracks picker lists the tracks present at that layer, Tab/0-9 toggles one, O
 - `keep` writes the ones that are on, e.g. `keep 1,3`, and `keep all` when they all are.
 - `drop` writes the ones that are off, e.g. `drop 2`, which keeps working on files with more tracks.
 - `mix` starts on Include, writing the ones that are on, `m` switches to All except, writing the ones that are off, e.g. `mix -2`, and `r` renames the mix.
+- All mixes and All sources under the tracks pick the whole group, writing `@mixes` or `@sources`, toggling one of its tracks after that picks the rest of the group one by one, they're hidden in All except.
 
 Its `in > out` count updates as you pick, Enter keeps the picks, Esc cancels them, and cancels the layer too when `a` just added it.<br>
 The chain and layer inputs show the result while typing and share a history kept across restarts.<br>

@@ -93,6 +93,7 @@ function M.show(on_close)
     local output = nil
     local chain  = nil
     local err    = nil
+    local focus  = nil
     local open_ui
     local open_picker
 
@@ -150,7 +151,7 @@ function M.show(on_close)
             end
             if #rows > 0 then rows[#rows + 1] = { kind = "gap" } end
             rows[#rows + 1] = { kind = "chain" }
-            output          = { audio = audio, present = present }
+            output          = audio
         end
         if cursor > #rows then cursor = #rows end
         if cursor < 1 then cursor = 1 end
@@ -173,37 +174,42 @@ function M.show(on_close)
         return state.opts.layer_preview and row and row.kind == "layer" and row or nil
     end
 
-    local function output_rows()
-        if not output then return {} end
-        local present = output.present
-        local text    = lang.t("tracks_output")
-        local row     = preview()
-        if row then
-            present = row.step
-            text    = lang.t("tracks_after", { layer = tracks.layer_text(chain.layers[row.index]) })
-        end
-        local out = { { kind = "note", text = text, color = "dim_text_color" } }
-        if not present then
+    local function preview_rows(row)
+        local out = { { kind = "note", text = lang.t("tracks_after", { layer = tracks.layer_text(chain.layers[row.index]) }), color = "dim_text_color" } }
+        if not row.step then
             out[2] = { kind = "note", text = err, color = "error_color" }
-        elseif #present == 0 then
+        elseif #row.step == 0 then
             out[2] = { kind = "note", text = lang.t("tracks_no_output"), color = "dim_text_color" }
         end
-        for k, e in ipairs(present or {}) do out[#out + 1] = { kind = "out", entry = e, track = e.kind == "source" and output.audio[e.n] or nil, k = k } end
+        for k, e in ipairs(row.step or {}) do out[#out + 1] = { kind = "out", entry = e, track = e.kind == "source" and output[e.n] or nil, k = k } end
         return out
     end
 
+    local function displayed()
+        local row = preview()
+        if not row then return rows, cursor end
+        local list = preview_rows(row)
+        if rows[1].key ~= "tracks_picks" then list[#list + 1] = { kind = "gap" } end
+        for _, r in ipairs(rows) do
+            if r.kind ~= "track" and r.key ~= "tracks_picks" then list[#list + 1] = r end
+        end
+        for i, r in ipairs(list) do
+            if r == rows[cursor] then return list, i end
+        end
+        return list, 1
+    end
+
     local function draw()
-        local pinned = output_rows()
-        local widths = { track = 0, layer = 0, out = 0 }
-        for _, row in ipairs(rows) do
+        local list, at = displayed()
+        local widths   = { track = 0, layer = 0, out = 0 }
+        for _, row in ipairs(list) do
             if row.kind == "track" then
                 widths.track = math.max(widths.track, common.text_len(track_label(row.row.entry, row.row.track)))
             elseif row.kind == "layer" then
                 widths.layer = math.max(widths.layer, common.text_len(tracks.layer_text(chain.layers[row.index])))
+            elseif row.kind == "out" then
+                widths.out = math.max(widths.out, common.text_len(track_label(row.entry, row.track)))
             end
-        end
-        for _, row in ipairs(pinned) do
-            if row.kind == "out" then widths.out = math.max(widths.out, common.text_len(track_label(row.entry, row.track))) end
         end
 
         local function line(row)
@@ -238,11 +244,7 @@ function M.show(on_close)
             return string.format("\\h%d %s\\h\\h%s%s", row.k, label, theme.c("dim_text_color"), theme.escape(tail))
         end
 
-        local body = ui.list(#rows, cursor, function(i) return line(rows[i]) end)
-        if #pinned > 0 then
-            body = body .. "\\N"
-            for _, row in ipairs(pinned) do body = body .. string.format("\\N%s\\h\\h%s%s", theme.c("text_color"), line(row), theme.reset()) end
-        end
+        local body = ui.list(#list, at, function(i) return line(list[i]) end)
 
         local title = string.format("%s %s %s", lang.t("menu_tracks"), state.opts.menu_path_separator, lang.t("tracks_" .. kind))
         local head  = ui.title(title)
@@ -423,7 +425,10 @@ function M.show(on_close)
             if op == lang.t("tracks_type") then
                 return prompt(lang.t("tracks_add"), "", lang.t("hint_tracks"), tracks.history, function(input)
                     return layers_text(input, at, 0)
-                end, tracks.remember)
+                end, function(input)
+                    tracks.remember(input)
+                    focus = { kind = "layer", index = at }
+                end)
             end
             local layer = { op = op }
             if op == "keep" then layer.list = { { kind = "all" } } end
@@ -481,13 +486,39 @@ function M.show(on_close)
         local is_mix         = layer.op == "mix"
         local exclude        = is_mix and tracks.excludes(layer.list)
         local set            = {}
+        local flags          = {}
         present              = present or {}
-        if layer.list then
+        if not layer.list then
+            for _, e in ipairs(present) do set[e] = true end
+        elseif exclude or tracks.excludes(layer.list) or not names then
             set = names and tracks.resolve(layer.list, present, names) or {}
         else
-            for _, e in ipairs(present) do set[e] = true end
+            local rest = {}
+            for _, item in ipairs(layer.list) do
+                if item.kind == "mixes" or item.kind == "sources" then
+                    flags[item.kind] = true
+                else
+                    rest[#rest + 1] = item
+                end
+            end
+            set = #rest > 0 and tracks.resolve(rest, present, names) or {}
         end
         state.ui_owner = "tracks"
+
+        local function groups()
+            local out  = {}
+            local seen = {}
+            if exclude then return out end
+            for _, e in ipairs(present) do seen[tracks.group_of(e)] = true end
+            for _, g in ipairs({ "mixes", "sources" }) do
+                if seen[g] then out[#out + 1] = g end
+            end
+            return out
+        end
+
+        local function shown(on)
+            return on ~= (layer.op == "drop")
+        end
 
         local function hide()
             pov:remove()
@@ -498,21 +529,29 @@ function M.show(on_close)
         local function close(keep)
             hide()
             if not keep then state.tracks = restore end
+            if keep and before then focus = { kind = "layer", index = index } end
             open_ui()
         end
 
         local function write()
-            layer.list = tracks.list_for(set, present, exclude, layer.op)
+            layer.list = tracks.list_for(set, present, exclude, layer.op, flags)
             save()
         end
 
         local function draw_picker()
+            local extra = groups()
             local width = 0
             for _, e in ipairs(present) do width = math.max(width, common.text_len(track_label(e, audio[e.n]))) end
-            local body = ui.list(#present, pcursor, function(k)
-                local e       = present[k]
+            for _, g in ipairs(extra) do width = math.max(width, common.text_len(lang.t("tracks_" .. g))) end
+            local body = ui.list(#present + #extra, pcursor, function(k)
+                local e = present[k]
+                if not e then
+                    local g = extra[k - #present]
+                    return string.format("%s%s\\h> %s %s@%s", ui.number_prefix(11), pad(lang.t("tracks_" .. g), width), toggle(shown(flags[g] == true)), theme.c("dim_text_color"), g)
+                end
                 local details = track_details(e, e.kind == "source" and audio[e.n] or nil)
-                local line    = string.format("%s%s\\h> %s", ui.number_prefix(k), pad(track_label(e, audio[e.n]), width), toggle((set[e] == true) ~= (layer.op == "drop")))
+                local on      = set[e] == true or flags[tracks.group_of(e)] == true
+                local line    = string.format("%s%s\\h> %s", ui.number_prefix(k), pad(track_label(e, audio[e.n]), width), toggle(shown(on)))
                 if details ~= "" then line = string.format("%s %s%s", line, theme.c("dim_text_color"), theme.escape(details)) end
                 return line
             end)
@@ -532,16 +571,25 @@ function M.show(on_close)
 
         local function flip(k)
             local e = present[k]
-            if not e then return end
+            local g = e and tracks.group_of(e) or groups()[k - #present]
+            if not g then return end
             pcursor = k
-            set[e]  = not set[e] or nil
+            if not e or flags[g] then
+                local was = flags[g]
+                flags[g]  = not was or nil
+                for _, m in ipairs(present) do
+                    if tracks.group_of(m) == g then set[m] = was and e and true or nil end
+                end
+            end
+            if e then set[e] = not set[e] or nil end
             write()
             draw_picker()
         end
 
         local function move(delta)
-            if #present == 0 then return end
-            pcursor = ui.wrap(pcursor, delta, #present)
+            local count = #present + #groups()
+            if count == 0 then return end
+            pcursor = ui.wrap(pcursor, delta, count)
             draw_picker()
         end
 
@@ -562,7 +610,12 @@ function M.show(on_close)
         end)
         mp.add_forced_key_binding("m", "trp-m", function()
             if not is_mix then return end
+            for _, e in ipairs(present) do
+                if flags[tracks.group_of(e)] then set[e] = true end
+            end
+            flags   = {}
             exclude = not exclude
+            pcursor = math.min(pcursor, math.max(#present, 1))
             write()
             draw_picker()
         end)
@@ -612,7 +665,8 @@ function M.show(on_close)
         active         = true
         state.ui_owner = "tracks"
         bind()
-        refresh()
+        refresh(focus)
+        focus = nil
     end
 
     open_ui()

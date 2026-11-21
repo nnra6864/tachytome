@@ -515,18 +515,32 @@ function M.excludes(list)
     return neg
 end
 
-function M.list_for(set, present, exclude, op)
-    local items  = {}
-    local picked = 0
+function M.group_of(entry)
+    return entry.kind == "mix" and "mixes" or "sources"
+end
+
+function M.list_for(set, present, exclude, op, flags)
+    flags         = exclude and {} or flags or {}
+    local items   = {}
+    local picked  = 0
+    local grouped = false
+    for _, g in ipairs({ "mixes", "sources" }) do
+        if flags[g] then
+            items[#items + 1] = { kind = g }
+            grouped           = true
+        end
+    end
     for _, e in ipairs(present) do
-        if set[e] == true then picked = picked + 1 end
-        if (set[e] == true) ~= exclude then
+        local covered = flags[M.group_of(e)] == true
+        local on      = set[e] == true or covered
+        if on then picked = picked + 1 end
+        if not covered and on ~= exclude then
             local item        = entry_item(e)
             item.neg          = exclude or nil
             items[#items + 1] = item
         end
     end
-    local every = #present > 0 and picked == #present
+    local every = not grouped and #present > 0 and picked == #present
     if op == "mix" and (every or exclude and #items == 0) then return nil end
     if every then return { { kind = "all" } } end
     if #items == 0 then return { { kind = "none" } } end

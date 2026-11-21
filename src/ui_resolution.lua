@@ -46,6 +46,7 @@ function M.show(on_close)
     local cursor = 1
     local rows   = {}
     local layers = {}
+    local focus  = nil
     local open_ui
     local pick_preset
 
@@ -183,7 +184,10 @@ function M.show(on_close)
             hint        = lang.t("hint_resolution"),
             history     = resolution.history,
             allow_space = true,
-            on_cancel   = open_ui,
+            on_cancel   = function()
+                focus = nil
+                open_ui()
+            end,
             preview     = function(input)
                 local parsed, bad = resolution.parse(input)
                 if not parsed then return lang.t("resolution_unknown", { token = bad }) end
@@ -228,6 +232,7 @@ function M.show(on_close)
         local row = rows[cursor]
         local at  = (row and row.kind == "layer") and row.index + 1 or #layers + 1
         prompt(lang.t("resolution_add"), "", false, function(parsed)
+            focus = at
             return splice(layers, at, 0, parsed)
         end)
     end
@@ -253,6 +258,7 @@ function M.show(on_close)
         end
 
         local function add(label)
+            focus = at
             commit(splice(layers, at, 0, resolution.parse(label) or {}))
             open_ui()
         end
@@ -338,6 +344,10 @@ function M.show(on_close)
 
     open_ui = function()
         rebuild_rows()
+        for i, row in ipairs(rows) do
+            if focus and row.kind == "layer" and row.index == focus then cursor = i end
+        end
+        focus = nil
         ui.clear_osd()
 
         active         = true
