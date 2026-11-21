@@ -387,8 +387,8 @@ Layers added with `a`, or with `a` in the Presets list, get the cursor.
 | r            | Rename    | Rename the track or mix, empty restores its own name.                    |
 | o            | Position  | Move the track to a position, or set the mix's output position.          |
 | d            | Delete    | Delete the layer.                                                        |
-| Shift+Up/K   | Move Up   | Move the layer up, before the one above.                                 |
-| Shift+Down/J | Move Down | Move the layer down, after the one below.                                |
+| Shift+Up/K   | Move Up   | Move the layer or track up, before the one above.                        |
+| Shift+Down/J | Move Down | Move the layer or track down, after the one below.                       |
 | v            | Video     | Show the video tracks.                                                   |
 | Esc          | Close     | Close the list.                                                          |
 
@@ -408,8 +408,10 @@ Each track shows its title, codec, channels or size and language, mixes show the
 Tracks and mixes are numbered by their position, the number the chain uses there, so with `drop 2` before them the file's third track is 2.<br>
 `0` is the 10th track, tracks past it have no number key, reach them with Up/Down and toggle them with Tab.<br>
 `o` on a track, mixes included, adds it to a `move` layer right before the Combine Audio tail, e.g. `move 3 at 1` puts track 3 first, empty takes it out again, the layers after it are renumbered so they keep the same tracks.<br>
+Shift+Up/Down on a track moves it one place the same way, the `move` layer is rewritten with as few moves as give that order.<br>
 `a` offers `mix`, `keep`, `drop` and `move`, or Type... to write layers yourself, a picked layer opens its picker right away.<br>
 `r` on a track adds it to a `rename` layer right before the Combine Audio tail, on a mix it renames the mix, and later layers using the old name follow it.<br>
+Rename and the mix's name share a history of names you've used, Up/Down in the prompt goes through it.<br>
 The tracks picker lists the tracks present at that layer, Tab/0-9 toggles one, ON is what stays for `keep` and `drop` and what's mixed for `mix`:
 - `keep` writes the ones that are on, e.g. `keep 1,3`, and `keep all` when they all are.
 - `drop` writes the ones that are off, e.g. `drop 2`, which keeps working on files with more tracks.
@@ -419,7 +421,7 @@ The tracks picker lists the tracks present at that layer, Tab/0-9 toggles one, O
 
 Its `in > out` count updates as you pick, Enter keeps the picks, Esc cancels them, and cancels the layer too when `a` just added it.<br>
 A `move` layer opens the move picker instead, listing the tracks in the order the layer leaves them, a moved one showing where it was, e.g. `was 3`.<br>
-`o` there moves the track under the cursor to a position, empty puts it back, the layers after it are renumbered so they keep the same tracks, Enter keeps the moves and Esc cancels them.<br>
+`o` there moves the track under the cursor to a position, empty puts it back, Shift+Up/Down moves it one place, the layers after it are renumbered so they keep the same tracks, Enter keeps the moves and Esc cancels them.<br>
 The chain and layer inputs show the result while typing and share a history kept across restarts.<br>
 `v` shows the video tracks as a plain toggle list, `a` goes back to audio, set `tracks_type=video` to open on video.<br>
 Only the file's own tracks are listed, external audio files loaded into mpv aren't part of the render, dropping every video track renders audio only.

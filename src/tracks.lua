@@ -7,6 +7,7 @@ local lang   = require 'src.lang'
 local M = {}
 
 local history_path = utils.join_path(common.get_state_dir(), "tracks_history.json")
+local names_path   = utils.join_path(common.get_state_dir(), "tracks_names_history.json")
 local codec_exts   = { opus = "opus", aac = "m4a", alac = "m4a", mp3 = "mp3", flac = "flac", vorbis = "ogg" }
 local encoder_exts = { opus = "opus", aac = "m4a", mp3 = "mp3", flac = "flac", vorbis = "ogg", pcm = "wav" }
 local ops          = { keep = true, drop = true, mix = true, rename = true, move = true, video = true }
@@ -618,6 +619,16 @@ function M.remember(text)
     common.write_json_file(history_path, M.history)
 end
 
+M.names = common.read_json_file(names_path)
+if type(M.names) ~= "table" then M.names = {} end
+
+function M.remember_name(text)
+    text = text:match("^%s*(.-)%s*$")
+    if text == "" then return end
+    common.add_to_history(M.names, text)
+    common.write_json_file(names_path, M.names)
+end
+
 function M.rows(kind)
     local chain, err = M.parse(state.tracks)
     if not chain then return nil, err end
@@ -824,6 +835,80 @@ function M.set_move(layer, input, names, entry, n)
     end
 end
 
+local function apply_pairs(input, out)
+    local current = filter(input, function() return true end)
+    for _, pair in ipairs(out) do
+        local e = table.remove(current, M.position(current, input[pair.item.n]))
+        table.insert(current, math.min(pair.at, #current + 1), e)
+    end
+    return current
+end
+
+local function same_order(a, b)
+    if #a ~= #b then return false end
+    for k, e in ipairs(a) do
+        if not M.same_entry(e, b[k]) then return false end
+    end
+    return true
+end
+
+local function steady(idx)
+    local len  = {}
+    local prev = {}
+    local best = nil
+    for p = 1, #idx do
+        len[p] = 1
+        for q = 1, p - 1 do
+            if idx[q] < idx[p] and len[q] + 1 > len[p] then
+                len[p]  = len[q] + 1
+                prev[p] = q
+            end
+        end
+        if not best or len[p] > len[best] then best = p end
+    end
+    local keep = {}
+    while best do
+        keep[best] = true
+        best       = prev[best]
+    end
+    return keep
+end
+
+local function order_pairs(input, wanted)
+    local idx = {}
+    for p, e in ipairs(wanted) do idx[p] = M.position(input, e) end
+    local keep = steady(idx)
+    local out  = {}
+    for p in ipairs(wanted) do
+        if not keep[p] then out[#out + 1] = { item = { kind = "n", n = idx[p] }, at = p } end
+    end
+    if same_order(apply_pairs(input, out), wanted) then return out end
+
+    out = {}
+    for p, e in ipairs(wanted) do
+        if not M.same_entry(apply_pairs(input, out)[p], e) then out[#out + 1] = { item = { kind = "n", n = idx[p] }, at = p } end
+    end
+    return out
+end
+
+function M.place(layers, index, input, names, entry, n)
+    local layer = layers[index]
+    if not n then return M.set_move(layer, input, names, entry, nil) end
+    local output = M.run(layers, #M.list("audio"), index + 1) or input
+    local wanted = {}
+    local picked = nil
+    for _, e in ipairs(output) do
+        if M.same_entry(e, entry) then
+            picked = e
+        else
+            wanted[#wanted + 1] = e
+        end
+    end
+    if not picked then return end
+    table.insert(wanted, math.min(n, #wanted + 1), picked)
+    layer.pairs = order_pairs(input, wanted)
+end
+
 function M.move_text(entry, value)
     local chain, err = M.parse(state.tracks)
     if not chain then return nil, err end
@@ -843,7 +928,7 @@ function M.move_text(entry, value)
         shift = 1
         table.insert(chain.layers, at, layer)
     end
-    M.set_move(layer, input, names, entry, n or nil)
+    M.place(chain.layers, at, input, names, entry, n or nil)
     if #layer.pairs == 0 then
         table.remove(chain.layers, at)
         shift = shift - 1

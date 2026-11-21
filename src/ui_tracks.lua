@@ -13,7 +13,7 @@ local M = {}
 
 local bindings = { "up", "down", "j", "k", "move-up", "move-down", "J", "K", "tab", "enter", "a", "v", "e", "r", "o", "d", "esc" }
 local picks    = { "up", "down", "j", "k", "tab", "enter", "m", "r", "o", "esc" }
-local moves    = { "up", "down", "j", "k", "o", "enter", "esc" }
+local moves    = { "up", "down", "j", "k", "move-up", "move-down", "J", "K", "o", "enter", "esc" }
 for i = 1, 10 do
     bindings[#bindings + 1] = tostring(i)
     picks[#picks + 1]       = tostring(i)
@@ -262,7 +262,7 @@ function M.show(on_close)
             local row = rows[cursor]
             hints     = { { "Up/Down", "navigate" }, { "a", "add" }, { "v", "video" }, { "Enter", "edit" }, { "Esc", "close" } }
             if row and row.kind == "track" then
-                hints = { { "Up/Down", "navigate" }, { "a", "add" }, { "r", "rename" }, { "o", "position" }, { "v", "video" }, { "Tab/0-9", "toggle" }, { "Enter/Esc", "close" } }
+                hints = { { "Up/Down", "navigate" }, { "Shift+Up/Down", "move" }, { "a", "add" }, { "r", "rename" }, { "o", "position" }, { "v", "video" }, { "Tab/0-9", "toggle" }, { "Enter/Esc", "close" } }
             elseif row and row.kind == "layer" then
                 local layer = chain.layers[row.index]
                 hints       = { { "Up/Down", "navigate" }, { "Shift+Up/Down", "move" }, { "a", "add" }, { "e", "type" } }
@@ -354,7 +354,7 @@ function M.show(on_close)
         if layer.op ~= "mix" then return end
         local is_name = field == "name"
         local current = is_name and (layer.name or "") or (layer.at and tostring(layer.at) or "")
-        prompt(lang.t(is_name and "tracks_name" or "tracks_position"), current, lang.t(is_name and "hint_tracks_name" or "hint_tracks_at"), nil, function(input)
+        prompt(lang.t(is_name and "tracks_name" or "tracks_position"), current, lang.t(is_name and "hint_tracks_name" or "hint_tracks_at"), is_name and tracks.names or nil, function(input)
             local copy  = tracks.parse(state.tracks)
             local mix   = copy.layers[i]
             local value = input:match("^%s*(.-)%s*$")
@@ -367,15 +367,15 @@ function M.show(on_close)
             end
             local text = tracks.format(copy)
             return tracks.parse(text) and text or nil
-        end, nil, back)
+        end, is_name and tracks.remember_name or nil, back)
     end
 
     local function rename(entry, back)
         local current = entry.kind == "mix" and entry.name or entry.title or ""
         local hint    = lang.t(entry.kind == "mix" and "hint_tracks_name" or "hint_tracks_title")
-        prompt(lang.t("tracks_rename", { name = track_label(entry, entry.n and tracks.list("audio")[entry.n]) }), current, hint, nil, function(input)
+        prompt(lang.t("tracks_rename", { name = track_label(entry, entry.n and tracks.list("audio")[entry.n]) }), current, hint, tracks.names, function(input)
             return tracks.rename_text(entry, input)
-        end, nil, back)
+        end, tracks.remember_name, back)
     end
 
     local function rename_row()
@@ -461,6 +461,15 @@ function M.show(on_close)
     end
 
     local function move_layer(delta)
+        local row = rows[cursor]
+        if kind == "audio" and row and row.kind == "track" then
+            local n = row.k + delta
+            if not rows[cursor + delta] or rows[cursor + delta].kind ~= "track" then return end
+            local text, merr = tracks.move_text(row.row.entry, tostring(n))
+            if not text then return notify.show(merr, true, "error") end
+            state.tracks = text
+            return refresh({ kind = "track", k = n })
+        end
         local i = layer_row()
         if not i then return end
         local j = i + delta
@@ -701,7 +710,7 @@ function M.show(on_close)
             end)
             if #out == 0 then body = string.format("\\N%s\\h\\h%s%s", theme.c("dim_text_color"), theme.escape(lang.t("tracks_no_audio")), theme.reset()) end
             local title = string.format("%s %s %s", lang.t("menu_tracks"), state.opts.menu_path_separator, exists and tracks.layer_text(chain.layers[index]) or "move")
-            local hints = { { "Up/Down", "navigate" }, { "o", "position" }, { "Enter", "apply" }, { "Esc", "cancel" } }
+            local hints = { { "Up/Down", "navigate" }, { "Shift+Up/Down", "move" }, { "o", "position" }, { "Enter", "apply" }, { "Esc", "cancel" } }
             mov.data    = ui.title(title) .. ui.dim(summary(state.tracks)) .. "\\N" .. body .. "\\N" .. ui.tooltip(hints)
             mov:update()
         end
@@ -709,11 +718,12 @@ function M.show(on_close)
         local function build(entry, text)
             local n, verr = tracks.at_value(text)
             if n == nil then return nil, verr end
-            local copy  = tracks.parse(state.tracks)
-            local layer = exists and copy.layers[index] or { op = "move", pairs = {} }
-            tracks.set_move(layer, input, names, entry, n or nil)
-            local has    = #layer.pairs > 0
-            local layers = splice(copy.layers, index, exists and 1 or 0, has and { layer } or {})
+            local copy   = tracks.parse(state.tracks)
+            local layer  = exists and copy.layers[index] or { op = "move", pairs = {} }
+            local layers = splice(copy.layers, index, exists and 1 or 0, { layer })
+            tracks.place(layers, index, input, names, entry, n or nil)
+            local has = #layer.pairs > 0
+            if not has then table.remove(layers, index) end
             tracks.rebase(tracks.parse(state.tracks).layers, layers, has and index or index - 1, (has and 1 or 0) - (exists and 1 or 0))
             return tracks.format({ layers = layers, video = copy.video }), nil, has
         end
@@ -741,10 +751,26 @@ function M.show(on_close)
             draw_move()
         end
 
+        local function shift(delta)
+            local out   = output()
+            local entry = out[mcursor]
+            local n     = mcursor + delta
+            if not entry or not out[n] then return end
+            local text, _, has = build(entry, tostring(n))
+            if not text then return end
+            state.tracks = text
+            hide()
+            open_move(index, restore, has, entry)
+        end
+
         mp.add_forced_key_binding("UP", "trm-up", function() step(-1) end, {repeatable = true})
         mp.add_forced_key_binding("DOWN", "trm-down", function() step(1) end, {repeatable = true})
         mp.add_forced_key_binding("k", "trm-k", function() step(-1) end, {repeatable = true})
         mp.add_forced_key_binding("j", "trm-j", function() step(1) end, {repeatable = true})
+        mp.add_forced_key_binding("shift+UP", "trm-move-up", function() shift(-1) end, {repeatable = true})
+        mp.add_forced_key_binding("shift+DOWN", "trm-move-down", function() shift(1) end, {repeatable = true})
+        mp.add_forced_key_binding("K", "trm-K", function() shift(-1) end, {repeatable = true})
+        mp.add_forced_key_binding("J", "trm-J", function() shift(1) end, {repeatable = true})
         mp.add_forced_key_binding("o", "trm-o", position)
         mp.add_forced_key_binding("ENTER", "trm-enter", function() close(true) end)
         mp.add_forced_key_binding("ESC", "trm-esc", function() close(false) end)
