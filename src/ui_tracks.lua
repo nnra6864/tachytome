@@ -569,6 +569,7 @@ function M.show(on_close)
         view = ui_list.cancel
         ui_list.show(title, items, in_use and in_use.label, function(label)
             state.tracks = label
+            focus        = { kind = "layer", index = 1 }
             open_ui()
         end, open_ui, { detail = detail, action = "use", keys = keys })
     end

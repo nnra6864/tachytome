@@ -811,8 +811,8 @@ Change it on the fly in the [Tracks List](#tracks-list) and with Combine Audio a
 Presets are named chains in `.trk` files in `mpv/script-opts/tachytome/`, `default.trk` gets generated when there are none.<br>
 Every `.trk` file is read in alphabetical order, one preset per line as `name = chain`, `#` starts a comment:
 ```
-combined      = mix at 1
-combined_only = mix keep @mixes
+combined      = mix "Combined" at 1
+combined_only = mix "Combined" keep @mixes
 voice_mix     = mix 2,3 "Voices" at 1
 disabled audio_only = video none
 ```
@@ -826,7 +826,7 @@ disabled audio_only = video none
 - `disabled` before a preset turns it off, e.g. `disabled audio_only = video none`, removing it turns the preset back on.<br>
   A disabled preset isn't listed, a bare name skips it for the next file that defines it, using it says it's disabled, and tracks named like it don't need quotes.
 
-`default.trk` holds `combined` and `combined_only`, the same as Combine Audio and Combine Audio with Combined Only, with disabled examples to turn on: `voice_mix` and `audio_only`.
+`default.trk` holds `combined` and `combined_only`, like Combine Audio and Combine Audio with Combined Only with the mix named `Combined`, with disabled examples to turn on: `voice_mix` and `audio_only`.
 
 ### Effects
 
