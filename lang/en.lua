@@ -138,6 +138,7 @@ return {
     tracks_source     = "source {n}",
     tracks_in_out     = "{input} in > {output} out",
     tracks_chain      = "Chain",
+    tracks_presets    = "Presets",
     tracks_picks      = "Tracks",
     tracks_layers     = "Layers",
     tracks_after      = "After {layer}",

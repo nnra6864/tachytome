@@ -11,7 +11,7 @@ local ui       = require 'src.ui'
 
 local M = {}
 
-local bindings = { "up", "down", "j", "k", "move-up", "move-down", "J", "K", "tab", "enter", "a", "v", "e", "r", "o", "d", "esc" }
+local bindings = { "up", "down", "j", "k", "move-up", "move-down", "J", "K", "tab", "enter", "a", "v", "e", "r", "o", "p", "d", "esc" }
 local picks    = { "up", "down", "j", "k", "tab", "enter", "m", "r", "o", "esc" }
 local moves    = { "up", "down", "j", "k", "move-up", "move-down", "J", "K", "o", "enter", "esc" }
 for i = 1, 10 do
@@ -102,6 +102,7 @@ function M.show(on_close)
     local open_ui
     local open_picker
     local open_move
+    local pick_preset
 
     local function remove_bindings()
         for _, name in ipairs(bindings) do mp.remove_key_binding("tr-" .. name) end
@@ -140,6 +141,7 @@ function M.show(on_close)
             for k, row in ipairs(tracks.rows("video") or {}) do rows[k] = { kind = "track", row = row, k = k } end
         elseif not chain then
             rows[1] = { kind = "chain" }
+            rows[2] = { kind = "presets" }
         else
             local audio                = tracks.list("audio")
             local list, rerr           = tracks.rows("audio")
@@ -158,6 +160,7 @@ function M.show(on_close)
             end
             if #rows > 0 then rows[#rows + 1] = { kind = "gap" } end
             rows[#rows + 1] = { kind = "chain" }
+            rows[#rows + 1] = { kind = "presets" }
             output          = audio
         end
         if cursor > #rows then cursor = #rows end
@@ -167,7 +170,7 @@ function M.show(on_close)
     local function navigable()
         return ui.visible(#rows, function(i)
             local k = rows[i].kind
-            return k == "chain" or k == "track" or k == "layer"
+            return k == "chain" or k == "presets" or k == "track" or k == "layer"
         end)
     end
 
@@ -206,6 +209,14 @@ function M.show(on_close)
         return list, 1
     end
 
+    local function active_preset()
+        local current = state.tracks:lower():match("^%s*(.-)%s*$")
+        for _, p in ipairs(tracks.presets()) do
+            if current == p.label:lower() or current == p.id:lower() then return p end
+        end
+        return nil
+    end
+
     local function draw()
         local list, at = displayed()
         local widths   = { track = 0, layer = 0, out = 0 }
@@ -230,6 +241,9 @@ function M.show(on_close)
                 local text = chain and tracks.format(chain) or state.tracks
                 if text == "" then text = lang.t("value_none") end
                 return string.format("%s > %s%s", theme.escape(lang.t("tracks_chain")), theme.c("value_color"), theme.escape(text))
+            elseif row.kind == "presets" then
+                local in_use = active_preset()
+                return string.format("%s >%s%s", theme.escape(lang.t("tracks_presets")), theme.c("value_color"), in_use and " " .. theme.escape(in_use.label) or "")
             elseif row.kind == "track" then
                 local entry   = row.row.entry
                 local details = track_details(entry, row.row.track)
@@ -258,17 +272,17 @@ function M.show(on_close)
         local hints
         if kind == "video" then
             if #rows == 0 then body = string.format("\\N%s\\h\\h%s%s", theme.c("dim_text_color"), theme.escape(lang.t("tracks_no_video")), theme.reset()) end
-            hints = { { "Tab/0-9", "toggle" }, { "Up/Down", "navigate" }, { "a", "audio" }, { "Enter/Esc", "close" } }
+            hints = { { "Tab/0-9", "toggle" }, { "Up/Down", "navigate" }, { "a", "audio" }, { "p", "presets" }, { "Enter/Esc", "close" } }
         else
             local sum = chain and summary(state.tracks) or err
             if sum and sum ~= "" then head = head .. ui.dim(sum) end
             local row = rows[cursor]
-            hints     = { { "Up/Down", "navigate" }, { "a", "add" }, { "v", "video" }, { "Enter", "edit" }, { "Esc", "close" } }
+            hints     = { { "Up/Down", "navigate" }, { "a", "add" }, { "p", "presets" }, { "v", "video" }, { "Enter", "edit" }, { "Esc", "close" } }
             if row and row.kind == "track" then
-                hints = { { "Up/Down", "navigate" }, { "Shift+Up/Down", "move" }, { "a", "add" }, { "r", "rename" }, { "o", "position" }, { "v", "video" }, { "Tab/0-9", "toggle" }, { "Enter/Esc", "close" } }
+                hints = { { "Up/Down", "navigate" }, { "Shift+Up/Down", "move" }, { "a", "add" }, { "p", "presets" }, { "r", "rename" }, { "o", "position" }, { "v", "video" }, { "Tab/0-9", "toggle" }, { "Enter/Esc", "close" } }
             elseif row and row.kind == "layer" then
                 local layer = chain.layers[row.index]
-                hints       = { { "Up/Down", "navigate" }, { "Shift+Up/Down", "move" }, { "a", "add" }, { "e", "type" } }
+                hints       = { { "Up/Down", "navigate" }, { "Shift+Up/Down", "move" }, { "a", "add" }, { "p", "presets" }, { "e", "type" } }
                 if layer.op == "mix" then
                     hints[#hints + 1] = { "r", "rename" }
                     hints[#hints + 1] = { "o", "position" }
@@ -341,7 +355,7 @@ function M.show(on_close)
     local function layers_text(input, at, remove)
         local parsed, perr = tracks.parse(input)
         if not parsed then return nil, perr end
-        local copy = { layers = splice(chain.layers, at, remove, parsed.layers), video = parsed.video or chain.video }
+        local copy = { layers = splice(chain.layers, at, remove, parsed.layers), video = parsed.video or not parsed.preset_video and chain.video or nil }
         return tracks.format(copy)
     end
 
@@ -420,11 +434,12 @@ function M.show(on_close)
         local row = rows[cursor]
         if not row then return end
         if row.kind == "track" then return cleanup() end
+        if row.kind == "presets" then return pick_preset() end
         if not chain then return edit_chain() end
         if row.kind == "chain" then return edit_chain() end
         if row.kind ~= "layer" then return end
         local op = chain.layers[row.index].op
-        if op == "rename" then return edit_layer(row.index) end
+        if op == "rename" or op == "preset" then return edit_layer(row.index) end
         if op == "move" then return open_move(row.index, nil, true) end
         open_picker(row.index)
     end
@@ -500,6 +515,41 @@ function M.show(on_close)
         kind   = to
         cursor = 1
         refresh()
+    end
+
+    pick_preset = function()
+        local row    = rows[cursor]
+        local at     = chain and (row and row.kind == "layer" and row.index + 1 or #chain.layers + 1)
+        local list   = tracks.presets()
+        local in_use = active_preset()
+        local items  = {}
+        local width  = 0
+        for i, p in ipairs(list) do
+            items[i] = p.label
+            width    = math.max(width, common.text_len(p.chain))
+        end
+        if #items == 0 then return end
+
+        local function detail(i)
+            return pad(list[i].chain, width) .. "\\h\\h" .. theme.escape(summary(list[i].label) or "")
+        end
+
+        local function add(label)
+            local text = layers_text(label, at, 0)
+            if text then
+                state.tracks = text
+                focus        = { kind = "layer", index = at }
+            end
+            open_ui()
+        end
+
+        local title = string.format("%s %s %s", lang.t("menu_tracks"), state.opts.menu_path_separator, lang.t("tracks_presets"))
+        teardown()
+        view = ui_list.cancel
+        ui_list.show(title, items, in_use and in_use.label, function(label)
+            state.tracks = label
+            open_ui()
+        end, open_ui, { detail = detail, action = "use", keys = at and { { "a", "add", add } } or nil })
     end
 
     open_picker = function(index, before)
@@ -837,6 +887,7 @@ function M.show(on_close)
             local i = layer_row()
             if i then edit_mix(i, "position") end
         end)
+        mp.add_forced_key_binding("p", "tr-p", pick_preset)
         mp.add_forced_key_binding("d", "tr-d", delete_layer)
         for n = 1, 10 do
             mp.add_forced_key_binding(ui.number_key(n), "tr-" .. n, function() toggle_track(n) end)

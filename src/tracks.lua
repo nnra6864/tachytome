@@ -2,6 +2,7 @@ local mp     = require 'mp'
 local utils  = require 'mp.utils'
 local common = require 'src.common'
 local state  = require 'src.state'
+local notify = require 'src.notify'
 local lang   = require 'src.lang'
 
 local M = {}
@@ -42,9 +43,30 @@ local function valid_name(name)
     return name ~= "" and name == name:match("^%s*(.-)%s*$") and not name:find("[\",#]")
 end
 
-local function bare_name(name)
+local function plain_word(name)
     local word = name:lower()
     return valid_name(name) and not name:find("%s") and not name:find("^[-@]") and not name:match("^%d+$") and not reserved[word] and not ops[word]
+end
+
+local presets = {}
+
+local function find_preset(word)
+    for _, p in ipairs(presets) do
+        if p.id:lower() == word then return p end
+    end
+    for _, p in ipairs(presets) do
+        if p.name == word then return p end
+    end
+    return nil
+end
+
+local function bare_name(name)
+    return plain_word(name) and not find_preset(name:lower())
+end
+
+local function starts_layer(token)
+    local word = token:lower()
+    return ops[word] or find_preset(word) ~= nil
 end
 
 local function list_items(token)
@@ -93,11 +115,12 @@ local function list_items(token)
     return items
 end
 
-function M.parse(text)
+local function parse(text, depth)
     local tokens, bad = tokenize(text or "")
     if not tokens then return nil, lang.t("tracks_unknown", { token = bad }) end
     local layers = {}
     local video  = nil
+    local own    = false
     local i      = 1
 
     local function fail(token)
@@ -106,7 +129,7 @@ function M.parse(text)
 
     local function lists()
         local items = {}
-        while tokens[i] and not ops[tokens[i]:lower()] and tokens[i]:lower() ~= "at" do
+        while tokens[i] and not starts_layer(tokens[i]) and tokens[i]:lower() ~= "at" do
             local list = list_items(tokens[i])
             if not list then return nil, tokens[i] end
             for _, item in ipairs(list) do items[#items + 1] = item end
@@ -125,12 +148,13 @@ function M.parse(text)
             if #items == 0 then return nil, lang.t("tracks_needs_list", { token = token }) end
             if word == "video" then
                 video = items
+                own   = true
             else
                 layers[#layers + 1] = { op = word, list = items }
             end
         elseif word == "mix" then
             local layer = { op = "mix" }
-            while tokens[i] and not ops[tokens[i]:lower()] do
+            while tokens[i] and not starts_layer(tokens[i]) do
                 local t    = tokens[i]
                 local name = t:match("^\"([^\"]*)\"$")
                 if t:lower() == "at" then
@@ -153,7 +177,7 @@ function M.parse(text)
             layers[#layers + 1] = layer
         elseif word == "rename" then
             local layer = { op = "rename", pairs = {} }
-            while tokens[i] and not ops[tokens[i]:lower()] do
+            while tokens[i] and not starts_layer(tokens[i]) do
                 local items = list_items(tokens[i])
                 local item  = items and #items == 1 and items[1]
                 if not item or item.neg or (item.kind ~= "n" and item.kind ~= "name") then return fail(tokens[i]) end
@@ -167,7 +191,7 @@ function M.parse(text)
             layers[#layers + 1] = layer
         elseif word == "move" then
             local layer = { op = "move", pairs = {} }
-            while tokens[i] and not ops[tokens[i]:lower()] do
+            while tokens[i] and not starts_layer(tokens[i]) do
                 local items = list_items(tokens[i])
                 local item  = items and #items == 1 and items[1]
                 if not item or item.neg or (item.kind ~= "n" and item.kind ~= "name") then return fail(tokens[i]) end
@@ -180,10 +204,85 @@ function M.parse(text)
             if #layer.pairs == 0 then return nil, lang.t("tracks_needs_list", { token = token }) end
             layers[#layers + 1] = layer
         else
-            return fail(token)
+            local preset = find_preset(word)
+            if not preset or depth >= 8 then return fail(token) end
+            local inner, perr = parse(preset.chain, depth + 1)
+            if not inner then return nil, perr end
+            layers[#layers + 1] = { op = "preset", name = token, chain = preset.chain, layers = inner.layers }
+            if inner.video or inner.preset_video then
+                video = inner.video or inner.preset_video
+                own   = false
+            end
         end
     end
-    return { layers = layers, video = video }
+    return { layers = layers, video = own and video or nil, preset_video = not own and video or nil }
+end
+
+function M.parse(text)
+    return parse(text, 0)
+end
+
+local function preset_files(dir)
+    local files = {}
+    for _, file in ipairs(utils.readdir(dir, "files") or {}) do
+        if file:match("%.trk$") then files[#files + 1] = file end
+    end
+    table.sort(files)
+    return files
+end
+
+local function upsert(preset)
+    preset.id = preset.file .. "/" .. preset.name
+    for i, p in ipairs(presets) do
+        if p.id == preset.id then
+            notify.show(lang.t("warn_redefined", { name = preset.name, where = preset.where }), false, "warn")
+            presets[i] = preset
+            return
+        end
+    end
+    presets[#presets + 1] = preset
+end
+
+local function parse_presets_file(path, file)
+    local f = io.open(path, "r")
+    if not f then return end
+    local n = 0
+    for line in f:lines() do
+        n = n + 1
+        local where   = string.format("%s.trk:%d", file, n)
+        local content = line:gsub("\r$", "")
+        local hash    = content:find("#", 1, true)
+        if hash then content = content:sub(1, hash - 1) end
+        content = content:match("^%s*(.-)%s*$")
+        if content ~= "" then
+            local name, chain = content:match("^([^%s=/]+)%s*=%s*(.+)$")
+            local word        = name and name:lower()
+            if not word or not plain_word(word) then
+                notify.show(lang.t("warn_invalid_line", { where = where, line = content }), false, "warn")
+            else
+                upsert({ name = word, file = file, chain = chain, where = where })
+            end
+        end
+    end
+    f:close()
+end
+
+function M.reload()
+    presets     = {}
+    local dir   = common.get_conf_dir()
+    local files = preset_files(dir)
+    if #files == 0 then
+        common.ensure_default_conf("tachytome-tracks.conf", "default.trk")
+        files = preset_files(dir)
+    end
+    for _, file in ipairs(files) do parse_presets_file(utils.join_path(dir, file), (file:gsub("%.trk$", ""))) end
+end
+
+function M.presets()
+    local count = {}
+    for _, p in ipairs(presets) do count[p.name] = (count[p.name] or 0) + 1 end
+    for _, p in ipairs(presets) do p.label = count[p.name] > 1 and find_preset(p.name) ~= p and p.id or p.name end
+    return presets
 end
 
 local function item_text(item)
@@ -213,6 +312,7 @@ local function list_text(list)
 end
 
 function M.layer_text(layer)
+    if layer.op == "preset" then return layer.name end
     if layer.op == "rename" then
         local parts = { "rename" }
         for _, pair in ipairs(layer.pairs) do parts[#parts + 1] = item_text(pair.item) .. " \"" .. pair.name .. "\"" end
@@ -305,18 +405,23 @@ function M.run(layers, audio_count, upto)
     local names   = {}
     local steps   = {}
     local unnamed = 0
-    for i, layer in ipairs(layers) do
-        if upto and i >= upto then break end
-        if layer.op == "keep" or layer.op == "drop" then
+
+    local function apply(layer, id)
+        if layer.op == "preset" then
+            for j, inner in ipairs(layer.layers) do
+                local err = apply(inner, id .. "/" .. j)
+                if err then return err end
+            end
+        elseif layer.op == "keep" or layer.op == "drop" then
             local set, err = resolve(layer.list, present, names)
-            if not set then return nil, err, steps end
+            if not set then return err end
             local keep = layer.op == "keep"
             present    = filter(present, function(e) return (set[e] == true) == keep end)
         elseif layer.op == "mix" then
             local inputs = present
             if layer.list then
                 local set, err = resolve(layer.list, present, names)
-                if not set then return nil, err, steps end
+                if not set then return err end
                 inputs = filter(present, function(e) return set[e] == true end)
             end
             local name = layer.name
@@ -326,10 +431,10 @@ function M.run(layers, audio_count, upto)
                     name    = unnamed == 1 and lang.t("tracks_mix") or lang.t("tracks_mix_n", { n = unnamed })
                 until names[name:lower()] == nil
             elseif names[name:lower()] ~= nil then
-                return nil, lang.t("tracks_name_taken", { name = name }), steps
+                return lang.t("tracks_name_taken", { name = name })
             end
             if #inputs >= 1 then
-                local entry = { kind = "mix", name = name, layer = i, inputs = filter(inputs, function() return true end) }
+                local entry = { kind = "mix", name = name, layer = id, inputs = filter(inputs, function() return true end) }
                 local at    = math.min(layer.at or (#present + 1), #present + 1)
                 present     = filter(present, function() return true end)
                 table.insert(present, at, entry)
@@ -341,11 +446,11 @@ function M.run(layers, audio_count, upto)
             present = filter(present, function() return true end)
             for _, pair in ipairs(layer.pairs) do
                 local set, err = resolve({ pair.item }, present, names)
-                if not set then return nil, err, steps end
+                if not set then return err end
                 for k, e in ipairs(present) do
                     if set[e] then
                         local taken = names[pair.name:lower()]
-                        if taken ~= nil and taken ~= e then return nil, lang.t("tracks_name_taken", { name = pair.name }), steps end
+                        if taken ~= nil and taken ~= e then return lang.t("tracks_name_taken", { name = pair.name }) end
                         local renamed            = alias(e, pair.name)
                         present[k]               = renamed
                         names[pair.name:lower()] = renamed
@@ -356,7 +461,7 @@ function M.run(layers, audio_count, upto)
             local moves = {}
             for _, pair in ipairs(layer.pairs) do
                 local set, err = resolve({ pair.item }, present, names)
-                if not set then return nil, err, steps end
+                if not set then return err end
                 for _, e in ipairs(present) do
                     if set[e] then moves[#moves + 1] = { entry = e, at = pair.at } end
                 end
@@ -372,6 +477,13 @@ function M.run(layers, audio_count, upto)
                 end
             end
         end
+        return nil
+    end
+
+    for i, layer in ipairs(layers) do
+        if upto and i >= upto then break end
+        local err = apply(layer, i)
+        if err then return nil, err, steps end
         steps[i] = present
     end
     return present, names, steps
@@ -384,9 +496,10 @@ function M.evaluate(chain, audio_count, video_count)
     if not present then return nil, names end
 
     local video = nil
-    if chain.video then
+    local pick  = chain.video or chain.preset_video
+    if pick then
         local list     = sources(video_count)
-        local set, err = resolve(chain.video, list, {})
+        local set, err = resolve(pick, list, {})
         if not set then return nil, err end
         video = {}
         for _, e in ipairs(list) do
@@ -635,7 +748,7 @@ function M.rows(kind)
     local list = M.list(kind)
     local rows = {}
     if kind == "video" then
-        local result, verr = M.evaluate({ layers = {}, video = chain.video }, 0, #list)
+        local result, verr = M.evaluate({ layers = {}, video = chain.video or chain.preset_video }, 0, #list)
         if not result then return nil, verr end
         for n, t in ipairs(list) do rows[n] = { entry = { kind = "source", n = n }, track = t, on = M.kept(result.video, n) } end
         return rows
@@ -659,7 +772,7 @@ function M.toggle(kind, entry)
     if not chain then return nil, err end
     if kind == "video" then
         local count  = #M.list("video")
-        local result = M.evaluate({ layers = {}, video = chain.video }, 0, count)
+        local result = M.evaluate({ layers = {}, video = chain.video or chain.preset_video }, 0, count)
         local on     = {}
         for n = 1, count do on[n] = result and M.kept(result.video, n) end
         on[entry.n]  = not on[entry.n]
@@ -668,7 +781,7 @@ function M.toggle(kind, entry)
             if on[n] then items[#items + 1] = { kind = "n", n = n } end
         end
         if #items == count then
-            chain.video = nil
+            chain.video = chain.preset_video and { { kind = "all" } } or nil
         elseif #items == 0 then
             chain.video = { { kind = "none" } }
         else
@@ -780,7 +893,7 @@ function M.rename_text(entry, name)
         else
             layer.pairs[k].name = name
         end
-    elseif entry.kind == "mix" then
+    elseif entry.kind == "mix" and type((entry.of or entry).layer) == "number" then
         from                    = (entry.of or entry).layer
         chain.layers[from].name = name ~= "" and name or nil
     elseif name ~= "" then
@@ -934,23 +1047,43 @@ function M.move_text(entry, value)
     return M.format(chain)
 end
 
+local function flat(layers)
+    local out = {}
+    for _, layer in ipairs(layers) do
+        if layer.op == "preset" then
+            for _, inner in ipairs(flat(layer.layers)) do out[#out + 1] = inner end
+        else
+            out[#out + 1] = layer
+        end
+    end
+    return out
+end
+
+local function dissolve(chain, layers)
+    chain.layers = layers
+    chain.video  = chain.video or chain.preset_video
+end
+
 function M.combine_on()
     local chain = M.parse(state.tracks)
     if not chain then return false end
-    local _, mix = tail(chain.layers)
+    local _, mix = tail(flat(chain.layers))
     return mix ~= nil
 end
 
 function M.only_on()
     local chain = M.parse(state.tracks)
     if not chain then return false end
-    return only_layer(chain.layers[#chain.layers])
+    local layers = flat(chain.layers)
+    return only_layer(layers[#layers])
 end
 
 function M.toggle_combine()
     local chain, err = M.parse(state.tracks)
     if not chain then return nil, err end
-    local _, mix, only = tail(chain.layers)
+    local layers       = flat(chain.layers)
+    local _, mix, only = tail(layers)
+    if mix or only then dissolve(chain, layers) end
     if mix then
         table.remove(chain.layers, mix)
         if only and not has_mix(chain.layers) then table.remove(chain.layers, #chain.layers) end
@@ -964,15 +1097,19 @@ end
 function M.toggle_only()
     local chain, err = M.parse(state.tracks)
     if not chain then return nil, err end
-    if only_layer(chain.layers[#chain.layers]) then
+    local layers = flat(chain.layers)
+    if only_layer(layers[#layers]) then
+        dissolve(chain, layers)
         table.remove(chain.layers, #chain.layers)
         save(chain)
         return false
     end
-    if not has_mix(chain.layers) then chain.layers[#chain.layers + 1] = { op = "mix", at = 1 } end
+    if not has_mix(layers) then chain.layers[#chain.layers + 1] = { op = "mix", at = 1 } end
     chain.layers[#chain.layers + 1] = { op = "keep", list = { { kind = "mixes" } } }
     save(chain)
     return true
 end
+
+M.reload()
 
 return M

@@ -336,10 +336,10 @@ Search opens a `/` line under the list title, the list stays and hides what does
 - Up/Down stop typing and move through the matches.
 - Esc while typing, or on the kept matches, clears the search and shows the whole list again.
 
-Selecting a match picks it, toggles the effect or config, uses the resolution preset, or moves to the render.<br>
+Selecting a match picks it, toggles the effect or config, uses the resolution or track preset, or moves to the render.<br>
 Configs can't be moved until the search is cleared.<br>
 Effects are searched as `file/name`, so `/default` lists one file's effects and `/fade` picks `fade`.<br>
-The Resolution and Tracks Lists have no search, their rows are your own few layers and tracks, the Resolution Presets list does.<br>
+The Resolution and Tracks Lists have no search, their rows are your own few layers and tracks, their Presets lists do.<br>
 Inputs like the Path prompt use ctrl+k/ctrl+j instead, since plain letters are typed into the input.
 
 #### Effects List
@@ -382,8 +382,9 @@ Layers added with `a`, or with `a` in the Presets list, get the cursor.
 | Keybind      | Action    | Description                                                              |
 |--------------|-----------|--------------------------------------------------------------------------|
 | Tab/0-9      | Toggle    | Keep or drop the track under the cursor, or with that number.            |
-| Enter        | Edit      | Open the layer's picker or type the chain, on a track it closes.         |
+| Enter        | Edit      | Open the layer's picker, type the chain or open Presets, a track closes. |
 | a            | Add       | Add a layer after the selected one, or at the end.                       |
+| p            | Presets   | Open the Presets list from any row.                                      |
 | e            | Type      | Type the selected layer, replacing it.                                   |
 | r            | Rename    | Rename the track or mix, empty restores its own name.                    |
 | o            | Position  | Move the track to a position, or set the mix's output position.          |
@@ -403,6 +404,9 @@ With `layer_preview=no` Tracks always stays, and each layer shows its result nex
 A layer added with `a` gets the cursor once it's kept.<br>
 
 The Chain row, the whole chain as one line, sits under the layers.<br>
+The Presets row under it shows the [preset](#track-presets) in use, its list shows each preset's chain and the `in > out` it gives, numbered and searchable like the other lists.<br>
+In it 0-9/Enter replaces the whole chain with the preset, `a` adds it after the selected layer or at the end, where it gets the cursor.<br>
+A preset is one layer in the list, hovering it shows the tracks after all of its layers, Enter or `e` types it, a mix from it is renamed through a `rename` layer.<br>
 
 The title shows how many tracks go in and out, e.g. `3 in > 1 out`.<br>
 Each track shows its title, codec, channels or size and language, mixes show the tracks they're mixed from.<br>
@@ -747,6 +751,7 @@ Change it on the fly in the [Tracks List](#tracks-list) and with Combine Audio a
 | `rename <track> "name" ...`   | Sets the title of tracks or mixes, e.g. `rename 1 "Game" 3 "Mic"`.        |
 | `move <track> at N ...`       | Moves tracks or mixes to position N, shifting the rest.                    |
 | `video <list>`                | The video tracks kept, dropping all of them renders audio only.            |
+| `combined`                    | A [preset](#track-presets), runs its layers in place.                      |
 
 - Lists are comma separated track numbers or names, `all` or `none`, e.g. `1,3` or `Voice,4`.
 - `@mixes` and `@sources` are the mixes and the file's own tracks present at that layer, so `keep @mixes` keeps just the mixes.
@@ -760,10 +765,11 @@ Change it on the fly in the [Tracks List](#tracks-list) and with Combine Audio a
 - A renamed track gets the new title in the render, and later layers can use the new name, e.g. `rename 1 "Game" mix Game,3`, its number still works too.
 - `at N` puts the mix at output position N, the end by default.
 - Unnamed mixes are `Mix`, `Mix 2`, ..., names are unique, can't hold `"`, `,` or `#` and can't start with `@`.
-- In lists a name needs quotes when it holds spaces or reads like something else, `all`, `none`, a number or an op word, e.g. `drop "Mix"` or `keep "Mix 2",1`.
+- In lists a name needs quotes when it holds spaces or reads like something else, `all`, `none`, a number, an op word or a preset, e.g. `drop "Mix"` or `keep "Mix 2",1`.
 - `all` in a later layer includes earlier mixes, so `mix mix all` mixes the source tracks again together with the first mix, making them louder in it.
 - The first mix is the default track, mixes use the Audio Encoder, or the codec of their first track with `copy`, the rest is copied unless something needs re-encoding.
 - Combine Audio and Combined Only add or remove a trailing `mix at 1` and `keep @mixes`, so the mix comes first like before 2.1.0.
+  They see the tail inside a trailing preset too, so they show ON for `combined_only`, changing one there writes the preset's layers out in its place.
 
 | Chain                         | Desktop, Discord and Mic                                                   |
 |-------------------------------|----------------------------------------------------------------------------|
@@ -773,6 +779,26 @@ Change it on the fly in the [Tracks List](#tracks-list) and with Combine Audio a
 | `keep 1,3 mix`                | Desktop, Mic and the 2 mixed.                                              |
 | `mix 1,3 "Voice" mix Voice,2` | The 3 tracks, Voice, then Voice and Discord mixed.                         |
 | `drop 2 video none`           | Desktop and Mic, no video.                                                 |
+
+#### Track Presets
+
+Presets are named chains in `.trk` files in `mpv/script-opts/tachytome/`, `default.trk` gets generated when there are none.<br>
+Every `.trk` file is read in alphabetical order, one preset per line as `name = chain`, `#` starts a comment:
+```
+combined      = mix at 1
+combined_only = mix keep @mixes
+voice_mix     = mix 2,3 "Voices" at 1
+audio_only    = video none
+```
+- A preset name works anywhere a layer can start, e.g. `combined_only`, `drop 2 combined` or `voice_mix audio_only`, and can use other presets.
+- A preset can hold audio layers and `video` together, its `video` applies unless a `video` after it replaces it.
+- Track numbers in a preset are positions in what the layers before it left, like anywhere else in the chain.
+- Names ignore case and can't hold spaces, `=`, `/`, `"`, `,` or `#`, be an op word, `all`, `none`, `at` or a number, or start with `-` or `@`.
+- A track or mix named like a preset needs quotes in lists, e.g. `keep "combined"`.
+- The same name in two files is fine, `file/name` picks a specific one, e.g. `mine/combined`, a bare name picks the first file.
+- The Tracks List opens them with `p` or the Presets row, 0-9/Enter uses one, `a` adds it to the chain.
+
+`default.trk` holds `combined` and `combined_only`, the same as Combine Audio and Combine Audio with Combined Only, with commented examples to uncomment: `voice_mix` and `audio_only`.
 
 ### Effects
 
