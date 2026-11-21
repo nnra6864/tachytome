@@ -156,22 +156,26 @@ local function parse_presets_file(path, file)
             if not word or size(word) or modes[word] or scalers[word] then
                 notify.show(lang.t("warn_invalid_line", { where = where, line = content }), false, "warn")
             else
-                upsert({ name = word, file = file, chain = chain, where = where, disabled = rest ~= nil })
+                upsert({ name = word, file = file, chain = chain, where = where, line = n, disabled = rest ~= nil })
             end
         end
     end
     f:close()
 end
 
-function M.reload()
+function M.reload(keep_missing)
     presets     = {}
     local dir   = common.get_conf_dir()
     local files = preset_files(dir)
-    if #files == 0 then
+    if #files == 0 and not keep_missing then
         common.ensure_default_conf("tachytome-resolutions.conf", "default.res")
         files = preset_files(dir)
     end
     for _, file in ipairs(files) do parse_presets_file(utils.join_path(dir, file), (file:gsub("%.res$", ""))) end
+end
+
+function M.all()
+    return presets
 end
 
 function M.presets()

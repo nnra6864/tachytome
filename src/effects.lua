@@ -242,6 +242,10 @@ function M.preset(id)
     return nil
 end
 
+function M.all()
+    return presets
+end
+
 function M.list()
     local list = {}
     for _, p in ipairs(presets) do
@@ -369,6 +373,7 @@ local function parse_effects_file(path, file)
 
             if current then
                 if head == "end" and #words == 1 then
+                    current.last = n
                     finish_effect(current)
                     current = nil
                 elseif head == "label" and #words > 1 then
@@ -407,6 +412,7 @@ local function parse_effects_file(path, file)
                     anchor   = "start",
                     file     = file,
                     where    = where,
+                    line     = n,
                     params   = {},
                     atoms    = {},
                     disabled = head == "disabled"
@@ -460,10 +466,10 @@ local function effect_files(dir)
     return files
 end
 
-local function load_presets()
+local function load_presets(keep_missing)
     local dir   = common.get_conf_dir()
     local files = effect_files(dir)
-    if #files == 0 then
+    if #files == 0 and not keep_missing then
         common.ensure_default_conf("tachytome-effects.conf", "default.eff")
         files = effect_files(dir)
     end
@@ -477,6 +483,16 @@ function M.reload()
     presets = {}
     load_presets()
     M.seed()
+end
+
+function M.reload_presets()
+    presets = {}
+    load_presets(true)
+    local kept = {}
+    for _, inst in ipairs(state.effects) do
+        if M.preset(inst.name) then kept[#kept + 1] = inst end
+    end
+    state.effects = kept
 end
 
 function M.label(name)

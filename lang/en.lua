@@ -82,6 +82,8 @@ return {
     key_type     = "type",
     key_rename   = "rename",
     key_position = "position",
+    key_manage   = "manage",
+    key_undo     = "undo",
 
     choice_yes       = "Yes",
     choice_no        = "No",
@@ -123,6 +125,17 @@ return {
     effects_unknown   = "effects_presets: unknown effect '{name}'",
     effects_disabled  = "effects_presets: effect '{name}' is disabled",
     effects_duplicate = "{label} ({file})",
+
+    presets_manage       = "Manage",
+    presets_none         = "No presets",
+    presets_enabled      = "Enabled {name}",
+    presets_disabled     = "Disabled {name}",
+    presets_deleted      = "Deleted {name}, u to undo",
+    presets_deleted_file = "Deleted {name} and the now empty {file}, u to undo",
+    presets_restored     = "Restored {name}",
+    presets_changed      = "{file} changed outside Tachytome, reloaded it",
+    presets_undo_changed = "{file} changed since, can't undo",
+    presets_write_failed = "Couldn't write {file}",
 
     tracks_audio      = "Audio",
     tracks_video      = "Video",

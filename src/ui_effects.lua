@@ -1,6 +1,7 @@
 local mp          = require 'mp'
 local effects     = require 'src.effects'
 local ui_input    = require 'src.ui_input'
+local ui_presets  = require 'src.ui_presets'
 local list_search = require 'src.list_search'
 local state       = require 'src.state'
 local notify      = require 'src.notify'
@@ -31,6 +32,7 @@ function M.show(on_close)
         mp.remove_key_binding("fx-tab")
         mp.remove_key_binding("fx-enter")
         mp.remove_key_binding("fx-d")
+        mp.remove_key_binding("fx-m")
         mp.remove_key_binding("fx-search")
         mp.remove_key_binding("fx-esc")
     end
@@ -51,9 +53,13 @@ function M.show(on_close)
     end
 
     local function cancel()
+        local kept = {}
+        for _, inst in ipairs(saved.effects) do
+            if effects.preset(inst.name) then kept[#kept + 1] = inst end
+        end
         state.effects_enabled   = saved.enabled
         state.opts.lossless_cut = saved.lossless
-        state.effects           = saved.effects
+        state.effects           = kept
         cleanup()
     end
 
@@ -120,7 +126,7 @@ function M.show(on_close)
             return string.format("\\h%s%s", theme.escape(row.preset.label), marker)
         end)
         if #vis == 0 then body = search.empty() end
-        local hints = search.hints({ { "Up/Down", "navigate" }, { "Tab", "toggle" }, { "d", "edit" }, { "/", "search" }, { "Enter", "apply" }, { "Esc", "cancel" } })
+        local hints = search.hints({ { "Up/Down", "navigate" }, { "Tab", "toggle" }, { "d", "edit" }, { "m", "manage" }, { "/", "search" }, { "Enter", "apply" }, { "Esc", "cancel" } })
         ov.data = search.title(lang.t("menu_effects")) .. "\\N" .. body .. "\\N" .. ui.tooltip(hints)
         ov:update()
     end
@@ -263,6 +269,21 @@ function M.show(on_close)
         mp.add_forced_key_binding("d", "fx-d", function()
             local row = rows[cursor]
             if row and row.kind == "preset" then edit_preset(row.preset) end
+        end)
+
+        mp.add_forced_key_binding("m", "fx-m", function()
+            teardown()
+            ui_presets.show({
+                title    = string.format("%s %s %s", lang.t("menu_effects"), state.opts.menu_path_separator, lang.t("presets_manage")),
+                on_close = open_ui,
+                kind     = {
+                    ext    = "eff",
+                    block  = true,
+                    all    = effects.all,
+                    reload = effects.reload_presets,
+                    label  = function(p) return p.label end
+                }
+            })
         end)
 
         mp.add_forced_key_binding("/", "fx-search", search.start)

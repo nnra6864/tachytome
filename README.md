@@ -337,7 +337,7 @@ Search opens a `/` line under the list title, the list stays and hides what does
 - Up/Down stop typing and move through the matches.
 - Esc while typing, or on the kept matches, clears the search and shows the whole list again.
 
-Selecting a match picks it, toggles the effect or config, uses the resolution or track preset, or moves to the render.<br>
+Selecting a match picks it, toggles the effect, config or a preset in the Preset Manager, uses the resolution or track preset, or moves to the render.<br>
 Configs can't be moved until the search is cleared.<br>
 Effects are searched as `file/name`, so `/default` lists one file's effects and `/fade` picks `fade`.<br>
 The Resolution and Tracks Lists have no search, their rows are your own few layers and tracks, their Presets lists do.<br>
@@ -349,6 +349,7 @@ Inputs like the Path prompt use ctrl+k/ctrl+j instead, since plain letters are t
 |---------|--------|-----------------------------------------------------|
 | Tab     | Toggle | Select or deselect the preset, or toggle Effects.   |
 | d       | Edit   | Edit the duration and params of the preset.         |
+| m       | Manage | Open the [Preset Manager](#preset-manager).         |
 | Enter   | Apply  | Keep the changes and close the list.                |
 | Esc     | Cancel | Put the effects back as they were and close.        |
 
@@ -373,7 +374,8 @@ With `layer_preview=no` the title keeps the output size and each layer shows the
 The Chain row, the whole chain as one line, sits under the layers.<br>
 Modes and scalers set on the layer are highlighted, the rest come from the defaults, `-` means it doesn't apply.<br>
 The Presets row shows the [preset](#resolution-presets) in use, its list shows each preset's chain and the size it gives, numbered and searchable like the other lists.<br>
-In it 0-9/Enter replaces the whole chain with the preset, `a` adds it after the selected layer or at the end.<br>
+In it 0-9/Enter replaces the whole chain with the preset, `a` adds it after the selected layer or at the end, `m` opens the [Preset Manager](#preset-manager).<br>
+With every preset disabled or deleted, `p` and the Presets row open the Preset Manager straight away.<br>
 The inputs show the resulting size while typing and share a history kept across restarts, an input can hold several layers, e.g. `5:4 crop 0.5x`.<br>
 Setting a chain or using a preset turns Resolution on, an empty Chain keeps the source.<br>
 Layers added with `a`, or with `a` in the Presets list, get the cursor.
@@ -406,7 +408,8 @@ A layer added with `a` gets the cursor once it's kept.<br>
 
 The Chain row, the whole chain as one line, sits under the layers.<br>
 The Presets row under it shows the [preset](#track-presets) in use, its list shows each preset's chain and the `in > out` it gives, numbered and searchable like the other lists.<br>
-In it 0-9/Enter replaces the whole chain with the preset, `a` adds it after the selected layer or at the end, where it gets the cursor.<br>
+In it 0-9/Enter replaces the whole chain with the preset, `a` adds it after the selected layer or at the end, where it gets the cursor, `m` opens the [Preset Manager](#preset-manager).<br>
+With every preset disabled or deleted, `p` and the Presets row open the Preset Manager straight away.<br>
 A preset is one layer in the list, hovering it shows the tracks after all of its layers, Enter or `e` types it, a mix from it is renamed through a `rename` layer.<br>
 
 The title shows how many tracks go in and out, e.g. `3 in > 1 out`.<br>
@@ -431,6 +434,25 @@ A `move` layer opens the move picker instead, listing the tracks in the order th
 The chain and layer inputs show the result while typing and share a history kept across restarts.<br>
 `v` shows the video tracks as a plain toggle list, `a` goes back to audio, set `tracks_type=video` to open on video.<br>
 Only the file's own tracks are listed, external audio files loaded into mpv aren't part of the render, dropping every video track renders audio only.
+
+#### Preset Manager
+
+| Keybind | Action | Description                                                  |
+|---------|--------|--------------------------------------------------------------|
+| Tab/0-9 | Toggle | Enable or disable the preset under the cursor, or by number. |
+| d       | Delete | Delete the preset.                                           |
+| u       | Undo   | Bring back the preset you just deleted, for 5 seconds.       |
+| Esc     | Back   | Go back to the list it was opened from.                      |
+
+`m` in the Resolution and Tracks Presets lists and in the Effects List opens it, listing every preset of that kind, the disabled ones too, under the file it's in, each with ON or OFF, and the chain for resolution and track presets.<br>
+It's numbered and searchable like the other lists, searched as `file/name`.<br>
+Every change is written to the file right away, so there's no Enter to apply, Esc just goes back.<br>
+- Toggling adds or removes [`disabled`](#resolution-presets) in front of the preset's line, the rest of the file stays as it is.
+- Deleting removes the preset's lines, an effect's whole block, and its comment above when the comment and the preset stand alone between blank lines, so a comment over a group of presets stays.
+- A file left with no presets, enabled or disabled, is deleted, `default.res`, `default.trk` or `default.eff` gets generated again on the next start when a kind has no files left.
+- Undo puts the file back as it was, the deleted file too, unless it changed since, and works until the manager closes or 5 seconds pass.
+- A file changed outside Tachytome while the manager is open is read again instead of written, the change is skipped with a warning.
+- An effect that gets disabled or deleted is deselected, a chain using a disabled or deleted preset says so when it's used.
 
 #### Configs List
 

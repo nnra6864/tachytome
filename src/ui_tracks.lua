@@ -1,13 +1,14 @@
-local mp       = require 'mp'
-local common   = require 'src.common'
-local tracks   = require 'src.tracks'
-local ui_input = require 'src.ui_input'
-local ui_list  = require 'src.ui_list'
-local state    = require 'src.state'
-local notify   = require 'src.notify'
-local theme    = require 'src.theme'
-local lang     = require 'src.lang'
-local ui       = require 'src.ui'
+local mp         = require 'mp'
+local common     = require 'src.common'
+local tracks     = require 'src.tracks'
+local ui_input   = require 'src.ui_input'
+local ui_list    = require 'src.ui_list'
+local ui_presets = require 'src.ui_presets'
+local state      = require 'src.state'
+local notify     = require 'src.notify'
+local theme      = require 'src.theme'
+local lang       = require 'src.lang'
+local ui         = require 'src.ui'
 
 local M = {}
 
@@ -528,7 +529,26 @@ function M.show(on_close)
             items[i] = p.label
             width    = math.max(width, common.text_len(p.chain))
         end
-        if #items == 0 then return end
+        local title = string.format("%s %s %s", lang.t("menu_tracks"), state.opts.menu_path_separator, lang.t("tracks_presets"))
+
+        local function manage()
+            teardown()
+            view = nil
+            ui_presets.show({
+                title    = string.format("%s %s %s", title, state.opts.menu_path_separator, lang.t("presets_manage")),
+                on_close = function()
+                    if #tracks.presets() > 0 then return pick_preset() end
+                    open_ui()
+                end,
+                kind     = {
+                    ext    = "trk",
+                    all    = tracks.all,
+                    reload = function() tracks.reload(true) end,
+                    detail = function(p) return p.chain end
+                }
+            })
+        end
+        if #items == 0 then return manage() end
 
         local function detail(i)
             return pad(list[i].chain, width) .. "\\h\\h" .. theme.escape(summary(list[i].label) or "")
@@ -543,13 +563,14 @@ function M.show(on_close)
             open_ui()
         end
 
-        local title = string.format("%s %s %s", lang.t("menu_tracks"), state.opts.menu_path_separator, lang.t("tracks_presets"))
+        local keys = { { "m", "manage", manage } }
+        if at then table.insert(keys, 1, { "a", "add", add }) end
         teardown()
         view = ui_list.cancel
         ui_list.show(title, items, in_use and in_use.label, function(label)
             state.tracks = label
             open_ui()
-        end, open_ui, { detail = detail, action = "use", keys = at and { { "a", "add", add } } or nil })
+        end, open_ui, { detail = detail, action = "use", keys = keys })
     end
 
     open_picker = function(index, before)

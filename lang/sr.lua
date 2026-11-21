@@ -79,6 +79,8 @@ return {
     key_scaler   = "skaliranje",
     key_use      = "koristi",
     key_presets  = "preseti",
+    key_manage   = "upravljaj",
+    key_undo     = "poništi",
 
     choice_yes       = "Da",
     choice_no        = "Ne",
@@ -120,6 +122,17 @@ return {
     effects_unknown   = "effects_presets: nepoznat efekat '{name}'",
     effects_disabled  = "effects_presets: efekat '{name}' je isključen",
     effects_duplicate = "{label} ({file})",
+
+    presets_manage       = "Upravljanje",
+    presets_none         = "Nema preseta",
+    presets_enabled      = "Uključen {name}",
+    presets_disabled     = "Isključen {name}",
+    presets_deleted      = "Obrisan {name}, u za poništavanje",
+    presets_deleted_file = "Obrisan {name} i sada prazna {file}, u za poništavanje",
+    presets_restored     = "Vraćen {name}",
+    presets_changed      = "{file} je izmenjen van Tachytome-a, ponovo učitan",
+    presets_undo_changed = "{file} je izmenjen u međuvremenu, poništavanje nije moguće",
+    presets_write_failed = "Upis u {file} nije uspeo",
 
     tracks_audio    = "Audio",
     tracks_video    = "Video",

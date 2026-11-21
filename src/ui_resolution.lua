@@ -4,6 +4,7 @@ local resolution = require 'src.resolution'
 local autocrop   = require 'src.autocrop'
 local ui_input   = require 'src.ui_input'
 local ui_list    = require 'src.ui_list'
+local ui_presets = require 'src.ui_presets'
 local state      = require 'src.state'
 local notify     = require 'src.notify'
 local theme      = require 'src.theme'
@@ -253,7 +254,26 @@ function M.show(on_close)
             items[i] = p.label
             width    = math.max(width, common.text_len(p.chain))
         end
-        if #items == 0 then return end
+        local title = string.format("%s %s %s", lang.t("menu_resolution"), state.opts.menu_path_separator, lang.t("resolution_presets"))
+
+        local function manage()
+            teardown()
+            view = nil
+            ui_presets.show({
+                title    = string.format("%s %s %s", title, state.opts.menu_path_separator, lang.t("presets_manage")),
+                on_close = function()
+                    if #resolution.presets() > 0 then return pick_preset() end
+                    open_ui()
+                end,
+                kind     = {
+                    ext    = "res",
+                    all    = resolution.all,
+                    reload = function() resolution.reload(true) end,
+                    detail = function(p) return p.chain end
+                }
+            })
+        end
+        if #items == 0 then return manage() end
 
         local function detail(i)
             local p   = list[i]
@@ -267,13 +287,12 @@ function M.show(on_close)
             open_ui()
         end
 
-        local title = string.format("%s %s %s", lang.t("menu_resolution"), state.opts.menu_path_separator, lang.t("resolution_presets"))
         teardown()
         view = ui_list.cancel
         ui_list.show(title, items, in_use and in_use.label, function(label)
             M.set_chain(label)
             open_ui()
-        end, open_ui, { detail = detail, action = "use", keys = { { "a", "add", add } } })
+        end, open_ui, { detail = detail, action = "use", keys = { { "a", "add", add }, { "m", "manage", manage } } })
     end
 
     local function pick_option(key, options, default)
