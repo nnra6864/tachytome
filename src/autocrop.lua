@@ -122,6 +122,13 @@ function M.request(on_done)
     return entry.box
 end
 
+function M.forget()
+    local path, a, b = current()
+    if not path then return end
+    local k = key(path, a, b)
+    if cache[k] and not cache[k].pending then cache[k] = nil end
+end
+
 function M.listen(name, fn)
     listeners[name] = fn
 end

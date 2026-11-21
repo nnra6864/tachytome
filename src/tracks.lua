@@ -9,7 +9,7 @@ local M = {}
 local history_path = utils.join_path(common.get_state_dir(), "tracks_history.json")
 local codec_exts   = { opus = "opus", aac = "m4a", alac = "m4a", mp3 = "mp3", flac = "flac", vorbis = "ogg" }
 local encoder_exts = { opus = "opus", aac = "m4a", mp3 = "mp3", flac = "flac", vorbis = "ogg", pcm = "wav" }
-local ops          = { keep = true, drop = true, mix = true, rename = true, video = true }
+local ops          = { keep = true, drop = true, mix = true, rename = true, move = true, video = true }
 local reserved     = { all = true, none = true, at = true }
 local groups       = { ["@mixes"] = "mixes", ["@sources"] = "sources" }
 
@@ -164,6 +164,20 @@ function M.parse(text)
             end
             if #layer.pairs == 0 then return nil, lang.t("tracks_needs_list", { token = token }) end
             layers[#layers + 1] = layer
+        elseif word == "move" then
+            local layer = { op = "move", pairs = {} }
+            while tokens[i] and not ops[tokens[i]:lower()] do
+                local items = list_items(tokens[i])
+                local item  = items and #items == 1 and items[1]
+                if not item or item.neg or (item.kind ~= "n" and item.kind ~= "name") then return fail(tokens[i]) end
+                if (tokens[i + 1] or ""):lower() ~= "at" then return fail(tokens[i + 1] or tokens[i]) end
+                local n = tonumber((tokens[i + 2] or ""):match("^%d+$") or "")
+                if not n or n < 1 then return fail(tokens[i + 2] or tokens[i + 1]) end
+                layer.pairs[#layer.pairs + 1] = { item = item, at = n }
+                i = i + 3
+            end
+            if #layer.pairs == 0 then return nil, lang.t("tracks_needs_list", { token = token }) end
+            layers[#layers + 1] = layer
         else
             return fail(token)
         end
@@ -201,6 +215,11 @@ function M.layer_text(layer)
     if layer.op == "rename" then
         local parts = { "rename" }
         for _, pair in ipairs(layer.pairs) do parts[#parts + 1] = item_text(pair.item) .. " \"" .. pair.name .. "\"" end
+        return table.concat(parts, " ")
+    end
+    if layer.op == "move" then
+        local parts = { "move" }
+        for _, pair in ipairs(layer.pairs) do parts[#parts + 1] = item_text(pair.item) .. " at " .. pair.at end
         return table.concat(parts, " ")
     end
     if layer.op ~= "mix" then return layer.op .. " " .. list_text(layer.list) end
@@ -331,6 +350,19 @@ function M.run(layers, audio_count, upto)
                         local renamed            = alias(e, pair.name)
                         present[k]               = renamed
                         names[pair.name:lower()] = renamed
+                    end
+                end
+            end
+        elseif layer.op == "move" then
+            present = filter(present, function() return true end)
+            for _, pair in ipairs(layer.pairs) do
+                local set, err = resolve({ pair.item }, present, names)
+                if not set then return nil, err, steps end
+                for k, e in ipairs(present) do
+                    if set[e] then
+                        table.remove(present, k)
+                        table.insert(present, math.min(pair.at, #present + 1), e)
+                        break
                     end
                 end
             end
@@ -630,8 +662,22 @@ function M.toggle(kind, entry)
     return false
 end
 
+local function tail_start(layers)
+    local drop, mix, only = tail(layers)
+    return drop or mix or only or #layers + 1
+end
+
+local function near_tail(layers, stop, op)
+    local i = stop - 1
+    while layers[i] and (layers[i].op == "rename" or layers[i].op == "move") do
+        if layers[i].op == op then return layers[i], i end
+        i = i - 1
+    end
+    return nil
+end
+
 local function rename_pair(layer, match)
-    if not layer or layer.op ~= "rename" then return nil end
+    if not layer then return nil end
     for k, pair in ipairs(layer.pairs) do
         if match(pair) then return k end
     end
@@ -657,14 +703,13 @@ function M.rename_text(entry, name)
     name = name:match("^%s*(.-)%s*$")
     if name ~= "" and not valid_name(name) then return nil, lang.t("tracks_unknown", { token = name }) end
 
-    local drop, mix, only = tail(chain.layers)
-    local stop            = drop or mix or only or #chain.layers + 1
-    local layer           = chain.layers[stop - 1]
-    local label           = M.entry_label(entry):lower()
-    local k               = rename_pair(layer, function(pair) return pair.name:lower() == label end)
+    local stop      = tail_start(chain.layers)
+    local layer, at = near_tail(chain.layers, stop, "rename")
+    local label     = M.entry_label(entry):lower()
+    local k         = rename_pair(layer, function(pair) return pair.name:lower() == label end)
     if not k and entry.kind == "source" then k = rename_pair(layer, function(pair) return same_item(pair.item, entry_item(entry)) end) end
 
-    local from = stop - 1
+    local from = at or stop - 1
     local item = name ~= "" and { kind = "name", name = name } or nil
     if k then
         if name == "" then
@@ -685,7 +730,7 @@ function M.rename_text(entry, name)
             end
         end
     elseif name ~= "" then
-        if not layer or layer.op ~= "rename" then
+        if not layer then
             layer = { op = "rename", pairs = {} }
             table.insert(chain.layers, stop, layer)
             from = stop
@@ -693,6 +738,37 @@ function M.rename_text(entry, name)
         layer.pairs[#layer.pairs + 1] = { item = entry_item(entry), name = name }
     end
     if item and label ~= (item.name or ""):lower() then retarget(chain.layers, from, label, item) end
+
+    local present, rerr = M.run(chain.layers, #M.list("audio"))
+    if not present then return nil, rerr end
+    return M.format(chain)
+end
+
+function M.move_text(entry, value)
+    local chain, err = M.parse(state.tracks)
+    if not chain then return nil, err end
+    value   = value:match("^%s*(.-)%s*$")
+    local n = tonumber(value:match("^%d+$") or "")
+    if value ~= "" and (not n or n < 1) then return nil, lang.t("tracks_unknown", { token = value }) end
+
+    local stop      = tail_start(chain.layers)
+    local layer, at = near_tail(chain.layers, stop, "move")
+    local item      = entry_item(entry)
+    local k         = rename_pair(layer, function(pair) return same_item(pair.item, item) end)
+    if k then
+        if n then
+            layer.pairs[k].at = n
+        else
+            table.remove(layer.pairs, k)
+            if #layer.pairs == 0 then table.remove(chain.layers, at) end
+        end
+    elseif n then
+        if not layer then
+            layer = { op = "move", pairs = {} }
+            table.insert(chain.layers, stop, layer)
+        end
+        layer.pairs[#layer.pairs + 1] = { item = item, at = n }
+    end
 
     local present, rerr = M.run(chain.layers, #M.list("audio"))
     if not present then return nil, rerr end
@@ -720,7 +796,7 @@ function M.toggle_combine()
         table.remove(chain.layers, mix)
         if only and not has_mix(chain.layers) then table.remove(chain.layers, #chain.layers) end
     else
-        table.insert(chain.layers, only or #chain.layers + 1, { op = "mix" })
+        table.insert(chain.layers, only or #chain.layers + 1, { op = "mix", at = 1 })
     end
     save(chain)
     return not mix
@@ -734,7 +810,7 @@ function M.toggle_only()
         save(chain)
         return false
     end
-    if not has_mix(chain.layers) then chain.layers[#chain.layers + 1] = { op = "mix" } end
+    if not has_mix(chain.layers) then chain.layers[#chain.layers + 1] = { op = "mix", at = 1 } end
     chain.layers[#chain.layers + 1] = { op = "keep", list = { { kind = "mixes" } } }
     save(chain)
     return true

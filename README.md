@@ -144,7 +144,7 @@ Updates that cross a major version, e.g. `2.4.1 -> 3.0.0`, are pointed out befor
 
 #### 2.0.0 -> 2.1.0
 
-- `combine_audio`, `combined_audio_only`, `combined_audio_name`, `audio_tracks` and `video_tracks` become one [`tracks`](#tracks) chain in the same config file, e.g. `audio_tracks=1,3` with `combine_audio=yes` becomes `tracks=keep 1,3 mix "Combined"`.
+- `combine_audio`, `combined_audio_only`, `combined_audio_name`, `audio_tracks` and `video_tracks` become one [`tracks`](#tracks) chain in the same config file, e.g. `audio_tracks=1,3` with `combine_audio=yes` becomes `tracks=keep 1,3 mix "Combined" at 1`, first like the old combined track.
 - `combined_audio_name` moves into the mix, `Combined` when it wasn't set, so the track keeps its old title, e.g. `mix "Voice"`, and Combined Only becomes `keep @mixes`.
 - Interrupted render queues are converted too, Skip leaves the old options in place, where they're ignored with a warning.
 
@@ -228,7 +228,7 @@ The `simple` menu keeps every item on a single level, switch to it with `s-s` `m
 |---------|------------------|-------------------------------------------------------------------------------------|
 | e       | Audio Encoder    | Set the audio encoder, `copy` keeps the source audio.                               |
 | b       | Audio Bitrate    | Set the bitrate, e.g. `128k`, shows the source or `Best`.<br>Empty resets it.       |
-| c       | Combine Audio    | Mix the kept tracks into a new one, a trailing `mix` in [Tracks](#tracks).          |
+| c       | Combine Audio    | Mix the kept tracks into a first track, a trailing `mix at 1` in [Tracks](#tracks). |
 | o       | Combined Only    | Keep only the mix, a trailing `keep @mixes`, turns Combine Audio on too.            |
 
 ##### Audio Export
@@ -385,7 +385,7 @@ Layers added with `a`, or with `a` in the Presets list, get the cursor.
 | a            | Add       | Add a layer after the selected one, or at the end.                       |
 | e            | Type      | Type the selected layer, replacing it.                                   |
 | r            | Rename    | Rename the track or mix, empty restores its own name.                    |
-| o            | Position  | Set the mix's output position, empty puts it at the end.                 |
+| o            | Position  | Move the track to a position, or set the mix's output position.          |
 | d            | Delete    | Delete the layer.                                                        |
 | Shift+Up/K   | Move Up   | Move the layer up, before the one above.                                 |
 | Shift+Down/J | Move Down | Move the layer down, after the one below.                                |
@@ -405,7 +405,9 @@ The Chain row, the whole chain as one line, sits under the layers.<br>
 
 The title shows how many tracks go in and out, e.g. `3 in > 1 out`.<br>
 Each track shows its title, codec, channels or size and language, mixes show the tracks they're mixed from.<br>
+Tracks are numbered by the file's own track number, the one the chain uses, so a dropped track leaves a gap instead of renumbering the rest, mixes have no number.<br>
 `0` is the 10th track, tracks past it have no number key, reach them with Up/Down and toggle them with Tab.<br>
+`o` on a track adds it to a `move` layer right before the Combine Audio tail, e.g. `move 3 at 1` puts track 3 first, empty takes it out again.<br>
 `a` offers `mix`, `keep` and `drop`, or Type... to write layers yourself, a picked layer opens its tracks right away.<br>
 `r` on a track adds it to a `rename` layer right before the Combine Audio tail, on a mix it renames the mix, and later layers using the old name follow it.<br>
 The tracks picker lists the tracks present at that layer, Tab/0-9 toggles one, ON is what stays for `keep` and `drop` and what's mixed for `mix`:
@@ -413,6 +415,7 @@ The tracks picker lists the tracks present at that layer, Tab/0-9 toggles one, O
 - `drop` writes the ones that are off, e.g. `drop 2`, which keeps working on files with more tracks.
 - `mix` starts on Include, writing the ones that are on, `m` switches to All except, writing the ones that are off, e.g. `mix -2`, and `r` renames the mix.
 - All mixes and All sources under the tracks pick the whole group, writing `@mixes` or `@sources`, toggling one of its tracks after that picks the rest of the group one by one, they're hidden in All except.
+  They show ON whenever every track of the group is, toggling one then turns the whole group off.
 
 Its `in > out` count updates as you pick, Enter keeps the picks, Esc cancels them, and cancels the layer too when `a` just added it.<br>
 The chain and layer inputs show the result while typing and share a history kept across restarts.<br>
@@ -704,7 +707,7 @@ Use `1024p` instead to keep it looking the way it did on screen.<br>
 - Fully black moments, like fades, are ignored.
 - Bars thinner than 0.5% of the frame are left alone.
 - Detection starts as soon as Resolution is on with `auto` in the chain, the layer shows `detecting...`, then the size or `no bars`, while off it shows `detects when on`.
-- Results are kept per file and cut range, moving a mark detects again.
+- Results are kept per file and cut range, moving a mark detects again, and so does turning Resolution off and on, to retry a bad result.
 - A render waits for a running detection before it starts.
 - Mode and scaler don't apply, put `auto` first, e.g. `auto 720p`, it measures the bars on the source.
 
@@ -737,6 +740,7 @@ Change it on the fly in the [Tracks List](#tracks-list) and with Combine Audio a
 | `drop <list>`                 | Drops these tracks.                                                        |
 | `mix [list] ["name"] [at N]`  | Adds a track mixed from the list, or from the kept tracks without one.     |
 | `rename <track> "name" ...`   | Sets the title of tracks or mixes, e.g. `rename 1 "Game" 3 "Mic"`.        |
+| `move <track> at N ...`       | Moves tracks or mixes to position N, shifting the rest.                    |
 | `video <list>`                | The video tracks kept, dropping all of them renders audio only.            |
 
 - Lists are comma separated track numbers or names, `all` or `none`, e.g. `1,3` or `Voice,4`.
@@ -752,7 +756,7 @@ Change it on the fly in the [Tracks List](#tracks-list) and with Combine Audio a
 - In lists a name needs quotes when it holds spaces or reads like something else, `all`, `none`, a number or an op word, e.g. `drop "Mix"` or `keep "Mix 2",1`.
 - `all` in a later layer includes earlier mixes, so `mix mix all` mixes the source tracks again together with the first mix, making them louder in it.
 - The first mix is the default track, mixes use the Audio Encoder, or the codec of their first track with `copy`, the rest is copied unless something needs re-encoding.
-- Combine Audio and Combined Only add or remove a trailing `mix` and `keep @mixes`.
+- Combine Audio and Combined Only add or remove a trailing `mix at 1` and `keep @mixes`, so the mix comes first like before 2.1.0.
 
 | Chain                         | Desktop, Discord and Mic                                                   |
 |-------------------------------|----------------------------------------------------------------------------|

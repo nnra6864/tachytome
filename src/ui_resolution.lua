@@ -16,6 +16,7 @@ local bindings = { "up", "down", "j", "k", "move-up", "move-down", "J", "K", "ta
 
 function M.set_enabled(enabled)
     state.resolution_enabled = enabled
+    if enabled then autocrop.forget() end
     if enabled and state.opts.lossless_cut then
         state.opts.lossless_cut = false
         notify.show(lang.t("value_set", { label = lang.t("menu_lossless_cut"), value = lang.t("value_off") }))

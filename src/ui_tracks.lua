@@ -38,6 +38,10 @@ local function added(step, prev)
     return nil
 end
 
+local function number_of(entry)
+    return entry.kind == "source" and entry.n or math.huge
+end
+
 local function track_details(entry, track)
     if entry.kind == "mix" then return lang.t("tracks_mix_of", { list = mix_inputs(entry) }) end
     if not track then return "" end
@@ -226,7 +230,7 @@ function M.show(on_close)
             elseif row.kind == "track" then
                 local entry   = row.row.entry
                 local details = track_details(entry, row.row.track)
-                local line    = string.format("%s%s\\h> %s", ui.number_prefix(row.k), pad(track_label(entry, row.row.track), widths.track), toggle(row.row.on))
+                local line    = string.format("%s%s\\h> %s", ui.number_prefix(number_of(entry)), pad(track_label(entry, row.row.track), widths.track), toggle(row.row.on))
                 if details ~= "" then line = string.format("%s %s%s", line, theme.c("dim_text_color"), theme.escape(details)) end
                 return line
             elseif row.kind == "layer" then
@@ -258,7 +262,7 @@ function M.show(on_close)
             local row = rows[cursor]
             hints     = { { "Up/Down", "navigate" }, { "a", "add" }, { "v", "video" }, { "Enter", "edit" }, { "Esc", "close" } }
             if row and row.kind == "track" then
-                hints = { { "Up/Down", "navigate" }, { "a", "add" }, { "r", "rename" }, { "v", "video" }, { "Tab/0-9", "toggle" }, { "Enter/Esc", "close" } }
+                hints = { { "Up/Down", "navigate" }, { "a", "add" }, { "r", "rename" }, { "o", "position" }, { "v", "video" }, { "Tab/0-9", "toggle" }, { "Enter/Esc", "close" } }
             elseif row and row.kind == "layer" then
                 local layer = chain.layers[row.index]
                 hints       = { { "Up/Down", "navigate" }, { "Shift+Up/Down", "move" }, { "a", "add" }, { "e", "type" } }
@@ -384,21 +388,22 @@ function M.show(on_close)
         edit_mix(row.index, "name")
     end
 
-    local function toggle_track(k)
-        local target
-        for _, row in ipairs(rows) do
-            if row.kind == "track" and row.k == k then target = row end
-        end
-        if not target then return end
+    local function toggle_row(target)
         local on, terr = tracks.toggle(kind, target.row.entry)
         if on == nil then return notify.show(terr, true, "error") end
         notify.show(lang.t("value_set", { label = lang.t("tracks_" .. kind) .. " " .. track_label(target.row.entry, target.row.track), value = lang.t(on and "value_on" or "value_off") }))
-        refresh({ kind = "track", k = k })
+        refresh({ kind = "track", k = target.k })
+    end
+
+    local function toggle_track(n)
+        for _, row in ipairs(rows) do
+            if row.kind == "track" and number_of(row.row.entry) == n then return toggle_row(row) end
+        end
     end
 
     local function tab_row()
         local row = rows[cursor]
-        if row and row.kind == "track" then toggle_track(row.k) end
+        if row and row.kind == "track" then toggle_row(row) end
     end
 
     local function edit_row()
@@ -408,7 +413,8 @@ function M.show(on_close)
         if not chain then return edit_chain() end
         if row.kind == "chain" then return edit_chain() end
         if row.kind ~= "layer" then return end
-        if chain.layers[row.index].op == "rename" then return edit_layer(row.index) end
+        local op = chain.layers[row.index].op
+        if op == "rename" or op == "move" then return edit_layer(row.index) end
         open_picker(row.index)
     end
 
@@ -520,6 +526,14 @@ function M.show(on_close)
             return on ~= (layer.op == "drop")
         end
 
+        local function group_on(g)
+            if flags[g] then return true end
+            for _, e in ipairs(present) do
+                if tracks.group_of(e) == g and not set[e] then return false end
+            end
+            return true
+        end
+
         local function hide()
             pov:remove()
             for _, name in ipairs(picks) do mp.remove_key_binding("trp-" .. name) end
@@ -547,11 +561,11 @@ function M.show(on_close)
                 local e = present[k]
                 if not e then
                     local g = extra[k - #present]
-                    return string.format("%s%s\\h> %s %s@%s", ui.number_prefix(11), pad(lang.t("tracks_" .. g), width), toggle(shown(flags[g] == true)), theme.c("dim_text_color"), g)
+                    return string.format("%s%s\\h> %s %s@%s", ui.number_prefix(11), pad(lang.t("tracks_" .. g), width), toggle(shown(group_on(g))), theme.c("dim_text_color"), g)
                 end
                 local details = track_details(e, e.kind == "source" and audio[e.n] or nil)
                 local on      = set[e] == true or flags[tracks.group_of(e)] == true
-                local line    = string.format("%s%s\\h> %s", ui.number_prefix(k), pad(track_label(e, audio[e.n]), width), toggle(shown(on)))
+                local line    = string.format("%s%s\\h> %s", ui.number_prefix(number_of(e)), pad(track_label(e, audio[e.n]), width), toggle(shown(on)))
                 if details ~= "" then line = string.format("%s %s%s", line, theme.c("dim_text_color"), theme.escape(details)) end
                 return line
             end)
@@ -574,14 +588,21 @@ function M.show(on_close)
             local g = e and tracks.group_of(e) or groups()[k - #present]
             if not g then return end
             pcursor = k
-            if not e or flags[g] then
-                local was = flags[g]
+            if not e then
+                local was = group_on(g)
                 flags[g]  = not was or nil
                 for _, m in ipairs(present) do
-                    if tracks.group_of(m) == g then set[m] = was and e and true or nil end
+                    if tracks.group_of(m) == g then set[m] = nil end
                 end
+            elseif flags[g] then
+                flags[g] = nil
+                for _, m in ipairs(present) do
+                    if tracks.group_of(m) == g then set[m] = true end
+                end
+                set[e] = nil
+            else
+                set[e] = not set[e] or nil
             end
-            if e then set[e] = not set[e] or nil end
             write()
             draw_picker()
         end
@@ -620,7 +641,11 @@ function M.show(on_close)
             draw_picker()
         end)
         for n = 1, 10 do
-            mp.add_forced_key_binding(ui.number_key(n), "trp-" .. n, function() flip(n) end)
+            mp.add_forced_key_binding(ui.number_key(n), "trp-" .. n, function()
+                for k, e in ipairs(present) do
+                    if number_of(e) == n then return flip(k) end
+                end
+            end)
         end
         mp.add_forced_key_binding("ESC", "trp-esc", function() close(false) end)
         draw_picker()
@@ -650,6 +675,13 @@ function M.show(on_close)
         mp.add_forced_key_binding("e", "tr-e", type_layer)
         mp.add_forced_key_binding("r", "tr-r", rename_row)
         mp.add_forced_key_binding("o", "tr-o", function()
+            local row = rows[cursor]
+            if kind == "audio" and row and row.kind == "track" then
+                local entry = row.row.entry
+                return prompt(lang.t("tracks_move", { name = track_label(entry, row.row.track) }), "", lang.t("hint_tracks_move"), nil, function(input)
+                    return tracks.move_text(entry, input)
+                end)
+            end
             local i = layer_row()
             if i then edit_mix(i, "position") end
         end)

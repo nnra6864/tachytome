@@ -151,10 +151,12 @@ return {
     tracks_name       = "Name",
     tracks_position   = "Position",
     tracks_rename     = "Rename {name}",
+    tracks_move       = "Move {name}",
     tracks_no_output  = "No audio",
-    hint_tracks       = "e.g. mix keep @mixes, keep 1,3 mix, mix -2 \"Voice\" at 1, rename 1 \"Game\" or drop 3 video none",
+    hint_tracks       = "e.g. mix keep @mixes, keep 1,3 mix, mix -2 \"Voice\" at 1, rename 1 \"Game\", move 3 at 1 or drop 3 video none",
     hint_tracks_name  = "Empty uses the default name",
     hint_tracks_title = "Empty keeps the track's own title",
+    hint_tracks_move  = "Position among the tracks, e.g. 1 for first, empty puts it back",
     hint_tracks_at    = "Output position, empty puts it at the end",
 
     configs_empty   = "No .conf files in {dir}",

@@ -61,7 +61,7 @@ function M.chain(o)
     if yes(o.combine_audio) then
         local name = o.combined_audio_name
         if not name or name == "" or name:find("[\",#]") then name = "Combined" end
-        parts[#parts + 1] = "mix \"" .. name .. "\""
+        parts[#parts + 1] = "mix \"" .. name .. "\" at 1"
         if yes(o.combined_audio_only) then parts[#parts + 1] = "keep @mixes" end
     end
     if video then parts[#parts + 1] = "video " .. video end
