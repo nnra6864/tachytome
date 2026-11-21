@@ -356,6 +356,7 @@ Inputs like the Path prompt use ctrl+k/ctrl+j instead, since plain letters are t
 | Esc          | Close     | Close the list.                                                          |
 
 The title shows the source and output size, the chain's layers are listed under Layers, each with its mode, the scaler it uses and the size it goes from and to.<br>
+The Chain row, the whole chain as one line, sits under the layers.<br>
 Modes and scalers set on the layer are highlighted, the rest come from the defaults, `-` means it doesn't apply.<br>
 The Presets row shows the [preset](#resolution-presets) in use, its list shows each preset's chain and the size it gives, numbered and searchable like the other lists.<br>
 In it 0-9/Enter replaces the whole chain with the preset, `a` adds it after the selected layer or at the end.<br>
@@ -381,7 +382,9 @@ Setting a chain or using a preset turns Resolution on, an empty Chain keeps the 
 The list shows your [`tracks`](#tracks) chain in three parts, updating live as you change it:
 - **Tracks**, the ones the chain leaves before its trailing Combine Audio `mix` and `only`, toggling one drops or restores it through a trailing `drop` layer, so Combine Audio mixes the ones that are on.
 - **Layers**, each with the tracks left after it, e.g. `mix -> 1, 3, Mix`, a `!` marks the layer that fails.
-- **Output**, the tracks rendered in their final order, with where each one comes from, e.g. `source 1` or `mix 1+3`.
+- **Output**, the tracks rendered in their final order, with where each one comes from, e.g. `source 1` or `mix 1+3`, always shown in full under the list.
+
+The Chain row, the whole chain as one line, sits under the layers.<br>
 
 The title shows how many tracks go in and out, e.g. `3 in > 1 out`.<br>
 Each track shows its title, codec, channels or size and language, mixes show the tracks they're mixed from.<br>

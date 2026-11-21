@@ -79,6 +79,7 @@ function M.show(on_close)
     local kind   = state.opts.tracks_type == "video" and "video" or "audio"
     local cursor = 1
     local rows   = {}
+    local pinned = {}
     local chain  = nil
     local err    = nil
     local open_ui
@@ -109,37 +110,43 @@ function M.show(on_close)
     local function rebuild()
         chain, err = tracks.parse(state.tracks)
         rows       = {}
+        pinned     = {}
+
+        local function section(key)
+            if #rows > 0 then rows[#rows + 1] = { kind = "gap" } end
+            rows[#rows + 1] = { kind = "header", key = key }
+        end
+
         if kind == "video" then
             for k, row in ipairs(tracks.rows("video") or {}) do rows[k] = { kind = "track", row = row, k = k } end
-        else
+        elseif not chain then
             rows[1] = { kind = "chain" }
-            if chain then
-                local audio                = tracks.list("audio")
-                local list, rerr           = tracks.rows("audio")
-                local present, perr, steps = tracks.run(chain.layers, #audio)
-                err                        = rerr or perr
-                if list and #list > 0 then
-                    rows[#rows + 1] = { kind = "gap" }
-                    rows[#rows + 1] = { kind = "header", key = "tracks_picks" }
-                    for k, row in ipairs(list) do rows[#rows + 1] = { kind = "track", row = row, k = k } end
-                end
-                if #chain.layers > 0 then
-                    rows[#rows + 1] = { kind = "gap" }
-                    rows[#rows + 1] = { kind = "header", key = "tracks_layers" }
-                    for i in ipairs(chain.layers) do
-                        local step      = steps and steps[i]
-                        rows[#rows + 1] = { kind = "layer", index = i, step = step, failed = not present and not step and i == #(steps or {}) + 1 }
-                    end
-                end
-                rows[#rows + 1] = { kind = "gap" }
-                rows[#rows + 1] = { kind = "header", key = "tracks_output" }
-                if not present then
-                    rows[#rows + 1] = { kind = "note", text = err, color = "error_color" }
-                elseif #present == 0 then
-                    rows[#rows + 1] = { kind = "note", text = lang.t("tracks_no_output"), color = "dim_text_color" }
-                end
-                for k, e in ipairs(present or {}) do rows[#rows + 1] = { kind = "out", entry = e, track = e.kind == "source" and audio[e.n] or nil, k = k } end
+        else
+            local audio                = tracks.list("audio")
+            local list, rerr           = tracks.rows("audio")
+            local present, perr, steps = tracks.run(chain.layers, #audio)
+            err                        = rerr or perr
+            if list and #list > 0 then
+                section("tracks_picks")
+                for k, row in ipairs(list) do rows[#rows + 1] = { kind = "track", row = row, k = k } end
             end
+            if #chain.layers > 0 then
+                section("tracks_layers")
+                for i in ipairs(chain.layers) do
+                    local step      = steps and steps[i]
+                    rows[#rows + 1] = { kind = "layer", index = i, step = step, failed = not present and not step and i == #(steps or {}) + 1 }
+                end
+            end
+            if #rows > 0 then rows[#rows + 1] = { kind = "gap" } end
+            rows[#rows + 1] = { kind = "chain" }
+
+            pinned[1] = { kind = "header", key = "tracks_output" }
+            if not present then
+                pinned[2] = { kind = "note", text = err, color = "error_color" }
+            elseif #present == 0 then
+                pinned[2] = { kind = "note", text = lang.t("tracks_no_output"), color = "dim_text_color" }
+            end
+            for k, e in ipairs(present or {}) do pinned[#pinned + 1] = { kind = "out", entry = e, track = e.kind == "source" and audio[e.n] or nil, k = k } end
         end
         if cursor > #rows then cursor = #rows end
         if cursor < 1 then cursor = 1 end
@@ -164,13 +171,13 @@ function M.show(on_close)
                 widths.track = math.max(widths.track, common.text_len(track_label(row.row.entry, row.row.track)))
             elseif row.kind == "layer" then
                 widths.layer = math.max(widths.layer, common.text_len(tracks.layer_text(chain.layers[row.index])))
-            elseif row.kind == "out" then
-                widths.out = math.max(widths.out, common.text_len(track_label(row.entry, row.track)))
             end
         end
+        for _, row in ipairs(pinned) do
+            if row.kind == "out" then widths.out = math.max(widths.out, common.text_len(track_label(row.entry, row.track))) end
+        end
 
-        local body = ui.list(#rows, cursor, function(i)
-            local row = rows[i]
+        local function line(row)
             if row.kind == "gap" then
                 return ""
             elseif row.kind == "header" then
@@ -197,7 +204,13 @@ function M.show(on_close)
             local details = row.entry.kind == "mix" and "" or track_details(row.entry, row.track)
             local tail    = details ~= "" and details .. ", " .. origin(row.entry) or origin(row.entry)
             return string.format("\\h%d %s\\h\\h%s%s", row.k, label, theme.c("dim_text_color"), theme.escape(tail))
-        end)
+        end
+
+        local body = ui.list(#rows, cursor, function(i) return line(rows[i]) end)
+        if #pinned > 0 then
+            body = body .. "\\N"
+            for _, row in ipairs(pinned) do body = body .. string.format("\\N%s\\h\\h%s%s", theme.c("text_color"), line(row), theme.reset()) end
+        end
 
         local title = string.format("%s %s %s", lang.t("menu_tracks"), state.opts.menu_path_separator, lang.t("tracks_" .. kind))
         local head  = ui.title(title)

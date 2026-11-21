@@ -69,14 +69,16 @@ function M.show(on_close)
 
     local function rebuild_rows()
         layers = resolution.parse(state.resolution) or {}
-        rows   = { { kind = "toggle" }, { kind = "chain" }, { kind = "presets" } }
+        rows   = { { kind = "toggle" }, { kind = "presets" } }
         if #layers > 0 then
             rows[#rows + 1] = { kind = "gap" }
             rows[#rows + 1] = { kind = "header" }
         end
         for i in ipairs(layers) do rows[#rows + 1] = { kind = "layer", index = i } end
+        rows[#rows + 1] = { kind = "gap" }
+        rows[#rows + 1] = { kind = "chain" }
         if cursor > #rows then cursor = #rows end
-        if rows[cursor].kind == "gap" or rows[cursor].kind == "header" then cursor = 3 end
+        if rows[cursor].kind == "gap" or rows[cursor].kind == "header" then cursor = 2 end
     end
 
     local function navigable()
