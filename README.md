@@ -94,12 +94,12 @@ You may clone the repo directly to your config:
 
 - Unix
 ```sh
-git clone https://git.nnstdios.com/nnra6864/tachytome ~/.config/mpv/scripts/tachytome
+git clone https://github.com/nnra6864/tachytome ~/.config/mpv/scripts/tachytome
 ```
 
 - Windows (Powershell)
 ```sh
-git clone https://git.nnstdios.com/nnra6864/tachytome "$env:APPDATA/mpv/scripts/tachytome"
+git clone https://github.com/nnra6864/tachytome "$env:APPDATA/mpv/scripts/tachytome"
 ```
 
 ### Submodule
@@ -910,7 +910,7 @@ AI was heavily used in the making of Tachytome.<br>
 As I am not yet familiar with Greek, I asked AI for Greek Eastern Orthodox words that would fit my app, and then combined the 2 suggestions.<br>
 On top of that, AI wrote most of the code for me as I genuinely don't enjoy [Lua](https://www.lua.org/).<br>
 To be precise:
-1. I gave it my original [fish](https://fishshell.com/) script, [spc](https://git.nnstdios.com/nnra6864/Ricerland/src/branch/nous/.config/fish/functions/spc.fish).
+1. I gave it my original [fish](https://fishshell.com/) script, [spc](https://github.com/nnra6864/Ricerland/src/branch/nous/.config/fish/functions/spc.fish).
 2. Wrote instructions in pseudocode style that it translated to Lua.
 3. Dictated the exact structure of the code.
 
