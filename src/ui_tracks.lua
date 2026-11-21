@@ -97,6 +97,8 @@ function M.show(on_close)
     local chain  = nil
     local err    = nil
     local focus  = nil
+    local loaded = 0
+    local view   = nil
     local open_ui
     local open_picker
     local open_move
@@ -116,6 +118,7 @@ function M.show(on_close)
     local function cleanup()
         if not active then return end
         teardown()
+        view = nil
         if on_close then on_close() end
     end
 
@@ -301,8 +304,14 @@ function M.show(on_close)
     end
 
     local function prompt(title, current, hint, history, compose, submit, back)
-        back = back or open_ui
+        local file = loaded
+        local to   = back or open_ui
+        back       = function()
+            if file ~= loaded then return open_ui() end
+            to()
+        end
         teardown()
+        view = ui_input.cancel
         ui_input.show({
             title       = string.format("%s %s %s", lang.t("menu_tracks"), state.opts.menu_path_separator, title),
             current     = current,
@@ -316,6 +325,7 @@ function M.show(on_close)
                 return summary(text)
             end,
             on_submit   = function(input)
+                if file ~= loaded then return open_ui() end
                 local text, bad = compose(input)
                 if not text then
                     notify.show(bad or lang.t("tracks_unknown", { token = input }), true, "warn")
@@ -428,6 +438,7 @@ function M.show(on_close)
         local title = string.format("%s %s %s", lang.t("menu_tracks"), state.opts.menu_path_separator, lang.t("tracks_add"))
         local before = state.tracks
         teardown()
+        view = ui_list.cancel
         ui_list.show(title, items, nil, function(op)
             if op == lang.t("tracks_type") then
                 return prompt(lang.t("tracks_add"), "", lang.t("hint_tracks"), tracks.history, function(input)
@@ -555,6 +566,11 @@ function M.show(on_close)
             hide()
             if not keep then state.tracks = restore end
             if keep and before then focus = { kind = "layer", index = index } end
+            open_ui()
+        end
+
+        view = function()
+            hide()
             open_ui()
         end
 
@@ -697,6 +713,11 @@ function M.show(on_close)
             open_ui()
         end
 
+        view = function()
+            hide()
+            open_ui()
+        end
+
         local function draw_move()
             local out   = output()
             local width = 0
@@ -826,11 +847,19 @@ function M.show(on_close)
     open_ui = function()
         ui.clear_osd()
         active         = true
+        view           = nil
         state.ui_owner = "tracks"
         bind()
         refresh(focus)
         focus = nil
     end
+
+    ui.on_file("tracks", function()
+        loaded = loaded + 1
+        focus  = nil
+        if active then return refresh() end
+        if view then view() end
+    end)
 
     open_ui()
 end

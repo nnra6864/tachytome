@@ -10,6 +10,12 @@ local M = {}
 local bindings = { "list-up", "list-down", "list-j", "list-k", "list-enter", "list-search", "list-esc" }
 for i = 1, 10 do bindings[#bindings + 1] = "list-" .. i end
 
+local current = nil
+
+function M.cancel()
+    if current then current() end
+end
+
 function M.show(title, items, current_val, on_select, on_cancel, opts)
     ui.clear_osd()
     state.ui_owner = "list"
@@ -37,6 +43,7 @@ function M.show(title, items, current_val, on_select, on_cancel, opts)
     local function teardown()
         active         = false
         state.ui_owner = nil
+        current        = nil
         search.close()
         ov:remove()
         for _, name in ipairs(bindings) do mp.remove_key_binding(name) end
@@ -100,6 +107,7 @@ function M.show(title, items, current_val, on_select, on_cancel, opts)
         if search.filtering() then return search.clear() end
         cleanup()
     end
+    current = cleanup
 
     mp.add_forced_key_binding("UP", "list-up", function() move(-1) end, {repeatable = true})
     mp.add_forced_key_binding("DOWN", "list-down", function() move(1) end, {repeatable = true})

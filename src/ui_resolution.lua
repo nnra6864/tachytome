@@ -48,6 +48,7 @@ function M.show(on_close)
     local rows   = {}
     local layers = {}
     local focus  = nil
+    local view   = nil
     local open_ui
     local pick_preset
 
@@ -66,6 +67,7 @@ function M.show(on_close)
     local function cleanup()
         if not active then return end
         teardown()
+        view = nil
         if on_close then on_close() end
     end
 
@@ -179,6 +181,7 @@ function M.show(on_close)
 
     local function prompt(title, current, allow_empty, compose)
         teardown()
+        view = ui_input.refresh
         ui_input.show({
             title       = string.format("%s %s %s", lang.t("menu_resolution"), state.opts.menu_path_separator, title),
             current     = current,
@@ -266,6 +269,7 @@ function M.show(on_close)
 
         local title = string.format("%s %s %s", lang.t("menu_resolution"), state.opts.menu_path_separator, lang.t("resolution_presets"))
         teardown()
+        view = ui_list.cancel
         ui_list.show(title, items, in_use and in_use.label, function(label)
             M.set_chain(label)
             open_ui()
@@ -284,6 +288,7 @@ function M.show(on_close)
         local title    = string.format("%s %s %s", lang.t("menu_resolution"), state.opts.menu_path_separator, lang.t("resolution_" .. key))
 
         teardown()
+        view = ui_list.cancel
         ui_list.show(title, items, layer[key] or fallback, function(val)
             layer[key] = val ~= fallback and val or nil
             commit(layers)
@@ -352,6 +357,7 @@ function M.show(on_close)
         ui.clear_osd()
 
         active         = true
+        view           = nil
         state.ui_owner = "resolution"
         bind()
         draw()
@@ -359,6 +365,14 @@ function M.show(on_close)
 
     autocrop.listen("resolution", function()
         if active then draw() end
+    end)
+
+    ui.on_file("resolution", function()
+        if active then
+            rebuild_rows()
+            return draw()
+        end
+        if view then view() end
     end)
 
     open_ui()

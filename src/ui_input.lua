@@ -139,4 +139,12 @@ function M.show(opts)
     edit.add_char_bindings("osd-input", add_char, opts.allow_space)
 end
 
+function M.cancel()
+    cancel()
+end
+
+function M.refresh()
+    if active then render() end
+end
+
 return M

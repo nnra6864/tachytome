@@ -18,6 +18,7 @@ local autocrop   = require 'src.autocrop'
 local tracks     = require 'src.tracks'
 local ui_confirm = require 'src.ui_confirm'
 local ui_migrate = require 'src.ui_migrate'
+local ui         = require 'src.ui'
 local lang       = require 'src.lang'
 
 local platform             = common.get_platform()
@@ -93,6 +94,7 @@ mp.register_event("file-loaded", function()
         recovery.check_orphan_temp_files(utils.split_path(loaded_path))
         check_orphans()
     end
+    ui.file_loaded()
     menu.refresh()
 end)
 

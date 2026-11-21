@@ -328,6 +328,7 @@ Lists you toggle things in, Effects, Configs and the tracks picker, all work the
 
 The Resolution and Tracks Lists hold rows you open, so Enter edits the row, and Esc closes keeping what you changed, since each edit already has its own Enter and Esc.<br>
 Their toggles work with Tab too, and Enter on a toggle row closes the list.<br>
+Loading another file while they're open redraws them for it, a tracks picker or prompt from the old file goes back to the Tracks List of the new one, a Resolution prompt stays and shows sizes for the new file.<br>
 
 Search opens a `/` line under the list title, the list stays and hides what doesn't match as you type, ignoring case, then:
 - Enter with one match, or one exact name, selects it, e.g. `/av1` picks `av1` even though `nv_av1` also matches.

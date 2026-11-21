@@ -5,7 +5,16 @@ local lang   = require 'src.lang'
 
 local M = {}
 
-local visible_rows = 15
+local visible_rows   = 15
+local file_listeners = {}
+
+function M.on_file(name, fn)
+    file_listeners[name] = fn
+end
+
+function M.file_loaded()
+    for _, fn in pairs(file_listeners) do fn() end
+end
 
 function M.clear_osd()
     mp.set_osd_ass(0, 0, "")
