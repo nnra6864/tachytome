@@ -15,4 +15,4 @@ Track chain strings are English only until the feature is final, no `sr`.
   each with its chain and the `in > out` it gives; 0-9/Enter replaces the
   chain, `a` adds it after the selected layer.
 - The generated `default.trk` holds `combined = mix` and
-  `combined_only = mix only`.
+  `combined_only = mix keep @mixes`.

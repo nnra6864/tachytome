@@ -11,8 +11,8 @@ local ui       = require 'src.ui'
 
 local M = {}
 
-local bindings = { "up", "down", "j", "k", "move-up", "move-down", "J", "K", "tab", "enter", "a", "v", "e", "n", "o", "d", "esc" }
-local picks    = { "up", "down", "j", "k", "tab", "enter", "A", "esc" }
+local bindings = { "up", "down", "j", "k", "move-up", "move-down", "J", "K", "tab", "enter", "a", "v", "e", "r", "o", "d", "esc" }
+local picks    = { "up", "down", "j", "k", "tab", "enter", "m", "r", "esc" }
 for i = 1, 10 do
     bindings[#bindings + 1] = tostring(i)
     picks[#picks + 1]       = tostring(i)
@@ -20,7 +20,7 @@ end
 
 local function track_label(entry, track)
     if entry.kind == "mix" then return entry.name end
-    return track and track.title or lang.t("tracks_track", { n = entry.n })
+    return entry.title or track and track.title or lang.t("tracks_track", { n = entry.n })
 end
 
 local function mix_inputs(entry)
@@ -256,17 +256,17 @@ function M.show(on_close)
             local row = rows[cursor]
             hints     = { { "Up/Down", "navigate" }, { "a", "add" }, { "v", "video" }, { "Enter", "edit" }, { "Esc", "close" } }
             if row and row.kind == "track" then
-                hints = { { "Up/Down", "navigate" }, { "a", "add" }, { "v", "video" }, { "Tab/0-9", "toggle" }, { "Enter/Esc", "close" } }
+                hints = { { "Up/Down", "navigate" }, { "a", "add" }, { "r", "rename" }, { "v", "video" }, { "Tab/0-9", "toggle" }, { "Enter/Esc", "close" } }
             elseif row and row.kind == "layer" then
                 local layer = chain.layers[row.index]
                 hints       = { { "Up/Down", "navigate" }, { "Shift+Up/Down", "move" }, { "a", "add" }, { "e", "type" } }
                 if layer.op == "mix" then
-                    hints[#hints + 1] = { "n", "name" }
+                    hints[#hints + 1] = { "r", "rename" }
                     hints[#hints + 1] = { "o", "position" }
                 end
                 hints[#hints + 1] = { "v", "video" }
                 hints[#hints + 1] = { "d", "delete" }
-                if layer.op ~= "only" then hints[#hints + 1] = { "Enter", "edit" } end
+                hints[#hints + 1] = { "Enter", "edit" }
                 hints[#hints + 1] = { "Esc", "close" }
             end
         end
@@ -294,7 +294,8 @@ function M.show(on_close)
         save()
     end
 
-    local function prompt(title, current, hint, history, compose, submit)
+    local function prompt(title, current, hint, history, compose, submit, back)
+        back = back or open_ui
         teardown()
         ui_input.show({
             title       = string.format("%s %s %s", lang.t("menu_tracks"), state.opts.menu_path_separator, title),
@@ -302,7 +303,7 @@ function M.show(on_close)
             hint        = hint,
             history     = history,
             allow_space = true,
-            on_cancel   = open_ui,
+            on_cancel   = back,
             preview     = function(input)
                 local text, cerr = compose(input)
                 if not text then return cerr or "" end
@@ -316,7 +317,7 @@ function M.show(on_close)
                     if submit then submit(input) end
                     state.tracks = text
                 end
-                open_ui()
+                back()
             end
         })
     end
@@ -342,7 +343,7 @@ function M.show(on_close)
         end, tracks.remember)
     end
 
-    local function edit_mix(i, field)
+    local function edit_mix(i, field, back)
         local layer = chain.layers[i]
         if layer.op ~= "mix" then return end
         local is_name = field == "name"
@@ -360,7 +361,25 @@ function M.show(on_close)
             end
             local text = tracks.format(copy)
             return tracks.parse(text) and text or nil
-        end)
+        end, nil, back)
+    end
+
+    local function rename(entry, back)
+        local current = entry.kind == "mix" and entry.name or entry.title or ""
+        local hint    = lang.t(entry.kind == "mix" and "hint_tracks_name" or "hint_tracks_title")
+        prompt(lang.t("tracks_rename", { name = track_label(entry, entry.n and tracks.list("audio")[entry.n]) }), current, hint, nil, function(input)
+            return tracks.rename_text(entry, input)
+        end, nil, back)
+    end
+
+    local function rename_row()
+        local row = rows[cursor]
+        if kind ~= "audio" or not row then return end
+        if row.kind == "track" then return rename(row.row.entry) end
+        if row.kind ~= "layer" or chain.layers[row.index].op ~= "mix" then return end
+        local mix = row.step and added(row.step, row.prev)
+        if mix then return rename(mix) end
+        edit_mix(row.index, "name")
     end
 
     local function toggle_track(k)
@@ -386,7 +405,9 @@ function M.show(on_close)
         if row.kind == "track" then return cleanup() end
         if not chain then return edit_chain() end
         if row.kind == "chain" then return edit_chain() end
-        if row.kind == "layer" and chain.layers[row.index].op ~= "only" then return open_picker(row.index) end
+        if row.kind ~= "layer" then return end
+        if chain.layers[row.index].op == "rename" then return edit_layer(row.index) end
+        open_picker(row.index)
     end
 
     local function add_layer()
@@ -394,7 +415,7 @@ function M.show(on_close)
         if not chain then return edit_chain() end
         local row   = rows[cursor]
         local at    = (row and row.kind == "layer") and row.index + 1 or #chain.layers + 1
-        local items = { "mix", "keep", "drop", "only", lang.t("tracks_type") }
+        local items = { "mix", "keep", "drop", lang.t("tracks_type") }
         local title = string.format("%s %s %s", lang.t("menu_tracks"), state.opts.menu_path_separator, lang.t("tracks_add"))
         local before = state.tracks
         teardown()
@@ -408,7 +429,6 @@ function M.show(on_close)
             if op == "keep" then layer.list = { { kind = "all" } } end
             if op == "drop" then layer.list = { { kind = "none" } } end
             commit(splice(chain.layers, at, 0, { layer }))
-            if op == "only" then return open_ui() end
             open_picker(at, before)
         end, open_ui)
     end
@@ -452,12 +472,14 @@ function M.show(on_close)
     open_picker = function(index, before)
         local restore = before or state.tracks
         teardown()
+        rebuild()
         local audio          = tracks.list("audio")
         local present, names = tracks.run(chain.layers, #audio, index)
         local pov            = mp.create_osd_overlay("ass-events")
         local pcursor        = 1
         local layer          = chain.layers[index]
-        local exclude        = tracks.excludes(layer.list)
+        local is_mix         = layer.op == "mix"
+        local exclude        = is_mix and tracks.excludes(layer.list)
         local set            = {}
         present              = present or {}
         if layer.list then
@@ -467,10 +489,14 @@ function M.show(on_close)
         end
         state.ui_owner = "tracks"
 
-        local function close(keep)
+        local function hide()
             pov:remove()
             for _, name in ipairs(picks) do mp.remove_key_binding("trp-" .. name) end
             state.ui_owner = nil
+        end
+
+        local function close(keep)
+            hide()
             if not keep then state.tracks = restore end
             open_ui()
         end
@@ -486,14 +512,20 @@ function M.show(on_close)
             local body = ui.list(#present, pcursor, function(k)
                 local e       = present[k]
                 local details = track_details(e, e.kind == "source" and audio[e.n] or nil)
-                local line    = string.format("%s%s\\h> %s", ui.number_prefix(k), pad(track_label(e, audio[e.n]), width), toggle(set[e] == true))
+                local line    = string.format("%s%s\\h> %s", ui.number_prefix(k), pad(track_label(e, audio[e.n]), width), toggle((set[e] == true) ~= (layer.op == "drop")))
                 if details ~= "" then line = string.format("%s %s%s", line, theme.c("dim_text_color"), theme.escape(details)) end
                 return line
             end)
             if #present == 0 then body = string.format("\\N%s\\h\\h%s%s", theme.c("dim_text_color"), theme.escape(lang.t("tracks_no_audio")), theme.reset()) end
             local title = string.format("%s %s %s", lang.t("menu_tracks"), state.opts.menu_path_separator, tracks.layer_text(layer))
-            local head  = ui.title(title) .. ui.dim(lang.t(exclude and "tracks_all_except" or "tracks_include") .. ", " .. summary(state.tracks))
-            local hints = { { "Tab/0-9", "toggle" }, { "Up/Down", "navigate" }, { "A", "mode" }, { "Enter", "apply" }, { "Esc", "cancel" } }
+            local sum   = summary(state.tracks)
+            if is_mix then sum = lang.t(exclude and "tracks_all_except" or "tracks_include") .. ", " .. sum end
+            local head  = ui.title(title) .. ui.dim(sum)
+            local hints = { { "Up/Down", "navigate" }, { "Tab/0-9", "toggle" }, { "Enter", "apply" }, { "Esc", "cancel" } }
+            if is_mix then
+                hints[#hints + 1] = { "m", "mode" }
+                hints[#hints + 1] = { "r", "rename" }
+            end
             pov.data    = head .. "\\N" .. body .. "\\N" .. ui.tooltip(hints)
             pov:update()
         end
@@ -519,7 +551,17 @@ function M.show(on_close)
         mp.add_forced_key_binding("j", "trp-j", function() move(1) end, {repeatable = true})
         mp.add_forced_key_binding("TAB", "trp-tab", function() flip(pcursor) end)
         mp.add_forced_key_binding("ENTER", "trp-enter", function() close(true) end)
-        mp.add_forced_key_binding("A", "trp-A", function()
+        mp.add_forced_key_binding("r", "trp-r", function()
+            if not is_mix then return end
+            local back = function() open_picker(index, restore) end
+            local _, _, steps = tracks.run(chain.layers, #audio, index + 1)
+            local mix         = steps and steps[index] and added(steps[index], steps[index - 1])
+            hide()
+            if mix then return rename(mix, back) end
+            edit_mix(index, "name", back)
+        end)
+        mp.add_forced_key_binding("m", "trp-m", function()
+            if not is_mix then return end
             exclude = not exclude
             write()
             draw_picker()
@@ -553,10 +595,7 @@ function M.show(on_close)
         end)
         mp.add_forced_key_binding("v", "tr-v", function() switch("video") end)
         mp.add_forced_key_binding("e", "tr-e", type_layer)
-        mp.add_forced_key_binding("n", "tr-n", function()
-            local i = layer_row()
-            if i then edit_mix(i, "name") end
-        end)
+        mp.add_forced_key_binding("r", "tr-r", rename_row)
         mp.add_forced_key_binding("o", "tr-o", function()
             local i = layer_row()
             if i then edit_mix(i, "position") end

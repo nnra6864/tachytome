@@ -75,6 +75,15 @@ local function first_mix(out)
     return out[1]
 end
 
+local function needs_graph(out)
+    local last = 0
+    for _, e in ipairs(out) do
+        if e.kind == "mix" or e.n <= last then return true end
+        last = e.n
+    end
+    return false
+end
+
 local function select_streams(info, opts, output_file)
     local result, err = tracks.build(opts.tracks or "", #info.audio, #info.video)
     if not result then return nil, err end
@@ -84,7 +93,9 @@ local function select_streams(info, opts, output_file)
     info.single     = info.format ~= nil and info.format.single == true
     info.audio_out  = result.audio
     if info.single and #info.audio_out > 1 then info.audio_out = { first_mix(info.audio_out) } end
-    info.has_mix    = (first_mix(info.audio_out) or {}).kind == "mix"
+    info.a_titles   = {}
+    for k, e in ipairs(info.audio_out) do info.audio_out[k], info.a_titles[k] = tracks.flatten(e) end
+    info.has_mix    = needs_graph(info.audio_out)
     info.video_pick = {}
     if not info.audio_only then
         for i = 1, #info.video do
@@ -221,10 +232,16 @@ local function append_mixes(args, media_info, af_effects)
     local parts = {}
     local ids   = 0
 
+    local function sources_of(e)
+        local list = {}
+        for k, input in ipairs(e.inputs) do list[k] = tracks.flatten(input) end
+        return list
+    end
+
     local function need(e)
         uses[e] = (uses[e] or 0) + 1
         if uses[e] == 1 and e.kind == "mix" then
-            for _, input in ipairs(e.inputs) do need(input) end
+            for _, input in ipairs(sources_of(e)) do need(input) end
         end
     end
 
@@ -252,9 +269,10 @@ local function append_mixes(args, media_info, af_effects)
     local function emit(e)
         if pads[e] then return end
         if e.kind == "source" then return split("0:a:" .. (e.n - 1), e) end
-        for _, input in ipairs(e.inputs) do emit(input) end
+        local list = sources_of(e)
+        for _, input in ipairs(list) do emit(input) end
         local inputs = ""
-        for _, input in ipairs(e.inputs) do inputs = inputs .. "[" .. table.remove(pads[input], 1) .. "]" end
+        for _, input in ipairs(list) do inputs = inputs .. "[" .. table.remove(pads[input], 1) .. "]" end
         local l           = label()
         parts[#parts + 1] = string.format("%samix=inputs=%d:normalize=0[%s]", inputs, #e.inputs, l)
         split(l, e)
@@ -279,7 +297,9 @@ local function append_mixes(args, media_info, af_effects)
         end
     end
 
-    table.insert(args, "-filter_complex") table.insert(args, table.concat(parts, ";"))
+    if #parts > 0 then
+        table.insert(args, "-filter_complex") table.insert(args, table.concat(parts, ";"))
+    end
     map_source(args, media_info, {})
     for k = 1, #out do
         table.insert(args, "-map") table.insert(args, maps[k])
@@ -288,7 +308,7 @@ local function append_mixes(args, media_info, af_effects)
     local default = nil
     for k, e in ipairs(out) do
         local meta = media_info.audio[tracks.leaf(e)]
-        local title = e.kind == "mix" and e.name or (chain and meta.title)
+        local title = media_info.a_titles[k] or (e.kind == "mix" and e.name) or (chain and meta.title)
         audio_codec_args(args, media_info, k - 1, meta, e.kind == "mix" or chain ~= nil)
         if e.kind == "mix" then default = default or k end
         if title then
@@ -307,6 +327,10 @@ local function append_audio_effects(args, media_info, af_effects)
     end
     for k, i in ipairs(kept_audio(media_info)) do
         audio_codec_args(args, media_info, k - 1, media_info.audio[i + 1], #af_effects > 0)
+        local title = media_info.a_titles[k]
+        if title then
+            table.insert(args, "-metadata:s:a:" .. (k - 1)) table.insert(args, string.format("TITLE=%s", title))
+        end
     end
 end
 

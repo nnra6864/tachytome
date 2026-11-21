@@ -80,7 +80,7 @@ return {
     key_use      = "use",
     key_presets  = "presets",
     key_type     = "type",
-    key_name     = "name",
+    key_rename   = "rename",
     key_position = "position",
 
     choice_yes       = "Yes",
@@ -149,9 +149,11 @@ return {
     tracks_all_except = "All except",
     tracks_name       = "Name",
     tracks_position   = "Position",
+    tracks_rename     = "Rename {name}",
     tracks_no_output  = "No audio",
-    hint_tracks       = "e.g. mix only, keep 1,3 mix, mix -2 \"Voice\" at 1 or drop 3 video none",
+    hint_tracks       = "e.g. mix keep @mixes, keep 1,3 mix, mix -2 \"Voice\" at 1, rename 1 \"Game\" or drop 3 video none",
     hint_tracks_name  = "Empty uses the default name",
+    hint_tracks_title = "Empty keeps the track's own title",
     hint_tracks_at    = "Output position, empty puts it at the end",
 
     configs_empty   = "No .conf files in {dir}",
