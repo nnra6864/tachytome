@@ -852,39 +852,32 @@ local function same_order(a, b)
     return true
 end
 
-local function steady(idx)
-    local len  = {}
-    local prev = {}
-    local best = nil
-    for p = 1, #idx do
-        len[p] = 1
-        for q = 1, p - 1 do
-            if idx[q] < idx[p] and len[q] + 1 > len[p] then
-                len[p]  = len[q] + 1
-                prev[p] = q
-            end
-        end
-        if not best or len[p] > len[best] then best = p end
-    end
-    local keep = {}
-    while best do
-        keep[best] = true
-        best       = prev[best]
-    end
-    return keep
-end
-
 local function order_pairs(input, wanted)
     local idx = {}
     for p, e in ipairs(wanted) do idx[p] = M.position(input, e) end
-    local keep = steady(idx)
-    local out  = {}
-    for p in ipairs(wanted) do
-        if not keep[p] then out[#out + 1] = { item = { kind = "n", n = idx[p] }, at = p } end
+    local best  = nil
+    local score = math.huge
+    if #wanted <= 12 then
+        for mask = 0, 2 ^ #wanted - 1 do
+            local out  = {}
+            local cost = 0
+            local bit  = mask
+            for p = 1, #wanted do
+                if bit % 2 == 1 then
+                    out[#out + 1] = { item = { kind = "n", n = idx[p] }, at = p }
+                    cost          = cost + 100 + (idx[p] == p and 1 or 0)
+                end
+                bit = math.floor(bit / 2)
+            end
+            if cost < score and same_order(apply_pairs(input, out), wanted) then
+                best  = out
+                score = cost
+            end
+        end
     end
-    if same_order(apply_pairs(input, out), wanted) then return out end
+    if best then return best end
 
-    out = {}
+    local out = {}
     for p, e in ipairs(wanted) do
         if not M.same_entry(apply_pairs(input, out)[p], e) then out[#out + 1] = { item = { kind = "n", n = idx[p] }, at = p } end
     end
