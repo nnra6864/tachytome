@@ -53,6 +53,7 @@ return {
     no_video      = "Nijedan video nije učitan",
     search_none   = "Nema poklapanja",
 
+    keys_title   = "Tasteri",
     key_hint     = "{keys} {action}",
     key_navigate = "kretanje",
     key_select   = "izaberi",

@@ -147,7 +147,7 @@ function M.show(on_close)
             local sizes = ""
             if step and step.auto then
                 sizes = string.format("%s%s", theme.c("dim_text_color"), theme.escape(lang.t("resolution_auto_" .. step.auto)))
-            elseif step and prev then
+            elseif step and prev and not o.layer_preview then
                 sizes = string.format("%s%s -> %s", theme.c("dim_text_color"), resolution.dims(prev), resolution.dims(step))
             elseif err and row.index == #steps + 1 then
                 sizes = string.format("%s!", theme.c("error_color"))
@@ -155,16 +155,21 @@ function M.show(on_close)
             return string.format("\\h%s\\h\\h%s\\h\\h%s\\h\\h%s", pad(cell[1], width[1]), mode, sc, sizes)
         end)
 
+        local row     = rows[cursor]
         local summary = err or (source and resolution.describe(state.resolution) or lang.t("no_video"))
         local head    = ui.title(lang.t("menu_resolution"))
+        if o.layer_preview and source and row and row.kind == "layer" then
+            local step = steps[row.index]
+            local text = step and string.format("%s -> %s", resolution.dims(steps.source), resolution.dims(step)) or err or ""
+            summary    = lang.t("resolution_after", { layer = layers[row.index].size, sizes = text })
+        end
         if summary ~= "" then head = head .. ui.dim(summary) end
 
-        local row   = rows[cursor]
-        local hints = { { "Up/Down", "navigate" }, { "Enter", "edit" }, { "a", "add" }, { "p", "presets" }, { "Esc", "close" } }
+        local hints = { { "Up/Down", "navigate" }, { "a", "add" }, { "p", "presets" }, { "Enter", "edit" }, { "Esc", "close" } }
         if row and row.kind == "layer" then
-            hints = { { "Up/Down", "navigate" }, { "Enter", "edit" }, { "a", "add" }, { "m", "mode" }, { "s", "scaler" }, { "p", "presets" }, { "d", "delete" }, { "Shift+Up/Down", "move" }, { "Esc", "close" } }
+            hints = { { "Up/Down", "navigate" }, { "Shift+Up/Down", "move" }, { "a", "add" }, { "p", "presets" }, { "m", "mode" }, { "s", "scaler" }, { "d", "delete" }, { "Enter", "edit" }, { "Esc", "close" } }
         elseif row and row.kind == "toggle" then
-            hints = { { "Up/Down", "navigate" }, { "Tab", "toggle" }, { "a", "add" }, { "p", "presets" }, { "Enter/Esc", "close" } }
+            hints = { { "Up/Down", "navigate" }, { "a", "add" }, { "p", "presets" }, { "Tab", "toggle" }, { "Enter/Esc", "close" } }
         end
         ov.data = head .. "\\N" .. body .. "\\N" .. ui.tooltip(hints)
         ov:update()

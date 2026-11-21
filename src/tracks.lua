@@ -169,12 +169,15 @@ local function list_text(list)
     local pos = {}
     local neg = {}
     for _, item in ipairs(list) do
-        local target        = item.neg and neg or pos
-        target[#target + 1] = item_text(item)
+        if item.neg then
+            neg[#neg + 1] = "-" .. item_text(item)
+        else
+            pos[#pos + 1] = item_text(item)
+        end
     end
     local parts = {}
     if #pos > 0 then parts[#parts + 1] = table.concat(pos, ",") end
-    if #neg > 0 then parts[#parts + 1] = "-" .. table.concat(neg, ",") end
+    if #neg > 0 then parts[#parts + 1] = table.concat(neg, ",") end
     return table.concat(parts, " ")
 end
 

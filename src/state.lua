@@ -61,6 +61,7 @@ local M = {
         start_out_duration  = 0.75,
         start_out_easing    = "ease_out_cubic",
         menu_path_separator = "/",
+        layer_preview       = true,
         selected_menu       = "default",
         language            = "auto",
         version             = "latest"

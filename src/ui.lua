@@ -20,12 +20,32 @@ function M.dim(text)
     return string.format("\\N%s%s%s%s", theme.f(true), theme.c("dim_text_color"), theme.escape(text), theme.reset())
 end
 
+local key_rank    = { Tab = 1, ["0-9"] = 2, Enter = 3, Esc = 4 }
+local nav_rank    = { navigate = 1, history = 2, move = 3, search = 4 }
+local action_rank = { add = 1, presets = 2, use = 3, tracks = 4, type = 5, name = 6, position = 7, mode = 8, scaler = 9, path = 10, edit = 11, audio = 12, video = 13, delete = 14 }
+
 function M.tooltip(hints)
-    local parts = {}
-    for _, hint in ipairs(hints) do
-        parts[#parts + 1] = lang.t("key_hint", { keys = hint[1], action = lang.t("key_" .. hint[2]) })
+    local groups = { {}, {}, {} }
+    for i, hint in ipairs(hints) do
+        local key  = hint[1]:match("^[^/]+")
+        local row  = key_rank[key] and 3 or nav_rank[hint[2]] and 1 or 2
+        local rank = key_rank[key] or nav_rank[hint[2]] or action_rank[hint[2]] or 100
+        local list = groups[row]
+        list[#list + 1] = { rank = rank, i = i, text = lang.t("key_hint", { keys = hint[1], action = lang.t("key_" .. hint[2]) }) }
     end
-    return M.dim("(" .. table.concat(parts, ", ") .. ")")
+    local out = string.format("\\N%s%s%s", theme.f(true), theme.c("text_color"), theme.escape(lang.t("keys_title")))
+    for _, list in ipairs(groups) do
+        if #list > 0 then
+            table.sort(list, function(a, b)
+                if a.rank ~= b.rank then return a.rank < b.rank end
+                return a.i < b.i
+            end)
+            local parts = {}
+            for k, part in ipairs(list) do parts[k] = theme.escape(part.text) end
+            out = out .. string.format("\\N%s%s", theme.c("dim_text_color"), table.concat(parts, "\\h\\h"))
+        end
+    end
+    return out .. theme.reset()
 end
 
 function M.wrap(index, delta, count)

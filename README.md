@@ -318,6 +318,7 @@ See the `cursor_` options in the [builtin config](./tachytome.conf) for its colo
 | 0-9         | Select        | Selects the item number, `0` is the 10th.       |
 | /           | Search        | Search the list by name.                        |
 
+Every menu lists its keys under Keys, moving around on the first line, the menu's own actions on the second and Tab, Enter and Esc last, each always in the same spot.<br>
 Number keys are shown next to the first 10 items of lists that have them, the rest are reached with Up/Down.<br>
 Lists put what's rarely needed last, so with wrapping it's only a few Up presses away from the top.<br>
 Lists you toggle things in, Effects, Configs and the tracks picker, all work the same way:
@@ -364,7 +365,9 @@ Inputs like the Path prompt use ctrl+k/ctrl+j instead, since plain letters are t
 | Shift+Down/J | Move Down | Move the layer down, after the one below.                                |
 | Esc          | Close     | Close the list.                                                          |
 
-The title shows the source and output size, the chain's layers are listed under Layers, each with its mode, the scaler it uses and the size it goes from and to.<br>
+The title shows the source and output size, the chain's layers are listed under Layers, each with its mode and the scaler it uses.<br>
+Hovering a layer previews it, the title shows the size after that layer, e.g. `After 0.5x: 1920x1080 -> 960x540`.<br>
+With `layer_preview=no` the title keeps the output size and each layer shows the size it goes from and to instead.<br>
 The Chain row, the whole chain as one line, sits under the layers.<br>
 Modes and scalers set on the layer are highlighted, the rest come from the defaults, `-` means it doesn't apply.<br>
 The Presets row shows the [preset](#resolution-presets) in use, its list shows each preset's chain and the size it gives, numbered and searchable like the other lists.<br>
@@ -377,9 +380,9 @@ Setting a chain or using a preset turns Resolution on, an empty Chain keeps the 
 | Keybind      | Action    | Description                                                              |
 |--------------|-----------|--------------------------------------------------------------------------|
 | Tab/0-9      | Toggle    | Keep or drop the track under the cursor, or with that number.            |
-| Enter        | Edit      | Type the chain or replace the selected layer, on a track it closes.      |
+| Enter        | Edit      | Pick the layer's tracks or type the chain, on a track it closes.         |
 | a            | Add       | Add a layer after the selected one, or at the end.                       |
-| s            | Tracks    | Pick the layer's tracks.                                                 |
+| e            | Type      | Type the selected layer, replacing it.                                   |
 | n            | Name      | Name the mix, empty uses the default name.                               |
 | o            | Position  | Set the mix's output position, empty puts it at the end.                 |
 | d            | Delete    | Delete the layer.                                                        |
@@ -390,8 +393,11 @@ Setting a chain or using a preset turns Resolution on, an empty Chain keeps the 
 
 The list shows your [`tracks`](#tracks) chain in three parts, updating live as you change it:
 - **Tracks**, the ones the chain leaves before its trailing Combine Audio `mix` and `only`, toggling one drops or restores it through a trailing `drop` layer, so Combine Audio mixes the ones that are on.
-- **Layers**, each with the tracks left after it, e.g. `mix -> 1, 3, Mix`, a `!` marks the layer that fails.
+- **Layers**, a `!` marks the layer that fails.
 - **Output**, the tracks rendered in their final order, with where each one comes from, e.g. `source 1` or `mix 1+3`, always shown in full under the list.
+  Hovering a layer previews it, Output then shows the tracks after that layer, titled e.g. `After mix -2`.
+
+With `layer_preview=no` Output always shows the final tracks, and each layer shows its result next to it instead, a mix the tracks it mixes, e.g. `mix -2 -> Mix = 1+3`, the rest the tracks left after it.<br>
 
 The Chain row, the whole chain as one line, sits under the layers.<br>
 
@@ -726,7 +732,8 @@ Change it on the fly in the [Tracks List](#tracks-list) and with Combine Audio a
 | `video <list>`                | The video tracks kept, dropping all of them renders audio only.            |
 
 - Lists are comma separated track numbers or mix names, `all` or `none`, e.g. `1,3` or `Voice,4`.
-- A leading `-` excludes, `-2,5` and `all -2,5` keep everything but 2 and 5, which keeps working when a file has more tracks.
+- A `-` excludes, `-2,-5` and `all -2,-5` keep everything but 2 and 5, which keeps working when a file has more tracks.
+- A `-` at the start of a list excludes the whole list, so `-2,5` means `-2,-5`, Tachytome writes it the second way.
 - Track numbers count the file's own tracks from 1 and always mean the original track, so adding a mix never renumbers anything.
 - Numbers the file doesn't have are skipped, a mix needs 2 tracks or it's skipped too, so a chain works on any file.
 - `at N` puts the mix at output position N, the end by default.

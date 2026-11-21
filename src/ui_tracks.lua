@@ -11,7 +11,7 @@ local ui       = require 'src.ui'
 
 local M = {}
 
-local bindings = { "up", "down", "j", "k", "move-up", "move-down", "J", "K", "tab", "enter", "a", "v", "s", "n", "o", "d", "esc" }
+local bindings = { "up", "down", "j", "k", "move-up", "move-down", "J", "K", "tab", "enter", "a", "v", "e", "n", "o", "d", "esc" }
 local picks    = { "up", "down", "j", "k", "tab", "enter", "A", "esc" }
 for i = 1, 10 do
     bindings[#bindings + 1] = tostring(i)
@@ -23,12 +23,23 @@ local function track_label(entry, track)
     return track and track.title or lang.t("tracks_track", { n = entry.n })
 end
 
-local function track_details(entry, track)
-    if entry.kind == "mix" then
-        local inputs = {}
-        for _, e in ipairs(entry.inputs) do inputs[#inputs + 1] = tracks.entry_label(e) end
-        return lang.t("tracks_mix_of", { list = table.concat(inputs, "+") })
+local function mix_inputs(entry)
+    local inputs = {}
+    for _, e in ipairs(entry.inputs) do inputs[#inputs + 1] = tracks.entry_label(e) end
+    return table.concat(inputs, "+")
+end
+
+local function added(step, prev)
+    local seen = {}
+    for _, e in ipairs(prev or {}) do seen[e] = true end
+    for _, e in ipairs(step) do
+        if e.kind == "mix" and not seen[e] then return e end
     end
+    return nil
+end
+
+local function track_details(entry, track)
+    if entry.kind == "mix" then return lang.t("tracks_mix_of", { list = mix_inputs(entry) }) end
     if not track then return "" end
     local parts = {}
     if track.codec then parts[#parts + 1] = track.codec end
@@ -79,7 +90,7 @@ function M.show(on_close)
     local kind   = state.opts.tracks_type == "video" and "video" or "audio"
     local cursor = 1
     local rows   = {}
-    local pinned = {}
+    local output = nil
     local chain  = nil
     local err    = nil
     local open_ui
@@ -110,7 +121,7 @@ function M.show(on_close)
     local function rebuild()
         chain, err = tracks.parse(state.tracks)
         rows       = {}
-        pinned     = {}
+        output     = nil
 
         local function section(key)
             if #rows > 0 then rows[#rows + 1] = { kind = "gap" } end
@@ -134,19 +145,12 @@ function M.show(on_close)
                 section("tracks_layers")
                 for i in ipairs(chain.layers) do
                     local step      = steps and steps[i]
-                    rows[#rows + 1] = { kind = "layer", index = i, step = step, failed = not present and not step and i == #(steps or {}) + 1 }
+                    rows[#rows + 1] = { kind = "layer", index = i, step = step, prev = steps and steps[i - 1], failed = not present and not step and i == #(steps or {}) + 1 }
                 end
             end
             if #rows > 0 then rows[#rows + 1] = { kind = "gap" } end
             rows[#rows + 1] = { kind = "chain" }
-
-            pinned[1] = { kind = "header", key = "tracks_output" }
-            if not present then
-                pinned[2] = { kind = "note", text = err, color = "error_color" }
-            elseif #present == 0 then
-                pinned[2] = { kind = "note", text = lang.t("tracks_no_output"), color = "dim_text_color" }
-            end
-            for k, e in ipairs(present or {}) do pinned[#pinned + 1] = { kind = "out", entry = e, track = e.kind == "source" and audio[e.n] or nil, k = k } end
+            output          = { audio = audio, present = present }
         end
         if cursor > #rows then cursor = #rows end
         if cursor < 1 then cursor = 1 end
@@ -164,7 +168,32 @@ function M.show(on_close)
         if #nav > 0 and ui.position(nav, cursor) == 0 then cursor = nav[1] end
     end
 
+    local function preview()
+        local row = rows[cursor]
+        return state.opts.layer_preview and row and row.kind == "layer" and row or nil
+    end
+
+    local function output_rows()
+        if not output then return {} end
+        local present = output.present
+        local text    = lang.t("tracks_output")
+        local row     = preview()
+        if row then
+            present = row.step
+            text    = lang.t("tracks_after", { layer = tracks.layer_text(chain.layers[row.index]) })
+        end
+        local out = { { kind = "note", text = text, color = "dim_text_color" } }
+        if not present then
+            out[2] = { kind = "note", text = err, color = "error_color" }
+        elseif #present == 0 then
+            out[2] = { kind = "note", text = lang.t("tracks_no_output"), color = "dim_text_color" }
+        end
+        for k, e in ipairs(present or {}) do out[#out + 1] = { kind = "out", entry = e, track = e.kind == "source" and output.audio[e.n] or nil, k = k } end
+        return out
+    end
+
     local function draw()
+        local pinned = output_rows()
         local widths = { track = 0, layer = 0, out = 0 }
         for _, row in ipairs(rows) do
             if row.kind == "track" then
@@ -185,7 +214,8 @@ function M.show(on_close)
             elseif row.kind == "note" then
                 return string.format("%s%s", theme.c(row.color), theme.escape(row.text or ""))
             elseif row.kind == "chain" then
-                local text = state.tracks ~= "" and state.tracks or lang.t("value_none")
+                local text = chain and tracks.format(chain) or state.tracks
+                if text == "" then text = lang.t("value_none") end
                 return string.format("%s > %s%s", theme.escape(lang.t("tracks_chain")), theme.c("value_color"), theme.escape(text))
             elseif row.kind == "track" then
                 local entry   = row.row.entry
@@ -195,9 +225,11 @@ function M.show(on_close)
                 return line
             elseif row.kind == "layer" then
                 local text = pad(tracks.layer_text(chain.layers[row.index]), widths.layer)
-                if row.step then return string.format("\\h%s\\h\\h%s-> %s", text, theme.c("dim_text_color"), theme.escape(labels(row.step))) end
                 if row.failed then return string.format("\\h%s\\h\\h%s!", text, theme.c("error_color")) end
-                return "\\h" .. text
+                if not row.step or state.opts.layer_preview then return "\\h" .. text end
+                local mix = chain.layers[row.index].op == "mix" and added(row.step, row.prev)
+                local to  = mix and string.format("%s = %s", mix.name, mix_inputs(mix)) or labels(row.step)
+                return string.format("\\h%s\\h\\h%s-> %s", text, theme.c("dim_text_color"), theme.escape(to))
             end
             local label = pad(track_label(row.entry, row.track), widths.out)
             if row.entry.kind == "mix" then label = theme.c("value_color") .. label .. theme.c("text_color") end
@@ -222,19 +254,19 @@ function M.show(on_close)
             local sum = chain and summary(state.tracks) or err
             if sum and sum ~= "" then head = head .. ui.dim(sum) end
             local row = rows[cursor]
-            hints     = { { "Up/Down", "navigate" }, { "Enter", "edit" }, { "a", "add" }, { "v", "video" }, { "Esc", "close" } }
+            hints     = { { "Up/Down", "navigate" }, { "a", "add" }, { "v", "video" }, { "Enter", "edit" }, { "Esc", "close" } }
             if row and row.kind == "track" then
-                hints = { { "Tab/0-9", "toggle" }, { "Up/Down", "navigate" }, { "a", "add" }, { "v", "video" }, { "Enter/Esc", "close" } }
+                hints = { { "Up/Down", "navigate" }, { "a", "add" }, { "v", "video" }, { "Tab/0-9", "toggle" }, { "Enter/Esc", "close" } }
             elseif row and row.kind == "layer" then
                 local layer = chain.layers[row.index]
-                hints       = { { "Up/Down", "navigate" }, { "Enter", "edit" }, { "a", "add" } }
-                if layer.op ~= "only" then hints[#hints + 1] = { "s", "tracks" } end
+                hints       = { { "Up/Down", "navigate" }, { "Shift+Up/Down", "move" }, { "a", "add" }, { "e", "type" } }
                 if layer.op == "mix" then
                     hints[#hints + 1] = { "n", "name" }
                     hints[#hints + 1] = { "o", "position" }
                 end
+                hints[#hints + 1] = { "v", "video" }
                 hints[#hints + 1] = { "d", "delete" }
-                hints[#hints + 1] = { "Shift+Up/Down", "move" }
+                if layer.op ~= "only" then hints[#hints + 1] = { "Enter", "edit" } end
                 hints[#hints + 1] = { "Esc", "close" }
             end
         end
@@ -354,10 +386,7 @@ function M.show(on_close)
         if row.kind == "track" then return cleanup() end
         if not chain then return edit_chain() end
         if row.kind == "chain" then return edit_chain() end
-        if row.kind == "layer" then
-            if chain.layers[row.index].op == "only" then return end
-            return edit_layer(row.index)
-        end
+        if row.kind == "layer" and chain.layers[row.index].op ~= "only" then return open_picker(row.index) end
     end
 
     local function add_layer()
@@ -408,9 +437,9 @@ function M.show(on_close)
         refresh({ kind = "layer", index = j })
     end
 
-    local function pick_tracks()
+    local function type_layer()
         local i = layer_row()
-        if i and chain.layers[i].op ~= "only" then open_picker(i) end
+        if i then edit_layer(i) end
     end
 
     local function switch(to)
@@ -523,7 +552,7 @@ function M.show(on_close)
             add_layer()
         end)
         mp.add_forced_key_binding("v", "tr-v", function() switch("video") end)
-        mp.add_forced_key_binding("s", "tr-s", pick_tracks)
+        mp.add_forced_key_binding("e", "tr-e", type_layer)
         mp.add_forced_key_binding("n", "tr-n", function()
             local i = layer_row()
             if i then edit_mix(i, "name") end

@@ -53,6 +53,7 @@ return {
     no_video      = "No video loaded",
     search_none   = "No matches",
 
+    keys_title   = "Keys",
     key_hint     = "{keys} {action}",
     key_navigate = "navigate",
     key_select   = "select",
@@ -78,7 +79,7 @@ return {
     key_scaler   = "scaler",
     key_use      = "use",
     key_presets  = "presets",
-    key_tracks   = "tracks",
+    key_type     = "type",
     key_name     = "name",
     key_position = "position",
 
@@ -140,6 +141,7 @@ return {
     tracks_picks      = "Tracks",
     tracks_layers     = "Layers",
     tracks_output     = "Output",
+    tracks_after      = "After {layer}",
     tracks_layer      = "Layer",
     tracks_add        = "Add Layer",
     tracks_type       = "Type...",
@@ -196,6 +198,7 @@ return {
     resolution_default      = "Default ({value})",
     resolution_presets      = "Presets",
     resolution_layers       = "Layers",
+    resolution_after        = "After {layer}: {sizes}",
     resolution_detecting    = "Detecting black bars...",
     resolution_auto_pending = "detecting...",
     resolution_auto_none    = "no bars",
