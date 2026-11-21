@@ -152,6 +152,7 @@ return {
     tracks_position   = "Position",
     tracks_rename     = "Rename {name}",
     tracks_move       = "Move {name}",
+    tracks_from       = "was {n}",
     tracks_no_output  = "No audio",
     hint_tracks       = "e.g. mix keep @mixes, keep 1,3 mix, mix -2 \"Voice\" at 1, rename 1 \"Game\", move 3 at 1 or drop 3 video none",
     hint_tracks_name  = "Empty uses the default name",

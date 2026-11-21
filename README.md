@@ -381,7 +381,7 @@ Layers added with `a`, or with `a` in the Presets list, get the cursor.
 | Keybind      | Action    | Description                                                              |
 |--------------|-----------|--------------------------------------------------------------------------|
 | Tab/0-9      | Toggle    | Keep or drop the track under the cursor, or with that number.            |
-| Enter        | Edit      | Pick the layer's tracks or type the chain, on a track it closes.         |
+| Enter        | Edit      | Open the layer's picker or type the chain, on a track it closes.         |
 | a            | Add       | Add a layer after the selected one, or at the end.                       |
 | e            | Type      | Type the selected layer, replacing it.                                   |
 | r            | Rename    | Rename the track or mix, empty restores its own name.                    |
@@ -396,28 +396,30 @@ The list shows your [`tracks`](#tracks) chain in two parts, updating live as you
 - **Tracks**, the ones the chain leaves before its trailing Combine Audio `mix` and `keep @mixes`, toggling one drops or restores it through a trailing `drop` layer, so Combine Audio mixes the ones that are on.
 - **Layers**, a `!` marks the layer that fails.
 
-Hovering a layer previews it in place of Tracks, titled e.g. `After mix -2`, listing the tracks left after that layer in order, with where each one comes from, e.g. `source 1` or `mix 1+3`.<br>
+Hovering a layer previews it in place of Tracks, titled e.g. `After mix -2`, listing the tracks left after that layer in order, with where each one comes from, e.g. `source 1` or `mix Desktop+Mic`.<br>
 Hovering the last layer shows what gets rendered, moving back up to Tracks brings the toggles back.<br>
-With `layer_preview=no` Tracks always stays, and each layer shows its result next to it instead, a mix the tracks it mixes, e.g. `mix -2 -> Mix = 1+3`, the rest the tracks left after it.<br>
+With `layer_preview=no` Tracks always stays, and each layer shows its result next to it instead, a mix the tracks it mixes, e.g. `mix -2 -> Mix = Desktop+Mic`, the rest the tracks left after it.<br>
 A layer added with `a` gets the cursor once it's kept.<br>
 
 The Chain row, the whole chain as one line, sits under the layers.<br>
 
 The title shows how many tracks go in and out, e.g. `3 in > 1 out`.<br>
 Each track shows its title, codec, channels or size and language, mixes show the tracks they're mixed from.<br>
-Tracks are numbered by the file's own track number, the one the chain uses, so a dropped track leaves a gap instead of renumbering the rest, mixes have no number.<br>
+Tracks and mixes are numbered by their position, the number the chain uses there, so with `drop 2` before them the file's third track is 2.<br>
 `0` is the 10th track, tracks past it have no number key, reach them with Up/Down and toggle them with Tab.<br>
-`o` on a track adds it to a `move` layer right before the Combine Audio tail, e.g. `move 3 at 1` puts track 3 first, empty takes it out again.<br>
-`a` offers `mix`, `keep` and `drop`, or Type... to write layers yourself, a picked layer opens its tracks right away.<br>
+`o` on a track, mixes included, adds it to a `move` layer right before the Combine Audio tail, e.g. `move 3 at 1` puts track 3 first, empty takes it out again, the layers after it are renumbered so they keep the same tracks.<br>
+`a` offers `mix`, `keep`, `drop` and `move`, or Type... to write layers yourself, a picked layer opens its picker right away.<br>
 `r` on a track adds it to a `rename` layer right before the Combine Audio tail, on a mix it renames the mix, and later layers using the old name follow it.<br>
 The tracks picker lists the tracks present at that layer, Tab/0-9 toggles one, ON is what stays for `keep` and `drop` and what's mixed for `mix`:
 - `keep` writes the ones that are on, e.g. `keep 1,3`, and `keep all` when they all are.
 - `drop` writes the ones that are off, e.g. `drop 2`, which keeps working on files with more tracks.
-- `mix` starts on Include, writing the ones that are on, `m` switches to All except, writing the ones that are off, e.g. `mix -2`, and `r` renames the mix.
+- `mix` starts on Include, writing the ones that are on, `m` switches to All except, writing the ones that are off, e.g. `mix -2`, `r` renames the mix and `o` sets its output position.
 - All mixes and All sources under the tracks pick the whole group, writing `@mixes` or `@sources`, toggling one of its tracks after that picks the rest of the group one by one, they're hidden in All except.
   They show ON whenever every track of the group is, toggling one then turns the whole group off.
 
 Its `in > out` count updates as you pick, Enter keeps the picks, Esc cancels them, and cancels the layer too when `a` just added it.<br>
+A `move` layer opens the move picker instead, listing the tracks in the order the layer leaves them, a moved one showing where it was, e.g. `was 3`.<br>
+`o` there moves the track under the cursor to a position, empty puts it back, the layers after it are renumbered so they keep the same tracks, Enter keeps the moves and Esc cancels them.<br>
 The chain and layer inputs show the result while typing and share a history kept across restarts.<br>
 `v` shows the video tracks as a plain toggle list, `a` goes back to audio, set `tracks_type=video` to open on video.<br>
 Only the file's own tracks are listed, external audio files loaded into mpv aren't part of the render, dropping every video track renders audio only.
@@ -747,7 +749,9 @@ Change it on the fly in the [Tracks List](#tracks-list) and with Combine Audio a
 - `@mixes` and `@sources` are the mixes and the file's own tracks present at that layer, so `keep @mixes` keeps just the mixes.
 - A `-` excludes, `-2,-5` and `all -2,-5` keep everything but 2 and 5, which keeps working when a file has more tracks.
 - A `-` at the start of a list excludes the whole list, so `-2,5` means `-2,-5`, Tachytome writes it the second way.
-- Track numbers count the file's own tracks from 1 and always mean the original track, so adding a mix never renumbers anything.
+- Track numbers are positions in the tracks the layers before left, from 1, so in `drop 1 keep 2` the 2 is the file's third track, and after `mix at 1` the file's first track is 2.
+- Editing or moving a layer can change what the numbers after it point at, names don't change, the Tracks List renumbers later layers itself when it moves a track.
+- A `move` layer reads all its numbers before moving anything, so `move 3 at 1 1 at 4` moves the 3rd and the 1st track as they were.
 - Numbers the file doesn't have are skipped, a mix of no tracks is skipped too, so a chain works on any file.
 - A mix of one track is that track under the mix's name, copied as is, so `mix keep @mixes` works on a file with one track.
 - A renamed track gets the new title in the render, and later layers can use the new name, e.g. `rename 1 "Game" mix Game,3`, its number still works too.

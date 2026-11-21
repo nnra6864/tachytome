@@ -12,7 +12,8 @@ local ui       = require 'src.ui'
 local M = {}
 
 local bindings = { "up", "down", "j", "k", "move-up", "move-down", "J", "K", "tab", "enter", "a", "v", "e", "r", "o", "d", "esc" }
-local picks    = { "up", "down", "j", "k", "tab", "enter", "m", "r", "esc" }
+local picks    = { "up", "down", "j", "k", "tab", "enter", "m", "r", "o", "esc" }
+local moves    = { "up", "down", "j", "k", "o", "enter", "esc" }
 for i = 1, 10 do
     bindings[#bindings + 1] = tostring(i)
     picks[#picks + 1]       = tostring(i)
@@ -24,8 +25,9 @@ local function track_label(entry, track)
 end
 
 local function mix_inputs(entry)
+    local audio  = tracks.list("audio")
     local inputs = {}
-    for _, e in ipairs(entry.inputs) do inputs[#inputs + 1] = tracks.entry_label(e) end
+    for _, e in ipairs(entry.inputs) do inputs[#inputs + 1] = track_label(e, e.kind == "source" and audio[e.n] or nil) end
     return table.concat(inputs, "+")
 end
 
@@ -36,10 +38,6 @@ local function added(step, prev)
         if e.kind == "mix" and not seen[e] then return e end
     end
     return nil
-end
-
-local function number_of(entry)
-    return entry.kind == "source" and entry.n or math.huge
 end
 
 local function track_details(entry, track)
@@ -69,7 +67,8 @@ end
 
 local function labels(present)
     local out = {}
-    for _, e in ipairs(present) do out[#out + 1] = tracks.entry_label(e) end
+    local audio = tracks.list("audio")
+    for _, e in ipairs(present) do out[#out + 1] = track_label(e, e.kind == "source" and audio[e.n] or nil) end
     if #out == 0 then return lang.t("value_none") end
     return table.concat(out, ", ")
 end
@@ -100,6 +99,7 @@ function M.show(on_close)
     local focus  = nil
     local open_ui
     local open_picker
+    local open_move
 
     local function remove_bindings()
         for _, name in ipairs(bindings) do mp.remove_key_binding("tr-" .. name) end
@@ -230,7 +230,7 @@ function M.show(on_close)
             elseif row.kind == "track" then
                 local entry   = row.row.entry
                 local details = track_details(entry, row.row.track)
-                local line    = string.format("%s%s\\h> %s", ui.number_prefix(number_of(entry)), pad(track_label(entry, row.row.track), widths.track), toggle(row.row.on))
+                local line    = string.format("%s%s\\h> %s", ui.number_prefix(row.k), pad(track_label(entry, row.row.track), widths.track), toggle(row.row.on))
                 if details ~= "" then line = string.format("%s %s%s", line, theme.c("dim_text_color"), theme.escape(details)) end
                 return line
             elseif row.kind == "layer" then
@@ -397,7 +397,7 @@ function M.show(on_close)
 
     local function toggle_track(n)
         for _, row in ipairs(rows) do
-            if row.kind == "track" and number_of(row.row.entry) == n then return toggle_row(row) end
+            if row.kind == "track" and row.k == n then return toggle_row(row) end
         end
     end
 
@@ -414,7 +414,8 @@ function M.show(on_close)
         if row.kind == "chain" then return edit_chain() end
         if row.kind ~= "layer" then return end
         local op = chain.layers[row.index].op
-        if op == "rename" or op == "move" then return edit_layer(row.index) end
+        if op == "rename" then return edit_layer(row.index) end
+        if op == "move" then return open_move(row.index, nil, true) end
         open_picker(row.index)
     end
 
@@ -423,7 +424,7 @@ function M.show(on_close)
         if not chain then return edit_chain() end
         local row   = rows[cursor]
         local at    = (row and row.kind == "layer") and row.index + 1 or #chain.layers + 1
-        local items = { "mix", "keep", "drop", lang.t("tracks_type") }
+        local items = { "mix", "keep", "drop", "move", lang.t("tracks_type") }
         local title = string.format("%s %s %s", lang.t("menu_tracks"), state.opts.menu_path_separator, lang.t("tracks_add"))
         local before = state.tracks
         teardown()
@@ -436,6 +437,7 @@ function M.show(on_close)
                     focus = { kind = "layer", index = at }
                 end)
             end
+            if op == "move" then return open_move(at, before, false) end
             local layer = { op = op }
             if op == "keep" then layer.list = { { kind = "all" } } end
             if op == "drop" then layer.list = { { kind = "none" } } end
@@ -565,7 +567,7 @@ function M.show(on_close)
                 end
                 local details = track_details(e, e.kind == "source" and audio[e.n] or nil)
                 local on      = set[e] == true or flags[tracks.group_of(e)] == true
-                local line    = string.format("%s%s\\h> %s", ui.number_prefix(number_of(e)), pad(track_label(e, audio[e.n]), width), toggle(shown(on)))
+                local line    = string.format("%s%s\\h> %s", ui.number_prefix(k), pad(track_label(e, audio[e.n]), width), toggle(shown(on)))
                 if details ~= "" then line = string.format("%s %s%s", line, theme.c("dim_text_color"), theme.escape(details)) end
                 return line
             end)
@@ -578,6 +580,7 @@ function M.show(on_close)
             if is_mix then
                 hints[#hints + 1] = { "m", "mode" }
                 hints[#hints + 1] = { "r", "rename" }
+                hints[#hints + 1] = { "o", "position" }
             end
             pov.data    = head .. "\\N" .. body .. "\\N" .. ui.tooltip(hints)
             pov:update()
@@ -629,6 +632,11 @@ function M.show(on_close)
             if mix then return rename(mix, back) end
             edit_mix(index, "name", back)
         end)
+        mp.add_forced_key_binding("o", "trp-o", function()
+            if not is_mix then return end
+            hide()
+            edit_mix(index, "position", function() open_picker(index, restore) end)
+        end)
         mp.add_forced_key_binding("m", "trp-m", function()
             if not is_mix then return end
             for _, e in ipairs(present) do
@@ -642,13 +650,105 @@ function M.show(on_close)
         end)
         for n = 1, 10 do
             mp.add_forced_key_binding(ui.number_key(n), "trp-" .. n, function()
-                for k, e in ipairs(present) do
-                    if number_of(e) == n then return flip(k) end
-                end
+                if present[n] then flip(n) end
             end)
         end
         mp.add_forced_key_binding("ESC", "trp-esc", function() close(false) end)
         draw_picker()
+    end
+
+    open_move = function(index, before, exists, picked)
+        local restore = before or state.tracks
+        teardown()
+        rebuild()
+        local audio        = tracks.list("audio")
+        local input, names = tracks.run(chain.layers, #audio, index)
+        local mov          = mp.create_osd_overlay("ass-events")
+        local mcursor      = 1
+        input              = input or {}
+        state.ui_owner     = "tracks"
+
+        local function output()
+            if not exists then return input end
+            local _, _, steps = tracks.run(chain.layers, #audio, index + 1)
+            return steps and steps[index] or input
+        end
+        if picked then mcursor = tracks.position(output(), picked) or 1 end
+
+        local function hide()
+            mov:remove()
+            for _, name in ipairs(moves) do mp.remove_key_binding("trm-" .. name) end
+            state.ui_owner = nil
+        end
+
+        local function close(keep)
+            hide()
+            if not keep then state.tracks = restore end
+            if keep and exists then focus = { kind = "layer", index = index } end
+            open_ui()
+        end
+
+        local function draw_move()
+            local out   = output()
+            local width = 0
+            for _, e in ipairs(out) do width = math.max(width, common.text_len(track_label(e, audio[e.n]))) end
+            local body = ui.list(#out, mcursor, function(k)
+                local e    = out[k]
+                local from = tracks.position(input, e)
+                local line = string.format("%s%s", ui.number_prefix(k), pad(track_label(e, audio[e.n]), width))
+                if from and from ~= k then line = string.format("%s\\h\\h%s%s", line, theme.c("dim_text_color"), theme.escape(lang.t("tracks_from", { n = from }))) end
+                return line
+            end)
+            if #out == 0 then body = string.format("\\N%s\\h\\h%s%s", theme.c("dim_text_color"), theme.escape(lang.t("tracks_no_audio")), theme.reset()) end
+            local title = string.format("%s %s %s", lang.t("menu_tracks"), state.opts.menu_path_separator, exists and tracks.layer_text(chain.layers[index]) or "move")
+            local hints = { { "Up/Down", "navigate" }, { "o", "position" }, { "Enter", "apply" }, { "Esc", "cancel" } }
+            mov.data    = ui.title(title) .. ui.dim(summary(state.tracks)) .. "\\N" .. body .. "\\N" .. ui.tooltip(hints)
+            mov:update()
+        end
+
+        local function build(entry, text)
+            local n, verr = tracks.at_value(text)
+            if n == nil then return nil, verr end
+            local copy  = tracks.parse(state.tracks)
+            local layer = exists and copy.layers[index] or { op = "move", pairs = {} }
+            tracks.set_move(layer, input, names, entry, n or nil)
+            local has    = #layer.pairs > 0
+            local layers = splice(copy.layers, index, exists and 1 or 0, has and { layer } or {})
+            tracks.rebase(tracks.parse(state.tracks).layers, layers, has and index or index - 1, (has and 1 or 0) - (exists and 1 or 0))
+            return tracks.format({ layers = layers, video = copy.video }), nil, has
+        end
+
+        local function position()
+            local entry = output()[mcursor]
+            if not entry then return end
+            local layer   = exists and chain.layers[index]
+            local k       = tracks.pair_index(layer, input, names, entry)
+            local current = k and tostring(layer.pairs[k].at) or ""
+            local after   = exists
+            hide()
+            prompt(lang.t("tracks_move", { name = track_label(entry, audio[entry.n]) }), current, lang.t("hint_tracks_move"), nil, function(text)
+                return build(entry, text)
+            end, function(text)
+                local _, _, has = build(entry, text)
+                after           = has
+            end, function() open_move(index, restore, after, entry) end)
+        end
+
+        local function step(delta)
+            local count = #output()
+            if count == 0 then return end
+            mcursor = ui.wrap(mcursor, delta, count)
+            draw_move()
+        end
+
+        mp.add_forced_key_binding("UP", "trm-up", function() step(-1) end, {repeatable = true})
+        mp.add_forced_key_binding("DOWN", "trm-down", function() step(1) end, {repeatable = true})
+        mp.add_forced_key_binding("k", "trm-k", function() step(-1) end, {repeatable = true})
+        mp.add_forced_key_binding("j", "trm-j", function() step(1) end, {repeatable = true})
+        mp.add_forced_key_binding("o", "trm-o", position)
+        mp.add_forced_key_binding("ENTER", "trm-enter", function() close(true) end)
+        mp.add_forced_key_binding("ESC", "trm-esc", function() close(false) end)
+        draw_move()
     end
 
     local function bind()
@@ -680,6 +780,11 @@ function M.show(on_close)
                 local entry = row.row.entry
                 return prompt(lang.t("tracks_move", { name = track_label(entry, row.row.track) }), "", lang.t("hint_tracks_move"), nil, function(input)
                     return tracks.move_text(entry, input)
+                end, nil, function()
+                    for k, r in ipairs(tracks.rows("audio") or {}) do
+                        if tracks.same_entry(r.entry, entry) then focus = { kind = "track", k = k } end
+                    end
+                    open_ui()
                 end)
             end
             local i = layer_row()
