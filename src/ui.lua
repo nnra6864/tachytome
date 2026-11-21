@@ -31,7 +31,7 @@ end
 
 local key_rank    = { Tab = 1, ["0-9"] = 2, Enter = 3, Esc = 4 }
 local nav_rank    = { navigate = 1, history = 2, move = 3, search = 4 }
-local action_rank = { add = 1, presets = 2, use = 3, type = 4, rename = 5, position = 6, mode = 7, scaler = 8, path = 9, edit = 10, audio = 11, video = 12, delete = 13 }
+local action_rank = { add = 1, presets = 2, save_as = 3, use = 4, type = 5, rename = 6, position = 7, mode = 8, scaler = 9, path = 10, edit = 11, audio = 12, video = 13, delete = 14 }
 
 function M.tooltip(hints)
     local groups = { {}, {}, {} }

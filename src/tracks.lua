@@ -269,6 +269,10 @@ local function parse_presets_file(path, file)
     f:close()
 end
 
+function M.valid_name(name)
+    return plain_word(name) and not name:find("[=/]")
+end
+
 function M.reload(keep_missing)
     presets     = {}
     local dir   = common.get_conf_dir()

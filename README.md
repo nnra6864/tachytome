@@ -361,6 +361,7 @@ Inputs like the Path prompt use ctrl+k/ctrl+j instead, since plain letters are t
 | Enter        | Edit      | Type the chain, open Presets or replace the selected layer.              |
 | a            | Add       | Add layers after the selected one, or at the end.                        |
 | p            | Presets   | Open the Presets list from any row.                                      |
+| n            | Save      | [Save the chain](#saving-presets) as a new preset, from any row.         |
 | m            | Mode      | Pick the layer's mode from a list, Default follows `resolution_mode`.    |
 | s            | Scaler    | Pick the layer's scaler from a list, Default follows the scaler options. |
 | d            | Delete    | Delete the layer.                                                        |
@@ -388,6 +389,7 @@ Layers added with `a`, or with `a` in the Presets list, get the cursor.
 | Enter        | Edit      | Open the layer's picker, type the chain or open Presets, a track closes. |
 | a            | Add       | Add a layer after the selected one, or at the end.                       |
 | p            | Presets   | Open the Presets list from any row.                                      |
+| n            | Save      | [Save the chain](#saving-presets) as a new preset, from any row.         |
 | e            | Type      | Type the selected layer, replacing it.                                   |
 | r            | Rename    | Rename the track or mix, empty restores its own name.                    |
 | o            | Position  | Move the track to a position, or set the mix's output position.          |
@@ -408,8 +410,8 @@ A layer added with `a` gets the cursor once it's kept.<br>
 
 The Chain row, the whole chain as one line, sits under the layers.<br>
 The Presets row under it shows the [preset](#track-presets) in use, its list shows each preset's chain and the `in > out` it gives, numbered and searchable like the other lists.<br>
-In it 0-9/Enter replaces the whole chain with the preset, `a` adds it after the selected layer or at the end, either way it gets the cursor, `m` opens the [Preset Manager](#preset-manager).<br>
-With no presets left the list says so, `m` still works there.<br>
+In it 0-9/Enter replaces the whole chain with the preset, `a` adds it after the selected layer or at the end, either way it gets the cursor, `m` opens the [Preset Manager](#preset-manager) and `n` [saves the chain](#saving-presets) as a new preset.<br>
+With no presets left the list says so, `m` and `n` still work there.<br>
 A preset is one layer in the list, hovering it shows the tracks after all of its layers, Enter or `e` types it, a mix from it is renamed through a `rename` layer.<br>
 
 The title shows how many tracks go in and out, e.g. `3 in > 1 out`.<br>
@@ -456,15 +458,15 @@ Every change is written to the file right away, so there's no Enter to apply, Es
 
 #### Saving Presets
 
-`n` in the Resolution Presets list saves the chain you have now as a [preset](#resolution-presets), without editing any file yourself:
-1. **Name**, checked as you type, it can't hold spaces, `=`, `/` or `#`, be a size, mode or scaler, or be used in the chain itself.
-2. **File**, one of your `.res` files, the one you saved to last listed first, or New file... to type a name for a new one.
+`n` in the Resolution or Tracks List, or in their Presets lists, saves the chain you have now as a [resolution](#resolution-presets) or [track](#track-presets) preset, without editing any file yourself:
+1. **Name**, checked as you type against that kind's name rules, and it can't be used in the chain itself.
+2. **File**, one of your `.res` or `.trk` files, the one you saved to last listed first, or New file... to type a name for a new one.
    A file that already has a preset by that name shows `replaces` and its chain, picking it asks before replacing it.
 3. **Description**, optional, written as a `#` comment above the preset, replacing keeps the preset's own comment when left empty.
 
 A new preset goes at the end of the file after a blank line, a replaced one is rewritten in place and turned on if it was disabled.<br>
 Presets used in the chain are saved by name, so the new one follows them when they change.<br>
-Esc goes back a step, Esc on the name goes back to the Presets list.
+Esc goes back a step, Esc on the name goes back to the list `n` was pressed in, and so does saving.
 
 #### Configs List
 
@@ -769,7 +771,7 @@ disabled 4k = 2160p
 - A mode or scaler right after a preset applies to all of its layers, e.g. `vertical fit` or `4k neighbor`.
 - Names ignore case and can't hold spaces, `=` or `/`, or be a size, mode or scaler.
 - The same name in two files is fine, `file/name` picks a specific one, e.g. `mine/vertical`, a bare name picks the first file.
-- The Resolution List opens them with `p` or the Presets row, 0-9/Enter uses one, `a` adds it to the chain, `n` saves the chain as one.
+- The Resolution List opens them with `p` or the Presets row, 0-9/Enter uses one, `a` adds it to the chain, `n` there or in the Resolution List saves the chain as one.
 - `disabled` before a preset turns it off, e.g. `disabled vertical = 1080x1920 cover`, removing it turns the preset back on.<br>
   A disabled preset isn't listed, a bare name skips it for the next file that defines it, and using it says it's disabled.
 
@@ -834,7 +836,7 @@ disabled audio_only = video none
 - Names ignore case and can't hold spaces, `=`, `/`, `"`, `,` or `#`, be an op word, `all`, `none`, `at` or a number, or start with `-` or `@`.
 - A track or mix named like a preset needs quotes in lists, e.g. `keep "combined"`.
 - The same name in two files is fine, `file/name` picks a specific one, e.g. `mine/combined`, a bare name picks the first file.
-- The Tracks List opens them with `p` or the Presets row, 0-9/Enter uses one, `a` adds it to the chain.
+- The Tracks List opens them with `p` or the Presets row, 0-9/Enter uses one, `a` adds it to the chain, `n` there or in the Tracks List saves the chain as one.
 - `disabled` before a preset turns it off, e.g. `disabled audio_only = video none`, removing it turns the preset back on.<br>
   A disabled preset isn't listed, a bare name skips it for the next file that defines it, using it says it's disabled, and tracks named like it don't need quotes.
 

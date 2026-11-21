@@ -84,7 +84,7 @@ return {
     key_position = "position",
     key_manage   = "manage",
     key_undo     = "undo",
-    key_new      = "new",
+    key_save_as  = "save as preset",
     key_save     = "save",
 
     choice_yes       = "Yes",
@@ -193,6 +193,7 @@ return {
     hint_tracks_title = "Empty keeps the track's own title",
     hint_tracks_move  = "Position among the tracks, e.g. 1 for first, empty puts it back",
     hint_tracks_at    = "Output position, empty puts it at the end",
+    hint_tracks_save  = "No spaces, =, /, #, quotes or commas, not a number, an op, all, none or at, and not starting with - or @",
 
     configs_empty   = "No .conf files in {dir}",
     configs_missing = "(missing)",

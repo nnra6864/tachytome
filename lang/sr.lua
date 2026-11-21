@@ -81,7 +81,7 @@ return {
     key_presets  = "preseti",
     key_manage   = "upravljaj",
     key_undo     = "poništi",
-    key_new      = "novi",
+    key_save_as  = "sačuvaj kao preset",
     key_save     = "sačuvaj",
 
     choice_yes       = "Da",

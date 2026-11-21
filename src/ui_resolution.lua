@@ -14,7 +14,7 @@ local ui             = require 'src.ui'
 
 local M = {}
 
-local bindings = { "up", "down", "j", "k", "move-up", "move-down", "J", "K", "tab", "enter", "a", "m", "s", "p", "d", "esc" }
+local bindings = { "up", "down", "j", "k", "move-up", "move-down", "J", "K", "tab", "enter", "a", "m", "s", "p", "n", "d", "esc" }
 
 function M.set_enabled(enabled)
     state.resolution_enabled = enabled
@@ -171,11 +171,11 @@ function M.show(on_close)
         end
         if summary ~= "" then head = head .. ui.dim(summary) end
 
-        local hints = { { "Up/Down", "navigate" }, { "a", "add" }, { "p", "presets" }, { "Enter", "edit" }, { "Esc", "close" } }
+        local hints = { { "Up/Down", "navigate" }, { "a", "add" }, { "p", "presets" }, { "n", "save_as" }, { "Enter", "edit" }, { "Esc", "close" } }
         if row and row.kind == "layer" then
-            hints = { { "Up/Down", "navigate" }, { "Shift+Up/Down", "move" }, { "a", "add" }, { "p", "presets" }, { "m", "mode" }, { "s", "scaler" }, { "d", "delete" }, { "Enter", "edit" }, { "Esc", "close" } }
+            hints = { { "Up/Down", "navigate" }, { "Shift+Up/Down", "move" }, { "a", "add" }, { "p", "presets" }, { "n", "save_as" }, { "m", "mode" }, { "s", "scaler" }, { "d", "delete" }, { "Enter", "edit" }, { "Esc", "close" } }
         elseif row and row.kind == "toggle" then
-            hints = { { "Up/Down", "navigate" }, { "a", "add" }, { "p", "presets" }, { "Tab", "toggle" }, { "Enter/Esc", "close" } }
+            hints = { { "Up/Down", "navigate" }, { "a", "add" }, { "p", "presets" }, { "n", "save_as" }, { "Tab", "toggle" }, { "Enter/Esc", "close" } }
         end
         ov.data = head .. "\\N" .. body .. "\\N" .. ui.tooltip(hints)
         ov:update()
@@ -243,6 +243,23 @@ function M.show(on_close)
         end)
     end
 
+    local function save_preset(title, back)
+        teardown()
+        view = nil
+        ui_preset_save.show({
+            title   = title,
+            chain   = state.resolution,
+            on_done = back,
+            kind    = {
+                ext        = "res",
+                all        = resolution.all,
+                reload     = resolution.reload,
+                valid_name = resolution.valid_name,
+                name_hint  = lang.t("hint_resolution_name")
+            }
+        })
+    end
+
     pick_preset = function()
         local row    = rows[cursor]
         local at     = (row and row.kind == "layer") and row.index + 1 or #layers + 1
@@ -271,22 +288,6 @@ function M.show(on_close)
             })
         end
 
-        local function save()
-            view = nil
-            ui_preset_save.show({
-                title   = title,
-                chain   = state.resolution,
-                on_done = pick_preset,
-                kind    = {
-                    ext        = "res",
-                    all        = resolution.all,
-                    reload     = resolution.reload,
-                    valid_name = resolution.valid_name,
-                    name_hint  = lang.t("hint_resolution_name")
-                }
-            })
-        end
-
         local function detail(i)
             local p   = list[i]
             local out = source and resolution.output(p.label)
@@ -299,7 +300,7 @@ function M.show(on_close)
             open_ui()
         end
 
-        local keys = { { "m", "manage", manage, any = true }, { "n", "new", save, any = true } }
+        local keys = { { "m", "manage", manage, any = true }, { "n", "save_as", function() save_preset(title, pick_preset) end, any = true } }
         if #items > 0 then table.insert(keys, 1, { "a", "add", add }) end
         teardown()
         view = ui_list.cancel
@@ -378,6 +379,7 @@ function M.show(on_close)
         mp.add_forced_key_binding("m", "res-m", pick_mode)
         mp.add_forced_key_binding("s", "res-s", pick_scaler)
         mp.add_forced_key_binding("p", "res-p", pick_preset)
+        mp.add_forced_key_binding("n", "res-n", function() save_preset(lang.t("menu_resolution"), open_ui) end)
         mp.add_forced_key_binding("d", "res-d", delete_layer)
         mp.add_forced_key_binding("ESC", "res-esc", cleanup)
     end

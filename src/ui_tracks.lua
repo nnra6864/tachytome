@@ -1,18 +1,19 @@
-local mp         = require 'mp'
-local common     = require 'src.common'
-local tracks     = require 'src.tracks'
-local ui_input   = require 'src.ui_input'
-local ui_list    = require 'src.ui_list'
-local ui_presets = require 'src.ui_presets'
-local state      = require 'src.state'
-local notify     = require 'src.notify'
-local theme      = require 'src.theme'
-local lang       = require 'src.lang'
-local ui         = require 'src.ui'
+local mp             = require 'mp'
+local common         = require 'src.common'
+local tracks         = require 'src.tracks'
+local ui_input       = require 'src.ui_input'
+local ui_list        = require 'src.ui_list'
+local ui_presets     = require 'src.ui_presets'
+local ui_preset_save = require 'src.ui_preset_save'
+local state          = require 'src.state'
+local notify         = require 'src.notify'
+local theme          = require 'src.theme'
+local lang           = require 'src.lang'
+local ui             = require 'src.ui'
 
 local M = {}
 
-local bindings = { "up", "down", "j", "k", "move-up", "move-down", "J", "K", "tab", "enter", "a", "v", "e", "r", "o", "p", "d", "esc" }
+local bindings = { "up", "down", "j", "k", "move-up", "move-down", "J", "K", "tab", "enter", "a", "v", "e", "r", "o", "p", "n", "d", "esc" }
 local picks    = { "up", "down", "j", "k", "tab", "enter", "m", "r", "o", "esc" }
 local moves    = { "up", "down", "j", "k", "move-up", "move-down", "J", "K", "o", "enter", "esc" }
 for i = 1, 10 do
@@ -273,17 +274,17 @@ function M.show(on_close)
         local hints
         if kind == "video" then
             if #rows == 0 then body = string.format("\\N%s\\h\\h%s%s", theme.c("dim_text_color"), theme.escape(lang.t("tracks_no_video")), theme.reset()) end
-            hints = { { "Tab/0-9", "toggle" }, { "Up/Down", "navigate" }, { "a", "audio" }, { "p", "presets" }, { "Enter/Esc", "close" } }
+            hints = { { "Tab/0-9", "toggle" }, { "Up/Down", "navigate" }, { "a", "audio" }, { "p", "presets" }, { "n", "save_as" }, { "Enter/Esc", "close" } }
         else
             local sum = chain and summary(state.tracks) or err
             if sum and sum ~= "" then head = head .. ui.dim(sum) end
             local row = rows[cursor]
-            hints     = { { "Up/Down", "navigate" }, { "a", "add" }, { "p", "presets" }, { "v", "video" }, { "Enter", "edit" }, { "Esc", "close" } }
+            hints     = { { "Up/Down", "navigate" }, { "a", "add" }, { "p", "presets" }, { "n", "save_as" }, { "v", "video" }, { "Enter", "edit" }, { "Esc", "close" } }
             if row and row.kind == "track" then
-                hints = { { "Up/Down", "navigate" }, { "Shift+Up/Down", "move" }, { "a", "add" }, { "p", "presets" }, { "r", "rename" }, { "o", "position" }, { "v", "video" }, { "Tab/0-9", "toggle" }, { "Enter/Esc", "close" } }
+                hints = { { "Up/Down", "navigate" }, { "Shift+Up/Down", "move" }, { "a", "add" }, { "p", "presets" }, { "n", "save_as" }, { "r", "rename" }, { "o", "position" }, { "v", "video" }, { "Tab/0-9", "toggle" }, { "Enter/Esc", "close" } }
             elseif row and row.kind == "layer" then
                 local layer = chain.layers[row.index]
-                hints       = { { "Up/Down", "navigate" }, { "Shift+Up/Down", "move" }, { "a", "add" }, { "p", "presets" }, { "e", "type" } }
+                hints       = { { "Up/Down", "navigate" }, { "Shift+Up/Down", "move" }, { "a", "add" }, { "p", "presets" }, { "n", "save_as" }, { "e", "type" } }
                 if layer.op == "mix" then
                     hints[#hints + 1] = { "r", "rename" }
                     hints[#hints + 1] = { "o", "position" }
@@ -518,6 +519,23 @@ function M.show(on_close)
         refresh()
     end
 
+    local function save_preset(title, back)
+        teardown()
+        view = nil
+        ui_preset_save.show({
+            title   = title,
+            chain   = state.tracks,
+            on_done = back,
+            kind    = {
+                ext        = "trk",
+                all        = tracks.all,
+                reload     = tracks.reload,
+                valid_name = tracks.valid_name,
+                name_hint  = lang.t("hint_tracks_save")
+            }
+        })
+    end
+
     pick_preset = function()
         local row    = rows[cursor]
         local at     = chain and (row and row.kind == "layer" and row.index + 1 or #chain.layers + 1)
@@ -558,7 +576,7 @@ function M.show(on_close)
             open_ui()
         end
 
-        local keys = { { "m", "manage", manage, any = true } }
+        local keys = { { "m", "manage", manage, any = true }, { "n", "save_as", function() save_preset(title, pick_preset) end, any = true } }
         if at and #items > 0 then table.insert(keys, 1, { "a", "add", add }) end
         teardown()
         view = ui_list.cancel
@@ -905,6 +923,7 @@ function M.show(on_close)
             if i then edit_mix(i, "position") end
         end)
         mp.add_forced_key_binding("p", "tr-p", pick_preset)
+        mp.add_forced_key_binding("n", "tr-n", function() save_preset(lang.t("menu_tracks"), open_ui) end)
         mp.add_forced_key_binding("d", "tr-d", delete_layer)
         for n = 1, 10 do
             mp.add_forced_key_binding(ui.number_key(n), "tr-" .. n, function() toggle_track(n) end)
