@@ -252,15 +252,14 @@ Pick which audio tracks are exported in the [Tracks](#tracks-list) list.
 
 ##### Settings
 
-| Keybind | Action        | Description                                                                                                         |
-|---------|---------------|---------------------------------------------------------------------------------------------------------------------|
-| s       | Stats         | Toggle the Tachytome stats overlay.                                                                                 |
-| m       | Menu          | Switch the menu, saved to `user.conf`.<br>Learn more about [Custom Menus](#custom-menus).                           |
-| c       | Configs       | Enable, disable and reorder extra configs.<br>Learn more about [Configs](#configs).                                 |
-| l       | Language      | Switch the UI language, saved to `user.conf`.<br>Learn more about [Translations](#translations).                    |
-| v       | Version       | Pick the version Update installs, saved to `user.conf` as `version`.                                                |
-| S       | Save Settings | Save what you changed from the menu to `user.conf`, or reset it.<br>See [Saving Settings](#saving-settings).        |
-| U       | Update        | Update Tachytome to the picked version using git, falls back to the GitHub archive.<br>Restart mpv after updating.  |
+| Keybind | Action           | Description                                                                                                         |
+|---------|------------------|---------------------------------------------------------------------------------------------------------------------|
+| s       | Stats            | Toggle the Tachytome stats overlay.                                                                                 |
+| m       | Menu             | Switch the menu, saved to `user.conf`.<br>Learn more about [Custom Menus](#custom-menus).                           |
+| c       | Settings Manager | Create, rename, delete, enable and reorder configs.<br>Learn more about [Configs](#configs).                        |
+| l       | Language         | Switch the UI language, saved to `user.conf`.<br>Learn more about [Translations](#translations).                    |
+| v       | Version          | Pick the version Update installs, saved to `user.conf` as `version`.                                                |
+| U       | Update           | Update Tachytome to the picked version using git, falls back to the GitHub archive.<br>Restart mpv after updating.  |
 
 The `version` option takes:
 - `latest`, the default, the release marked Latest, or the highest version tag when there's no release.
@@ -330,7 +329,7 @@ See the `cursor_` options in the [builtin config](./tachytome.conf) for its colo
 Every menu lists its keys under Keys, moving around on the first line, the menu's own actions on the second and Tab, Enter and Esc last, each always in the same spot.<br>
 Number keys are shown next to the first 10 items of lists that have them, the rest are reached with Up/Down.<br>
 Lists put what's rarely needed last, so with wrapping it's only a few Up presses away from the top.<br>
-Lists you toggle things in, Effects, Configs and the tracks picker, all work the same way:
+Lists you toggle things in, Effects and the tracks picker, all work the same way:
 - Tab toggles the item under the cursor, and number keys toggle by number where the list has them.
 - Enter applies the changes and closes the list.
 - Esc cancels, putting back everything as it was when the list opened.
@@ -490,15 +489,20 @@ vertical = 1080x1920 cover
 - Presets written one after another with no blank line between share the comment above the group, unless one has its own comment right above it.
 - A comment with a blank line under it, like a file's header, belongs to no preset.
 
-#### Configs List
+#### Settings Manager
 
-| Keybind      | Action    | Description                                 |
-|--------------|-----------|---------------------------------------------|
-| Tab          | Toggle    | Enable or disable the config.               |
-| Shift+Up/K   | Move Up   | Move the config up, before the one above.   |
-| Shift+Down/J | Move Down | Move the config down, after the one below.  |
-| Enter        | Apply     | Save the changes to your config and reload. |
-| Esc          | Cancel    | Close without changing anything.            |
+Lists `user` pinned on top, then every config in `configs=` order, then the `.conf` files that aren't listed, disabled.<br>
+Creating, renaming and deleting change the file right away, the list itself is saved when it closes.
+
+| Keybind      | Action    | Description                                                |
+|--------------|-----------|------------------------------------------------------------|
+| Tab          | Toggle    | Enable or disable the config, `user` is always loaded.     |
+| Shift+Up/K   | Move Up   | Move the config up, before the one above.                  |
+| Shift+Down/J | Move Down | Move the config down, after the one below.                 |
+| n            | New       | Create an empty config, enabled at the end of the list.    |
+| r            | Rename    | Rename the config's file and its entry.                    |
+| d            | Delete    | Delete the config's file, asks first.                      |
+| Esc          | Close     | Save the list to `user.conf` and reload when it changed.   |
 
 ### Config
 
@@ -533,20 +537,10 @@ configs=work,stream,!old
 - Configs can set options and define [menus](#custom-menus), `configs` itself only works in `user.conf`.
 - `default.conf` and `user.conf` are always loaded and can't be listed.
 - `.conf` files in the dir that aren't listed show up as disabled.
-- Switch them from the menu with `c` in Settings, which writes the `configs=` line, at the top of `user.conf` when there's none yet, and reloads options and menus.<br>
-  Options changed from the menu during the session are reset to the config values on reload, [save them](#saving-settings) first to keep them.
+- Manage them from the menu with the [Settings Manager](#settings-manager), `c` in Settings, which writes the `configs=` line, at the top of `user.conf` when there's none yet, and reloads options and menus.<br>
+  Options changed from the menu during the session are reset to the config values on reload.
 - Switching the menu, language or version from the menu saves it to `user.conf`, below the `configs=` line so it wins over every config.
-
-#### Saving Settings
-
-`S` in Settings shows what you changed from the menu since the configs were loaded, and asks:
-
-- **Save** writes those options to `user.conf`, below the `configs=` line, replacing a line that already sets one there.<br>
-  Effects, the resolution chain and the tracks chain count too, e.g. turning Effects on writes `effects_enabled=yes`.
-- **Reset** empties `user.conf` except for its `configs=` line, then reloads options and menus, presets and effects are left alone.
-- **Cancel** closes without changing anything.
-
-Save and Reset both ask if you're sure first.
+- The `configs` menu action still works as the old name of `settings_manager`.
 
 #### Custom Menus
 

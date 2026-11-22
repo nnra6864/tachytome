@@ -28,10 +28,8 @@ return {
     menu_trash_source_now    = "Odmah u smeće",
     menu_stats               = "Statistike",
     menu_menu_preset         = "Meni",
-    menu_configs             = "Konfiguracije",
     menu_language            = "Jezik",
     menu_version             = "Verzija",
-    menu_save_settings       = "Sačuvaj podešavanja",
     menu_update              = "Ažuriraj",
     menu_close               = "Zatvori",
     menu_busy                = "Tachytome meni je već otvoren",
@@ -101,7 +99,6 @@ return {
     choice_skip      = "Preskoči, kreni ispočetka",
     choice_later     = "Kasnije",
     choice_save      = "Sačuvaj",
-    choice_reset     = "Resetuj",
 
     hint_quality       = "{label}, od {min} do {max}",
     hint_fps           = "Prazno koristi FPS izvora",
@@ -164,18 +161,7 @@ return {
     tracks_no_audio = "Nema audio traka",
     tracks_no_video = "Nema video traka",
 
-    configs_empty   = "Nema .conf datoteka u {dir}",
     configs_missing = "(nedostaje)",
-
-    settings_changed       = "Promenjeno od učitavanja:",
-    settings_unchanged     = "Ništa nije promenjeno od učitavanja",
-    settings_more          = "i još {count}",
-    settings_save_confirm  = "Sačuvati {count} promenjenih opcija u user.conf?",
-    settings_saved         = "Sačuvano opcija u user.conf: {count}",
-    settings_reset_confirm = "Resetovati user.conf?",
-    settings_reset_body    = "Sve opcije i meniji u njemu se brišu, ostaje samo njegova configs linija",
-    settings_reset_done    = "user.conf je resetovan, opcije i meniji su ponovo učitani",
-    settings_failed        = "Upisivanje u user.conf nije uspelo",
 
     stats_title        = "Tachytome statistike",
     stats_source_space = "Veličina izvora",

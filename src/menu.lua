@@ -276,8 +276,8 @@ local items = {
         keep_open = false
     },
     {
-        name      = "configs",
-        label_key = "menu_configs",
+        name      = "settings_manager",
+        label_key = "menu_settings_manager",
         get_val   = function() return v(theme.escape(actions.get_configs_display())) end,
         action    = function() actions.select_configs(reload, M.open) end,
         keep_open = false
@@ -301,12 +301,6 @@ local items = {
         keep_open = false
     },
     {
-        name      = "save_settings",
-        label_key = "menu_save_settings",
-        action    = function() actions.save_settings(reload, M.open) end,
-        keep_open = false
-    },
-    {
         name      = "update",
         label_key = "menu_update",
         action    = function() actions.update(M.open) end,
@@ -322,6 +316,7 @@ local items = {
 
 local items_by_name = {}
 for _, item in ipairs(items) do items_by_name[item.name] = item end
+items_by_name.configs = items_by_name.settings_manager
 
 local function row_label(row)
     if row.label then

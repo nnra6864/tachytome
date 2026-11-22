@@ -275,11 +275,29 @@ function M.keys()
     return list
 end
 
-function M.reset_user()
-    if not M.user_path or M.hold then return false end
-    local lines = read_lines(M.user_path)
-    local idx   = configs_line(lines)
-    return write_lines(M.user_path, idx and { lines[idx] } or {}, "user.conf")
+function M.config_name_error(name)
+    if name == "" or name:find("[%s/\\,!#=]") or name:sub(1, 1) == "." then return "configs_bad_name" end
+    if reserved[name:lower() .. ".conf"] then return "configs_reserved" end
+    return nil
+end
+
+function M.create_config(name)
+    if M.hold then return false end
+    return write_lines(M.config_path(name), {}, name .. ".conf")
+end
+
+function M.rename_config(from, to)
+    if M.hold then return false end
+    local ok, err = os.rename(M.config_path(from), M.config_path(to))
+    if not ok then mp.msg.warn("Failed to rename " .. from .. ".conf to " .. to .. ".conf: " .. tostring(err)) end
+    return ok
+end
+
+function M.delete_config(name)
+    if M.hold then return false end
+    local ok, err = os.remove(M.config_path(name))
+    if not ok then mp.msg.warn("Failed to delete " .. name .. ".conf: " .. tostring(err)) end
+    return ok
 end
 
 function M.write_configs(list)

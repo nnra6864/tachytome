@@ -5,7 +5,6 @@ local resolution    = require 'src.resolution'
 local ui_input      = require 'src.ui_input'
 local ui_list       = require 'src.ui_list'
 local ui_confirm    = require 'src.ui_confirm'
-local ui_choice     = require 'src.ui_choice'
 local queue_manager = require 'src.queue_manager'
 local render        = require 'src.render'
 local stats         = require 'src.stats'
@@ -25,9 +24,6 @@ local lang          = require 'src.lang'
 
 local M = {}
 
-local loaded   = {}
-local list_max = 8
-
 local function on_off(val)
     return lang.t(val and "value_on" or "value_off")
 end
@@ -38,37 +34,6 @@ end
 
 local function warn_invalid(name, value)
     notify.show(lang.t("value_invalid", { label = lang.t("menu_" .. name), value = value }), true, "warn")
-end
-
-local function current_settings()
-    local vals = {}
-    for key, val in pairs(state.opts) do vals[key] = conf.format(val) end
-    local names = {}
-    for _, inst in ipairs(state.effects) do names[#names + 1] = inst.name end
-    vals.effects_enabled    = conf.format(state.effects_enabled)
-    vals.effects_presets    = table.concat(names, ",")
-    vals.resolution_enabled = conf.format(state.resolution_enabled)
-    vals.resolution         = state.resolution
-    vals.tracks             = state.tracks
-    return vals
-end
-
-local function changed_settings()
-    local vals = current_settings()
-    local list = {}
-    for _, key in ipairs(conf.keys()) do
-        if vals[key] ~= nil and vals[key] ~= loaded[key] then list[#list + 1] = { key = key, val = vals[key] } end
-    end
-    return list
-end
-
-local function save_option(key, val)
-    conf.write_option(key, val)
-    loaded[key] = conf.format(val)
-end
-
-function M.mark_loaded()
-    loaded = current_settings()
 end
 
 function M.goto_prompt(on_complete)
@@ -613,7 +578,7 @@ function M.select_version(on_complete)
         ui_list.show(lang.t("menu_version"), list, state.opts.version, function(name)
             if name ~= state.opts.version then
                 state.opts.version = name
-                save_option("version", name)
+                conf.write_option("version", name)
             end
             notify_set("version", name)
             if on_complete then on_complete() end
@@ -625,7 +590,7 @@ function M.select_menu(on_select, on_complete)
     ui_list.show(lang.t("menu_menu_preset"), menus.names(), state.opts.selected_menu, function(name)
         if name ~= state.opts.selected_menu then
             state.opts.selected_menu = name
-            save_option("selected_menu", name)
+            conf.write_option("selected_menu", name)
             if on_select then on_select() end
         end
         notify_set("menu_preset", name)
@@ -642,77 +607,18 @@ function M.get_configs_display()
     return table.concat(names, ", ")
 end
 
-local function reload_settings(on_reload)
-    conf.read_options(state.opts)
-    effects.seed()
-    resolution.seed()
-    tracks.reset()
-    lang.load()
-    M.mark_loaded()
-    if on_reload then on_reload() end
-end
-
 function M.select_configs(on_reload, on_complete)
     ui_configs.show(conf.configs, function(list)
         conf.write_configs(list)
-        reload_settings(on_reload)
-        notify_set("configs", M.get_configs_display())
+        conf.read_options(state.opts)
+        effects.seed()
+        resolution.seed()
+        tracks.reset()
+        lang.load()
+        if on_reload then on_reload() end
+        notify.show(lang.t("configs_applied", { list = M.get_configs_display() }))
         if on_complete then on_complete() end
     end, on_complete)
-end
-
-local function describe_changes(list)
-    if #list == 0 then return lang.t("settings_unchanged") end
-    local lines = { lang.t("settings_changed") }
-    for i = 1, math.min(#list, list_max) do lines[#lines + 1] = list[i].key .. "=" .. list[i].val end
-    if #list > list_max then lines[#lines + 1] = lang.t("settings_more", { count = #list - list_max }) end
-    return table.concat(lines, "\n")
-end
-
-local function save_changes(list, on_complete)
-    if #list == 0 then
-        notify.show(lang.t("settings_unchanged"))
-        if on_complete then on_complete() end
-        return
-    end
-    ui_confirm.show(lang.t("settings_save_confirm", { count = #list }), describe_changes(list), function()
-        if conf.write_options(list) then
-            for _, o in ipairs(list) do loaded[o.key] = o.val end
-            notify.show(lang.t("settings_saved", { count = #list }))
-        else
-            notify.show(lang.t("settings_failed"), true, "error")
-        end
-        if on_complete then on_complete() end
-    end, on_complete)
-end
-
-local function reset_user(on_reload, on_complete)
-    ui_confirm.show(lang.t("settings_reset_confirm"), lang.t("settings_reset_body"), function()
-        if conf.reset_user() then
-            reload_settings(on_reload)
-            notify.show(lang.t("settings_reset_done"))
-        else
-            notify.show(lang.t("settings_failed"), true, "error")
-        end
-        if on_complete then on_complete() end
-    end, on_complete)
-end
-
-function M.save_settings(on_reload, on_complete)
-    local list = changed_settings()
-    ui_choice.show(lang.t("menu_save_settings"), describe_changes(list), {
-        { key = "1", alt = "ENTER", label = lang.t("choice_save") },
-        { key = "2", label = lang.t("choice_reset") },
-        { key = "3", label = lang.t("choice_cancel") }
-    }, 3, function(idx)
-        if idx == 1 then
-            save_changes(list, on_complete)
-        elseif idx == 2 then
-            reset_user(on_reload, on_complete)
-        elseif on_complete then
-            on_complete()
-        end
-    end)
 end
 
 function M.select_language(on_complete)
@@ -722,7 +628,7 @@ function M.select_language(on_complete)
     ui_list.show(lang.t("menu_language"), codes, state.opts.language, function(code)
         if code ~= state.opts.language then
             state.opts.language = code
-            save_option("language", code)
+            conf.write_option("language", code)
             lang.load()
         end
         notify_set("language", code)
