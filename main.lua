@@ -69,11 +69,14 @@ local function reload()
     tracks.reload()
     tracks.reset()
     lang.load()
+    actions.mark_loaded()
     menu.reload()
 end
 
 lang.on_change(menu.refresh)
 autocrop.listen("menu", menu.refresh)
+tracks.reset()
+actions.mark_loaded()
 
 ui_migrate.run(reload, check_dependencies)
 

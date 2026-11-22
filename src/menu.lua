@@ -301,6 +301,12 @@ local items = {
         keep_open = false
     },
     {
+        name      = "save_settings",
+        label_key = "menu_save_settings",
+        action    = function() actions.save_settings(reload, M.open) end,
+        keep_open = false
+    },
+    {
         name      = "update",
         label_key = "menu_update",
         action    = function() actions.update(M.open) end,

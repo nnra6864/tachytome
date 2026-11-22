@@ -252,14 +252,15 @@ Pick which audio tracks are exported in the [Tracks](#tracks-list) list.
 
 ##### Settings
 
-| Keybind | Action   | Description                                                                                                         |
-|---------|----------|---------------------------------------------------------------------------------------------------------------------|
-| s       | Stats    | Toggle the Tachytome stats overlay.                                                                                 |
-| m       | Menu     | Switch the menu, saved to your config.<br>Learn more about [Custom Menus](#custom-menus).                           |
-| c       | Configs  | Enable, disable and reorder extra configs.<br>Learn more about [Configs](#configs).                                 |
-| l       | Language | Switch the UI language, saved to your config.<br>Learn more about [Translations](#translations).                    |
-| v       | Version  | Pick the version Update installs, saved to your config as `version`.                                                |
-| U       | Update   | Update Tachytome to the picked version using git, falls back to the GitHub archive.<br>Restart mpv after updating.  |
+| Keybind | Action        | Description                                                                                                         |
+|---------|---------------|---------------------------------------------------------------------------------------------------------------------|
+| s       | Stats         | Toggle the Tachytome stats overlay.                                                                                 |
+| m       | Menu          | Switch the menu, saved to `user.conf`.<br>Learn more about [Custom Menus](#custom-menus).                           |
+| c       | Configs       | Enable, disable and reorder extra configs.<br>Learn more about [Configs](#configs).                                 |
+| l       | Language      | Switch the UI language, saved to `user.conf`.<br>Learn more about [Translations](#translations).                    |
+| v       | Version       | Pick the version Update installs, saved to `user.conf` as `version`.                                                |
+| S       | Save Settings | Save what you changed from the menu to `user.conf`, or reset it.<br>See [Saving Settings](#saving-settings).        |
+| U       | Update        | Update Tachytome to the picked version using git, falls back to the GitHub archive.<br>Restart mpv after updating.  |
 
 The `version` option takes:
 - `latest`, the default, the release marked Latest, or the highest version tag when there's no release.
@@ -532,10 +533,20 @@ configs=work,stream,!old
 - Configs can set options and define [menus](#custom-menus), `configs` itself only works in `user.conf`.
 - `default.conf` and `user.conf` are always loaded and can't be listed.
 - `.conf` files in the dir that aren't listed show up as disabled.
-- Switch them from the menu with `c` in Settings, which writes the `configs=` line and reloads options and menus.<br>
-  Options changed from the menu during the session are reset to the config values on reload.
-- Switching the menu, language or version from the menu saves it to whichever file sets it, e.g. `work.conf` when it's the one that wins.<br>
-  When no file sets it yet, it goes to the first enabled config, or `user.conf` when there's none.
+- Switch them from the menu with `c` in Settings, which writes the `configs=` line, at the top of `user.conf` when there's none yet, and reloads options and menus.<br>
+  Options changed from the menu during the session are reset to the config values on reload, [save them](#saving-settings) first to keep them.
+- Switching the menu, language or version from the menu saves it to `user.conf`, below the `configs=` line so it wins over every config.
+
+#### Saving Settings
+
+`S` in Settings shows what you changed from the menu since the configs were loaded, and asks:
+
+- **Save** writes those options to `user.conf`, below the `configs=` line, replacing a line that already sets one there.<br>
+  Effects, the resolution chain and the tracks chain count too, e.g. turning Effects on writes `effects_enabled=yes`.
+- **Reset** empties `user.conf` except for its `configs=` line, then reloads options and menus, presets and effects are left alone.
+- **Cancel** closes without changing anything.
+
+Save and Reset both ask if you're sure first.
 
 #### Custom Menus
 

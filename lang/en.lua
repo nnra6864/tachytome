@@ -31,6 +31,7 @@ return {
     menu_configs             = "Configs",
     menu_language            = "Language",
     menu_version             = "Version",
+    menu_save_settings       = "Save Settings",
     menu_update              = "Update",
     menu_close               = "Close",
     menu_busy                = "A Tachytome menu is already open",
@@ -102,6 +103,8 @@ return {
     choice_migrate   = "Migrate",
     choice_skip      = "Skip, start fresh",
     choice_later     = "Later",
+    choice_save      = "Save",
+    choice_reset     = "Reset",
 
     hint_quality       = "{label}, {min} to {max}",
     hint_fps           = "Empty uses the source FPS",
@@ -199,6 +202,16 @@ return {
 
     configs_empty   = "No .conf files in {dir}",
     configs_missing = "(missing)",
+
+    settings_changed       = "Changed since loading:",
+    settings_unchanged     = "Nothing changed since loading",
+    settings_more          = "and {count} more",
+    settings_save_confirm  = "Save {count} changed options to user.conf?",
+    settings_saved         = "Saved {count} options to user.conf",
+    settings_reset_confirm = "Reset user.conf?",
+    settings_reset_body    = "Every option and menu in it is removed, only its configs line stays",
+    settings_reset_done    = "user.conf reset, options and menus reloaded",
+    settings_failed        = "Failed to write user.conf",
 
     stats_title        = "Tachytome Stats",
     stats_source_space = "Source Space",
