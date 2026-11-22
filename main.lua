@@ -94,6 +94,7 @@ mp.register_event("file-loaded", function()
     if loaded_path then
         recovery.check_orphan_temp_files(utils.split_path(loaded_path))
         check_orphans()
+        common.probe_keyframe_interval(loaded_path, menu.refresh)
     end
     ui.file_loaded()
     menu.refresh()

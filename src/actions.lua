@@ -163,12 +163,18 @@ local function valid_keyframe_interval(val)
     return num ~= nil and num > 0
 end
 
-local function source_keyframes()
+local function source_keyframes(peek)
     local path = mp.get_property("path")
     local fps  = get_source_fps()
     if not path or not fps or fps <= 0 then return nil end
 
-    local interval = common.get_keyframe_interval(path)
+    local interval, ready = nil, true
+    if peek then
+        interval, ready = common.peek_keyframe_interval(path)
+    else
+        interval = common.get_keyframe_interval(path)
+    end
+    if not ready then return nil, nil, true end
     if not interval then return nil end
 
     local frames = math.floor(interval * fps + 0.5)
@@ -192,15 +198,19 @@ function M.get_keyframe_interval()
 end
 
 function M.get_keyframes_display()
-    local val = M.get_keyframe_interval()
-    if val == "" then return lang.t("value_default") end
-    return val
+    if state.opts.keyframe_interval ~= "" then return state.opts.keyframe_interval end
+    local secs, _, pending = source_keyframes(true)
+    if pending then return lang.t("value_detecting") end
+    if secs then return format_fps(secs) .. "s" end
+    return lang.t("value_default")
 end
 
 function M.set_keyframes(on_complete)
+    local current = M.get_keyframe_interval()
+    if current == "" then current = lang.t("value_default") end
     ui_input.show({
         title     = lang.t("menu_keyframes"),
-        current   = M.get_keyframes_display(),
+        current   = current,
         hint      = lang.t("hint_keyframes"),
         on_cancel = on_complete,
         on_submit = function(input)
