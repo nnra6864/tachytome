@@ -51,6 +51,35 @@ function M.comment_above(lines, first, last)
     return nil
 end
 
+local function comment_text(line)
+    return (line:match("^%s*#(.*)$"):gsub("^ ", ""):gsub("%s+$", ""))
+end
+
+function M.description(lines, first, block)
+    local i = first - 1
+    if not block then
+        while not file_lines.blank(lines[i]) and not file_lines.comment(lines[i]) do i = i - 1 end
+    end
+    local out = {}
+    while file_lines.comment(lines[i]) do
+        table.insert(out, 1, comment_text(lines[i]))
+        i = i - 1
+    end
+    return out
+end
+
+function M.descriptions(presets, ext, block)
+    local files = {}
+    local out   = {}
+    for _, p in ipairs(presets) do
+        if p.file and p.line then
+            if files[p.file] == nil then files[p.file] = file_lines.read(M.path(p.file, ext)) or false end
+            out[p] = files[p.file] and M.description(files[p.file], p.line, block) or {}
+        end
+    end
+    return out
+end
+
 function M.span(lines, first, last)
     local top, alone = paragraph(lines, first, last)
     if not alone then return first, last end

@@ -22,6 +22,7 @@ function M.show(opts)
     local active = false
     local cursor = 1
     local rows   = {}
+    local descs  = {}
     local width  = 0
     local undo   = nil
     local timer  = nil
@@ -46,6 +47,7 @@ function M.show(opts)
     local function rebuild()
         rows       = {}
         width      = 0
+        descs      = preset_files.descriptions(kind.all(), kind.ext, kind.block)
         local file = nil
         for _, p in ipairs(kind.all()) do
             if p.file ~= file then
@@ -116,7 +118,10 @@ function M.show(opts)
         if undo then hints[#hints + 1] = { "u", "undo" } end
         hints[#hints + 1] = { "/", "search" }
         hints[#hints + 1] = { "Esc", "back" }
-        ov.data = search.title(opts.title) .. "\\N" .. body .. "\\N" .. ui.tooltip(search.hints(hints))
+        local head = search.title(opts.title)
+        local row  = #nav > 0 and rows[cursor]
+        if row and row.kind == "preset" then head = head .. ui.dim_lines(descs[row.preset]) end
+        ov.data = head .. "\\N" .. body .. "\\N" .. ui.tooltip(search.hints(hints))
         ov:update()
     end
 

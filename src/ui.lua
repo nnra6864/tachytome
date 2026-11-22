@@ -29,6 +29,16 @@ function M.dim(text)
     return string.format("\\N%s%s%s%s", theme.f(true), theme.c("dim_text_color"), theme.escape(text), theme.reset())
 end
 
+function M.dim_lines(lines)
+    if not lines or #lines == 0 then return "" end
+    local out = {}
+    for i, line in ipairs(lines) do
+        local indent = #line:match("^ *")
+        out[i]       = line == "" and "\\h" or string.rep("\\h", indent) .. theme.escape(line:sub(indent + 1))
+    end
+    return string.format("\\N%s%s%s%s", theme.f(true), theme.c("dim_text_color"), table.concat(out, "\\N"), theme.reset())
+end
+
 local key_rank    = { Tab = 1, ["0-9"] = 2, Enter = 3, Esc = 4 }
 local nav_rank    = { navigate = 1, history = 2, move = 3, search = 4 }
 local action_rank = { add = 1, presets = 2, save_as = 3, use = 4, type = 5, rename = 6, position = 7, mode = 8, scaler = 9, path = 10, edit = 11, audio = 12, video = 13, delete = 14 }

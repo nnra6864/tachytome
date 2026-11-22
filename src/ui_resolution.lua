@@ -6,6 +6,7 @@ local ui_input       = require 'src.ui_input'
 local ui_list        = require 'src.ui_list'
 local ui_presets     = require 'src.ui_presets'
 local ui_preset_save = require 'src.ui_preset_save'
+local preset_files   = require 'src.preset_files'
 local state          = require 'src.state'
 local notify         = require 'src.notify'
 local theme          = require 'src.theme'
@@ -264,6 +265,7 @@ function M.show(on_close)
         local row    = rows[cursor]
         local at     = (row and row.kind == "layer") and row.index + 1 or #layers + 1
         local list   = resolution.presets()
+        local descs  = preset_files.descriptions(list, "res")
         local source = resolution.source()
         local in_use = active_preset()
         local items  = {}
@@ -308,7 +310,7 @@ function M.show(on_close)
             M.set_chain(label)
             focus = 1
             open_ui()
-        end, open_ui, { detail = detail, action = "use", empty = lang.t("presets_none"), keys = keys })
+        end, open_ui, { detail = detail, describe = function(i) return descs[list[i]] end, action = "use", empty = lang.t("presets_none"), keys = keys })
     end
 
     local function pick_option(key, options, default)

@@ -1,13 +1,14 @@
-local mp          = require 'mp'
-local effects     = require 'src.effects'
-local ui_input    = require 'src.ui_input'
-local ui_presets  = require 'src.ui_presets'
-local list_search = require 'src.list_search'
-local state       = require 'src.state'
-local notify      = require 'src.notify'
-local theme       = require 'src.theme'
-local lang        = require 'src.lang'
-local ui          = require 'src.ui'
+local mp           = require 'mp'
+local effects      = require 'src.effects'
+local ui_input     = require 'src.ui_input'
+local ui_presets   = require 'src.ui_presets'
+local preset_files = require 'src.preset_files'
+local list_search  = require 'src.list_search'
+local state        = require 'src.state'
+local notify       = require 'src.notify'
+local theme        = require 'src.theme'
+local lang         = require 'src.lang'
+local ui           = require 'src.ui'
 
 local M = {}
 
@@ -16,6 +17,7 @@ function M.show(on_close)
     local active = false
     local cursor = 1
     local rows   = {}
+    local descs  = {}
     local saved  = { enabled = state.effects_enabled, lossless = state.opts.lossless_cut, effects = {} }
     local search
     for i, inst in ipairs(state.effects) do
@@ -64,7 +66,8 @@ function M.show(on_close)
     end
 
     local function rebuild_rows()
-        rows = { { kind = "toggle" } }
+        rows  = { { kind = "toggle" } }
+        descs = preset_files.descriptions(effects.list(), "eff", true)
         local file = nil
         for _, p in ipairs(effects.list()) do
             if p.file ~= file then
@@ -127,7 +130,10 @@ function M.show(on_close)
         end)
         if #vis == 0 then body = search.empty() end
         local hints = search.hints({ { "Up/Down", "navigate" }, { "Tab", "toggle" }, { "d", "edit" }, { "m", "manage" }, { "/", "search" }, { "Enter", "apply" }, { "Esc", "cancel" } })
-        ov.data = search.title(lang.t("menu_effects")) .. "\\N" .. body .. "\\N" .. ui.tooltip(hints)
+        local head = search.title(lang.t("menu_effects"))
+        local row  = #nav > 0 and rows[cursor]
+        if row and row.kind == "preset" then head = head .. ui.dim_lines(descs[row.preset]) end
+        ov.data = head .. "\\N" .. body .. "\\N" .. ui.tooltip(hints)
         ov:update()
     end
 

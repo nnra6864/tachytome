@@ -5,6 +5,7 @@ local ui_input       = require 'src.ui_input'
 local ui_list        = require 'src.ui_list'
 local ui_presets     = require 'src.ui_presets'
 local ui_preset_save = require 'src.ui_preset_save'
+local preset_files   = require 'src.preset_files'
 local state          = require 'src.state'
 local notify         = require 'src.notify'
 local theme          = require 'src.theme'
@@ -540,6 +541,7 @@ function M.show(on_close)
         local row    = rows[cursor]
         local at     = chain and (row and row.kind == "layer" and row.index + 1 or #chain.layers + 1)
         local list   = tracks.presets()
+        local descs  = preset_files.descriptions(list, "trk")
         local in_use = active_preset()
         local items  = {}
         local width  = 0
@@ -584,7 +586,7 @@ function M.show(on_close)
             state.tracks = label
             focus        = { kind = "layer", index = 1 }
             open_ui()
-        end, open_ui, { detail = detail, action = "use", empty = lang.t("presets_none"), keys = keys })
+        end, open_ui, { detail = detail, describe = function(i) return descs[list[i]] end, action = "use", empty = lang.t("presets_none"), keys = keys })
     end
 
     open_picker = function(index, before)

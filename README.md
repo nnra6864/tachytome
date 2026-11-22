@@ -462,11 +462,24 @@ Every change is written to the file right away, so there's no Enter to apply, Es
 1. **Name**, checked as you type against that kind's name rules, and it can't be used in the chain itself.
 2. **File**, one of your `.res` or `.trk` files, the one you saved to last listed first, or New file... to type a name for a new one.
    A file that already has a preset by that name shows `replaces` and its chain, picking it asks before replacing it.
-3. **Description**, optional, written as a `#` comment above the preset, replacing keeps the preset's own comment when left empty.
+3. **Description**, optional, written as a `#` comment above the preset, shown as its [description](#preset-descriptions), replacing keeps the preset's own comment when left empty.
 
 A new preset goes at the end of the file after a blank line, a replaced one is rewritten in place and turned on if it was disabled.<br>
 Presets used in the chain are saved by name, so the new one follows them when they change.<br>
 Esc goes back a step, Esc on the name goes back to the list `n` was pressed in, and so does saving.
+
+#### Preset Descriptions
+
+The `#` lines right above a preset or effect are its description, shown dim under the title while it's hovered in the Presets lists, the [Preset Manager](#preset-manager) and the [Effects List](#effects-list):
+```
+# Vertical 9:16 for Shorts, Reels and TikTok
+#
+#   cuts the sides off
+vertical = 1080x1920 cover
+```
+- It's every comment line up to the first blank line above, a bare `#` is an empty line in it, indentation after `# ` is kept.
+- Presets written one after another with no blank line between share the comment above the group, unless one has its own comment right above it.
+- A comment with a blank line under it, like a file's header, belongs to no preset.
 
 #### Configs List
 
@@ -774,6 +787,7 @@ disabled 4k = 2160p
 - The Resolution List opens them with `p` or the Presets row, 0-9/Enter uses one, `a` adds it to the chain, `n` there or in the Resolution List saves the chain as one.
 - `disabled` before a preset turns it off, e.g. `disabled vertical = 1080x1920 cover`, removing it turns the preset back on.<br>
   A disabled preset isn't listed, a bare name skips it for the next file that defines it, and using it says it's disabled.
+- The `#` lines right above a preset are its [description](#preset-descriptions).
 
 `default.res` holds `autocrop` and `halfres`, with disabled examples to turn on: `hd` to `8k` on the short side, `vertical` and `cs`.
 
@@ -839,6 +853,7 @@ disabled audio_only = video none
 - The Tracks List opens them with `p` or the Presets row, 0-9/Enter uses one, `a` adds it to the chain, `n` there or in the Tracks List saves the chain as one.
 - `disabled` before a preset turns it off, e.g. `disabled audio_only = video none`, removing it turns the preset back on.<br>
   A disabled preset isn't listed, a bare name skips it for the next file that defines it, using it says it's disabled, and tracks named like it don't need quotes.
+- The `#` lines right above a preset are its [description](#preset-descriptions).
 
 `default.trk` holds `combined` and `combined_only`, like Combine Audio and Combine Audio with Combined Only with the mix named `Combined`, with disabled examples to turn on: `voice_mix` and `audio_only`.
 
@@ -863,6 +878,7 @@ You can find an example config with every option explained [here](./tachytome-ef
 - `disabled` before `effect` turns an effect off, e.g. `disabled effect grain`, removing it turns the effect back on.<br>
   A disabled effect isn't listed, a bare name skips it for the next file that defines it, and `effects_presets` warns that it's disabled.<br>
   `default.eff` holds `fade` and `blur_fade`, with disabled examples to turn on: `drop_in`, `color_in`, `grain` and `duck_out`.
+- The `#` lines right above `effect` are its [description](#preset-descriptions).
 
 ```
 effect blur_fade
