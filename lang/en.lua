@@ -85,6 +85,7 @@ return {
     key_manage   = "manage",
     key_undo     = "undo",
     key_save_as  = "save as preset",
+    key_new_line = "new line",
     key_save     = "save",
 
     choice_yes       = "Yes",

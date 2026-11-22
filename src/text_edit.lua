@@ -142,16 +142,20 @@ function M.remove_layers(layers)
     layers.char:remove()
 end
 
+function M.show(text)
+    return (theme.escape(text):gsub("\n", "\\N"))
+end
+
 function M.render(layers, head, prompt, text, pos)
-    local before = theme.escape(text:sub(1, pos))
+    local before = M.show(text:sub(1, pos))
     local under  = pos < #text and text:sub(pos + 1, char_end(text, pos)) or ""
-    local after  = theme.escape(text:sub(pos + #under + 1))
+    local after  = M.show(text:sub(pos + #under + 1))
     local block  = state.opts.cursor_style == "block"
     local cursor = layer(head, prompt, before, cursor_glyphs[state.opts.cursor_style] or cursor_glyphs.bar, theme.glow("cursor_"), theme.c(cursor_key()), after)
     local char   = (block and under ~= "" and not under:find("^%s$")) and layer(head, prompt, before, under, no_glow, text_color(), after) or nil
     set_layer(layers.cursor, cursor)
     set_layer(layers.char, char)
-    return string.format("%s%s%s%s", head, prompt, theme.c("value_color"), theme.escape(text))
+    return string.format("%s%s%s%s", head, prompt, theme.c("value_color"), M.show(text))
 end
 
 return M

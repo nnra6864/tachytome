@@ -293,7 +293,9 @@ Updating through git switches the checkout to the branch, or detaches it at the 
 | Home/End             | Start/End   | Jump to the start or end of the text.   |
 | Backspace            | Delete      | Delete the character before the cursor. |
 | ctrl+Backspace       | Delete Word | Delete the word before the cursor.      |
+| Shift+Enter          | New Line    | Start a new line, where it's allowed.   |
 
+Shift+Enter only works in inputs that take several lines, the description when [saving a preset](#saving-presets) for now, the rest stay on one line.<br>
 Inputs show the current value and a hint on the accepted format below the prompt.<br>
 Submitting an empty input resets to the default where there is one, e.g. the source FPS for FPS or the default path for Path, otherwise it keeps the current value.<br>
 Esc closes any prompt or dialog without changing anything.
@@ -462,7 +464,8 @@ Every change is written to the file right away, so there's no Enter to apply, Es
 1. **Name**, checked as you type against that kind's name rules, and it can't be used in the chain itself.
 2. **File**, one of your `.res` or `.trk` files, the one you saved to last listed first, or New file... to type a name for a new one.
    A file that already has a preset by that name shows `replaces` and its chain, picking it asks before replacing it.
-3. **Description**, optional, written as a `#` comment above the preset, shown as its [description](#preset-descriptions), replacing keeps the preset's own comment when left empty.
+3. **Description**, optional, written as `#` comment lines above the preset, shown as its [description](#preset-descriptions), replacing keeps the preset's own comment when left empty.
+   Shift+Enter starts a new line, each becomes a `# line` and an empty one a bare `#`, replacing shows the current one line by line.
 
 A new preset goes at the end of the file after a blank line, a replaced one is rewritten in place and turned on if it was disabled.<br>
 Presets used in the chain are saved by name, so the new one follows them when they change.<br>

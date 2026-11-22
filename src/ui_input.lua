@@ -18,6 +18,7 @@ local current_callback        = nil
 local current_cancel_callback = nil
 local current_preview         = nil
 local current_hint            = nil
+local current_multiline       = false
 
 local history      = {}
 local history_idx  = 1
@@ -26,10 +27,11 @@ local draft_buffer = ""
 local function render()
     local hints = { { "Enter", "confirm" }, { "Esc", "cancel" } }
     if #history > 0 then table.insert(hints, 1, { "Up/Down", "history" }) end
+    if current_multiline then table.insert(hints, 1, { "Shift+Enter", "new_line" }) end
 
     local preview     = current_preview and current_preview(buffer) or ""
     local preview_str = preview ~= "" and string.format("\\N%s%s-> %s%s", theme.f(true), theme.c("value_color"), theme.escape(preview), theme.reset()) or ""
-    local current_str = current_value ~= "" and ui.dim(lang.t("value_current", { value = current_value })) or ""
+    local current_str = current_value ~= "" and ui.dim(lang.t("value_current", { value = current_value })):gsub("\n", "\\N") or ""
     local hint_str    = current_hint and ui.dim(current_hint) or ""
 
     local line = edit.render(layers, theme.align(7) .. theme.f() .. theme.c("text_color"), current_title .. " > ", buffer, cursor)
@@ -45,6 +47,7 @@ end
 local function cleanup_bindings()
     edit.remove_bindings("osd-input")
     mp.remove_key_binding("osd-input-enter")
+    mp.remove_key_binding("osd-input-newline")
     mp.remove_key_binding("osd-input-esc")
     mp.remove_key_binding("osd-input-up")
     mp.remove_key_binding("osd-input-down")
@@ -119,6 +122,7 @@ function M.show(opts)
     current_cancel_callback = opts.on_cancel
     current_preview         = opts.preview
     current_hint            = opts.hint
+    current_multiline       = opts.multiline or false
     buffer                  = ""
     cursor                  = 0
 
@@ -131,6 +135,7 @@ function M.show(opts)
 
     edit.add_bindings("osd-input", apply_edit)
     mp.add_forced_key_binding("ENTER", "osd-input-enter", confirm)
+    if current_multiline then mp.add_forced_key_binding("shift+ENTER", "osd-input-newline", function() add_char("\n") end, {repeatable=true}) end
     mp.add_forced_key_binding("ESC", "osd-input-esc", cancel)
     mp.add_forced_key_binding("UP", "osd-input-up", history_up, {repeatable=true})
     mp.add_forced_key_binding("DOWN", "osd-input-down", history_down, {repeatable=true})

@@ -15,6 +15,15 @@ local function trim(text)
     return text:match("^%s*(.-)%s*$")
 end
 
+local function comment_lines(desc)
+    local out = {}
+    for part in (desc .. "\n"):gmatch("(.-)\n") do
+        part          = part:gsub("%s+$", "")
+        out[#out + 1] = part == "" and "#" or "# " .. part
+    end
+    return out
+end
+
 function M.show(opts)
     local kind  = opts.kind
     local chain = trim(opts.chain or "")
@@ -77,17 +86,15 @@ function M.show(opts)
             end
             lines[existing.line] = line
             if desc ~= "" then
-                local top = preset_files.comment_above(lines, existing.line, existing.line)
-                if top then
-                    for i = existing.line - 1, top + 1, -1 do table.remove(lines, i) end
-                    lines[top] = "# " .. desc
-                else
-                    table.insert(lines, existing.line, "# " .. desc)
-                end
+                local top = preset_files.comment_above(lines, existing.line, existing.line) or existing.line
+                for i = existing.line - 1, top, -1 do table.remove(lines, i) end
+                for i, c in ipairs(comment_lines(desc)) do table.insert(lines, top + i - 1, c) end
             end
         else
             if #lines > 0 and not file_lines.blank(lines[#lines]) then lines[#lines + 1] = "" end
-            if desc ~= "" then lines[#lines + 1] = "# " .. desc end
+            if desc ~= "" then
+                for _, c in ipairs(comment_lines(desc)) do lines[#lines + 1] = c end
+            end
             lines[#lines + 1] = line
         end
         if not file_lines.write(path, lines, eol) then
@@ -103,11 +110,8 @@ function M.show(opts)
     local function current_comment(existing)
         if not existing then return nil end
         local lines = file_lines.read(preset_files.path(file, kind.ext)) or {}
-        local top   = preset_files.comment_above(lines, existing.line, existing.line)
-        if not top then return nil end
-        local parts = {}
-        for i = top, existing.line - 1 do parts[#parts + 1] = trim(lines[i]:gsub("^%s*#", "")) end
-        return table.concat(parts, " ")
+        if not preset_files.comment_above(lines, existing.line, existing.line) then return nil end
+        return table.concat(preset_files.description(lines, existing.line, true), "\n")
     end
 
     local function ask_desc(existing, back)
@@ -116,6 +120,7 @@ function M.show(opts)
             current     = current_comment(existing),
             hint        = lang.t(existing and "presets_hint_keep" or "presets_hint_desc"),
             allow_space = true,
+            multiline   = true,
             on_cancel   = back,
             on_submit   = function(input)
                 write(trim(input), existing)

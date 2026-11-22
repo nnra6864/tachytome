@@ -82,6 +82,7 @@ return {
     key_manage   = "upravljaj",
     key_undo     = "poništi",
     key_save_as  = "sačuvaj kao preset",
+    key_new_line = "novi red",
     key_save     = "sačuvaj",
 
     choice_yes       = "Da",
