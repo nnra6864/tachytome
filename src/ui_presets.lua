@@ -118,10 +118,9 @@ function M.show(opts)
         if undo then hints[#hints + 1] = { "u", "undo" } end
         hints[#hints + 1] = { "/", "search" }
         hints[#hints + 1] = { "Esc", "back" }
-        local head = search.title(opts.title)
-        local row  = #nav > 0 and rows[cursor]
-        if row and row.kind == "preset" then head = head .. ui.dim_lines(descs[row.preset]) end
-        ov.data = head .. "\\N" .. body .. "\\N" .. ui.tooltip(search.hints(hints))
+        local row = #nav > 0 and rows[cursor]
+        if row and row.kind == "preset" then body = body .. ui.dim_lines(descs[row.preset]) end
+        ov.data = search.title(opts.title) .. "\\N" .. body .. "\\N" .. ui.tooltip(search.hints(hints))
         ov:update()
     end
 

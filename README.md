@@ -470,7 +470,7 @@ Esc goes back a step, Esc on the name goes back to the list `n` was pressed in, 
 
 #### Preset Descriptions
 
-The `#` lines right above a preset or effect are its description, shown dim under the title while it's hovered in the Presets lists, the [Preset Manager](#preset-manager) and the [Effects List](#effects-list):
+The `#` lines right above a preset or effect are its description, shown dim under the list, above the keys, while it's hovered in the Presets lists, the [Preset Manager](#preset-manager) and the [Effects List](#effects-list):
 ```
 # Vertical 9:16 for Shorts, Reels and TikTok
 #
