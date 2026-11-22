@@ -12,13 +12,13 @@ local ui_confirm  = require 'src.ui_confirm'
 
 local M = {}
 
-local bindings = { "cfg-up", "cfg-down", "cfg-j", "cfg-k", "cfg-move-up", "cfg-move-down", "cfg-K", "cfg-J", "cfg-tab", "cfg-new", "cfg-rename", "cfg-delete", "cfg-search", "cfg-esc" }
+local bindings = { "cfg-up", "cfg-down", "cfg-j", "cfg-k", "cfg-move-up", "cfg-move-down", "cfg-K", "cfg-J", "cfg-tab", "cfg-enter", "cfg-new", "cfg-rename", "cfg-delete", "cfg-search", "cfg-esc" }
 
 local function trim(s)
     return (s:match("^%s*(.-)%s*$"))
 end
 
-function M.show(configs, on_apply, on_close)
+function M.show(configs, on_apply, on_close, on_edit)
     local rows    = { { name = "user", enabled = true, exists = true, pinned = true } }
     local changed = false
     for _, c in ipairs(configs) do rows[#rows + 1] = { name = c.name, enabled = c.enabled, exists = c.exists } end
@@ -75,6 +75,12 @@ function M.show(configs, on_apply, on_close)
             for _, name in ipairs(bindings) do mp.remove_key_binding(name) end
         end
 
+        local function list()
+            local out = {}
+            for i = 2, #rows do out[#out + 1] = rows[i] end
+            return out
+        end
+
         local function close()
             if not active then return end
             teardown()
@@ -82,9 +88,7 @@ function M.show(configs, on_apply, on_close)
                 if on_close then on_close() end
                 return
             end
-            local list = {}
-            for i = 2, #rows do list[#list + 1] = rows[i] end
-            if on_apply then on_apply(list) end
+            if on_apply then on_apply(list()) end
         end
 
         local function labels()
@@ -110,7 +114,7 @@ function M.show(configs, on_apply, on_close)
             end)
             if #vis == 0 then body = search.empty() end
 
-            local hints = search.hints({ { "Up/Down", "navigate" }, { "Tab", "toggle" }, { "Shift+Up/Down", "move" }, { "n", "new" }, { "r", "rename" }, { "d", "delete" }, { "/", "search" }, { "Esc", "close" } })
+            local hints = search.hints({ { "Up/Down", "navigate" }, { "Tab", "toggle" }, { "Enter", "edit" }, { "Shift+Up/Down", "move" }, { "n", "new" }, { "r", "rename" }, { "d", "delete" }, { "/", "search" }, { "Esc", "close" } })
             ov.data = search.title(lang.t("menu_settings_manager")) .. "\\N" .. body .. "\\N" .. ui.dim(lang.t("configs_dir", { dir = common.display_path(common.get_conf_dir()) })) .. ui.tooltip(hints)
             ov:update()
         end
@@ -135,6 +139,13 @@ function M.show(configs, on_apply, on_close)
             row.enabled = not row.enabled
             changed     = true
             draw()
+        end
+
+        local function edit()
+            local row = rows[cursor]
+            if not row or #visible() == 0 or not on_edit then return end
+            teardown()
+            on_edit(changed and list() or nil, row)
         end
 
         local function pinned_warn(row)
@@ -209,6 +220,7 @@ function M.show(configs, on_apply, on_close)
         mp.add_forced_key_binding("K", "cfg-K", function() move_row(-1) end, {repeatable = true})
         mp.add_forced_key_binding("J", "cfg-J", function() move_row(1) end, {repeatable = true})
         mp.add_forced_key_binding("TAB", "cfg-tab", toggle)
+        mp.add_forced_key_binding("ENTER", "cfg-enter", edit)
         mp.add_forced_key_binding("n", "cfg-new", create)
         mp.add_forced_key_binding("r", "cfg-rename", rename)
         mp.add_forced_key_binding("d", "cfg-delete", delete)

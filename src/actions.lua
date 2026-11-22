@@ -17,6 +17,7 @@ local ui_resolution = require 'src.ui_resolution'
 local ui_tracks     = require 'src.ui_tracks'
 local tracks        = require 'src.tracks'
 local ui_configs    = require 'src.ui_configs'
+local ui_settings   = require 'src.ui_settings'
 local updater       = require 'src.updater'
 local conf          = require 'src.conf'
 local menus         = require 'src.menus'
@@ -607,18 +608,43 @@ function M.get_configs_display()
     return table.concat(names, ", ")
 end
 
+local function apply_configs(list, on_reload)
+    conf.write_configs(list)
+    conf.read_options(state.opts)
+    effects.seed()
+    resolution.seed()
+    tracks.reset()
+    lang.load()
+    if on_reload then on_reload() end
+    notify.show(lang.t("configs_applied", { list = M.get_configs_display() }))
+end
+
+local function setting_pickers()
+    return {
+        video_encoder     = M.select_encoder,
+        quality           = M.set_quality,
+        preset            = M.set_preset,
+        keyframe_interval = M.set_keyframes,
+        audio_encoder     = M.select_audio_encoder,
+        audio_bitrate     = M.set_audio_bitrate,
+        space_replacement = M.set_space_replacement,
+        resolution        = M.resolution_menu,
+        tracks            = M.tracks_menu,
+        effects_presets   = M.effects_menu
+    }
+end
+
 function M.select_configs(on_reload, on_complete)
     ui_configs.show(conf.configs, function(list)
-        conf.write_configs(list)
-        conf.read_options(state.opts)
-        effects.seed()
-        resolution.seed()
-        tracks.reset()
-        lang.load()
-        if on_reload then on_reload() end
-        notify.show(lang.t("configs_applied", { list = M.get_configs_display() }))
+        apply_configs(list, on_reload)
         if on_complete then on_complete() end
-    end, on_complete)
+    end, on_complete, function(list, row)
+        if list then apply_configs(list, on_reload) end
+        ui_settings.show(row.name, row.pinned or row.enabled, setting_pickers(), function()
+            if on_reload then on_reload() end
+            M.select_configs(on_reload, on_complete)
+        end)
+    end)
 end
 
 function M.select_language(on_complete)

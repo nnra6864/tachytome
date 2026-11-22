@@ -257,7 +257,7 @@ Pick which audio tracks are exported in the [Tracks](#tracks-list) list.
 |---------|------------------|---------------------------------------------------------------------------------------------------------------------|
 | s       | Stats            | Toggle the Tachytome stats overlay.                                                                                 |
 | m       | Menu             | Switch the menu, saved to `user.conf`.<br>Learn more about [Custom Menus](#custom-menus).                           |
-| c       | Settings Manager | Create, rename, delete, enable and reorder configs.<br>Learn more about [Configs](#configs).                        |
+| c       | Settings Manager | Create, rename, delete, enable, reorder and edit configs.<br>Learn more about [Configs](#configs).                  |
 | l       | Language         | Switch the UI language, saved to `user.conf`.<br>Learn more about [Translations](#translations).                    |
 | v       | Version          | Pick the version Update installs, saved to `user.conf` as `version`.                                                |
 | U       | Update           | Update Tachytome to the picked version using git, falls back to the GitHub archive.<br>Restart mpv after updating.  |
@@ -495,15 +495,41 @@ vertical = 1080x1920 cover
 Lists `user` pinned on top, then every config in `configs=` order, then the `.conf` files that aren't listed, disabled.<br>
 Creating, renaming and deleting change the file right away, the list itself is saved when it closes.
 
-| Keybind      | Action    | Description                                                |
-|--------------|-----------|------------------------------------------------------------|
-| Tab          | Toggle    | Enable or disable the config, `user` is always loaded.     |
-| Shift+Up/K   | Move Up   | Move the config up, before the one above.                  |
-| Shift+Down/J | Move Down | Move the config down, after the one below.                 |
-| n            | New       | Create an empty config, enabled at the end of the list.    |
-| r            | Rename    | Rename the config's file and its entry.                    |
-| d            | Delete    | Delete the config's file, asks first.                      |
-| Esc          | Close     | Save the list to `user.conf` and reload when it changed.   |
+| Keybind      | Action    | Description                                                                     |
+|--------------|-----------|---------------------------------------------------------------------------------|
+| Tab          | Toggle    | Enable or disable the config, `user` is always loaded.                          |
+| Enter        | Edit      | Save the list, then open the config in the [Settings Editor](#settings-editor). |
+| Shift+Up/K   | Move Up   | Move the config up, before the one above.                                       |
+| Shift+Down/J | Move Down | Move the config down, after the one below.                                      |
+| n            | New       | Create an empty config, enabled at the end of the list.                         |
+| r            | Rename    | Rename the config's file and its entry.                                         |
+| d            | Delete    | Delete the config's file, asks first.                                           |
+| Esc          | Close     | Save the list to `user.conf` and reload when it changed.                        |
+
+#### Settings Editor
+
+Lists every option of one config file, the hovered one's description shows under the list.<br>
+An option set in the file shows bright with its value, marked `*` until saved, one it doesn't set shows dim with the value it gets from `default.conf` and the other configs.<br>
+A set option that a later config or `user.conf` overrides says what it's overridden to.
+
+- Every change applies to the session right away, so you see a color, font or encoder change as you make it.<br>
+  A config that isn't enabled is previewed as if it were.
+- Yes/no options toggle, options with a picker in the menu, like the encoder, quality, preset, resolution, tracks and effects, open it, the rest take text.<br>
+  A picker that changes other options too, like the encoder resetting the preset, sets those as well.
+- Saving writes only the options you changed, keeps the file's other lines and comments, and adds the option's description from the builtin config above a new one.<br>
+  Unsetting an option removes its line and that description.
+- Saving a config that isn't enabled asks to enable it in `user.conf`, No saves the file and puts the session back.
+- Closing with unsaved changes asks to Save, Discard or Cancel, Discard also puts the session back.
+
+| Keybind | Action       | Description                                                                                 |
+|---------|--------------|---------------------------------------------------------------------------------------------|
+| Enter   | Edit         | Toggle, pick or type the option's value.                                                    |
+| u       | Unset        | Remove the option from the file, it inherits again.                                         |
+| U       | Unset All    | Remove every option from the file.                                                          |
+| l       | Load Current | Set every option whose current value differs from what the file inherits, e.g. menu changes. |
+| s       | Save         | Write the changes to the file.                                                              |
+| /       | Search       | Filter the options by name.                                                                 |
+| Esc     | Close        | Back to the Settings Manager, asks first with unsaved changes.                              |
 
 ### Config
 
