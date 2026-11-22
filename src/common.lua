@@ -105,16 +105,7 @@ function M.file_exists(path)
     return true
 end
 
-local function comment_out(content)
-    local lines = {}
-    for line in (content .. "\n"):gmatch("(.-)\n") do
-        lines[#lines + 1] = line:find("%S") and "#" .. line or line
-    end
-    if lines[#lines] == "" then lines[#lines] = nil end
-    return table.concat(lines, "\n") .. "\n"
-end
-
-function M.ensure_default_conf(builtin_name, name, commented)
+function M.ensure_default_conf(builtin_name, name)
     local conf_dir  = M.get_conf_dir()
     local conf_path = utils.join_path(conf_dir, name)
 
@@ -128,8 +119,6 @@ function M.ensure_default_conf(builtin_name, name, commented)
 
     local conf_content = rf:read("*all")
     rf:close()
-
-    if commented then conf_content = comment_out(conf_content) end
 
     M.ensure_dir(conf_dir)
     local wf = io.open(conf_path, "w")

@@ -259,6 +259,14 @@ return {
     migrate_skipped    = "Krenuto ispočetka, stare datoteke su sačuvane kao .bak",
     migrate_later      = "Prenos je odložen, koriste se podrazumevane vrednosti dok se ne završi",
 
+    migrate_user_intro     = "default.conf je sada cela ugrađena konfiguracija, piše se ponovo pri svakom ažuriranju, vaše izmene idu u user.conf",
+    migrate_user_moved     = "Premešteno u user.conf: {list}",
+    migrate_user_nothing   = "Nema ničega za premeštanje, user.conf počinje prazan",
+    migrate_user_commented = "default nije bio uključen u configs, njegove linije su premeštene zakomentarisane",
+    migrate_user_configs   = "Zadržane konfiguracije: {list}",
+    migrate_user_removed   = "tachytome.conf se briše, njegove linije su u user.conf",
+    migrate_user_done      = "Vaše izmene su premeštene u user.conf",
+
     ffmpeg_missing        = "FFmpeg nedostaje",
     ffmpeg_missing_linux  = "FFmpeg nedostaje, instalirajte ga pomoću upravnika paketa",
     ffmpeg_install_prompt = "Instalirati ga automatski?",

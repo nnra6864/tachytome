@@ -289,27 +289,14 @@ function M.apply(plan)
     backup(old_conf)
     backup(old_eff)
 
-    local dir  = common.get_conf_dir()
-    local main = conf.main_path()
+    local dir   = common.get_conf_dir()
+    local lines = {}
     common.ensure_dir(dir)
-    if not common.file_exists(main) then write_lines(main, { "configs=default" }) end
-
-    local path  = common.ensure_default_conf("tachytome.conf", "default.conf", true)
-    local lines = read_lines(path)
-    for _, o in ipairs(plan.options) do
-        local entry = o.key .. "=" .. o.val
-        local found = false
-        for i, line in ipairs(lines) do
-            if line:sub(1, #o.key + 2) == "#" .. o.key .. "=" then
-                lines[i] = entry
-                found    = true
-                break
-            end
-        end
-        if not found then lines[#lines + 1] = entry end
+    for _, o in ipairs(plan.options) do lines[#lines + 1] = o.key .. "=" .. o.val end
+    for _, line in ipairs(plan.menu_lines) do
+        if #lines > 0 or line ~= "" then lines[#lines + 1] = line end
     end
-    for _, line in ipairs(plan.menu_lines) do lines[#lines + 1] = line end
-    write_lines(path, lines)
+    write_lines(conf.main_path(), lines)
 
     common.ensure_default_conf("tachytome-effects.conf", "default.eff")
     if #plan.effect_lines > 0 then write_lines(utils.join_path(dir, "custom.eff"), plan.effect_lines) end

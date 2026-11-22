@@ -133,7 +133,7 @@ Updates that cross a major version, e.g. `2.4.1 -> 3.0.0`, are pointed out befor
 
 #### 1.0.0 -> 2.0.0
 
-- `mpv/script-opts/tachytome.conf` becomes `mpv/script-opts/tachytome/default.conf`, sourced by a new `tachytome.conf`.<br>
+- `mpv/script-opts/tachytome.conf` becomes `mpv/script-opts/tachytome/user.conf`.<br>
   Only options you changed from the 1.0.0 defaults are kept, `combine_audio`, `first_audio_only` and `combined_audio_name` become a [`tracks`](#tracks) chain, and options that no longer exist are dropped.
 - Everyone moves to the new `default` menu, `selected_keymap` is dropped.<br>
   Your own keymaps become menus, e.g. `keymap mine ... end` turns into `menu mine { ... }`, with `ignore` becoming `none` and `base builtin` or `base default` becoming `base simple`, `base nested` becoming `base default`.<br>
@@ -148,6 +148,14 @@ Updates that cross a major version, e.g. `2.4.1 -> 3.0.0`, are pointed out befor
 - `combined_audio_name` moves into the mix, `Combined` when it wasn't set, so the track keeps its old title, e.g. `mix "Voice"`, and Combined Only becomes `keep @mixes`.
 - Interrupted render queues are converted too, Skip leaves the old options in place, where they're ignored with a warning.
 - A `default.eff` you never changed is replaced with the new one, its commented out examples become [disabled](#effects) effects, a changed one is left as it is.
+
+#### 2.1.0 -> 2.2.0
+
+- `default.conf` becomes the full builtin config, see [Config](#config), and `user.conf` replaces `tachytome.conf`.
+- The lines of `tachytome.conf` and every line you uncommented in `default.conf` move to `user.conf`, then `tachytome.conf` is deleted.
+- `default` is dropped from `configs=`, the lines from `default.conf` go above that line when `default` was the first enabled config, below it otherwise.<br>
+  When `default` wasn't enabled, they're moved commented out.
+- Skip keeps `tachytome.conf` and `default.conf` as `.bak` and starts with an empty `user.conf`.
 
 ## Usage
 
@@ -496,14 +504,12 @@ vertical = 1080x1920 cover
 
 ### Config
 
-You can configure Tachytome with the `mpv/script-opts/tachytome/default.conf` file.<br>
-It should get automatically generated on the first launch, with every line commented out.<br>
-Uncomment and change only what you need, everything else uses the [builtin config](./tachytome.conf).<br>
-The builtin config contains detailed explanations of all the settings, I would highly suggest reading it.
+You can configure Tachytome with the `mpv/script-opts/tachytome/user.conf` file, generated empty on the first launch.<br>
+Put only what you want to change in it, everything else comes from `default.conf` next to it.
 
-`mpv/script-opts/tachytome/tachytome.conf` is generated too, containing only `configs=default`, which picks the [configs](#configs) that get used.
-
-A deleted `default.conf` is generated again on start when `default` is enabled in `configs`, or when there are no other `.conf` files next to `tachytome.conf`.
+`default.conf` is a copy of the [builtin config](./tachytome.conf), always loaded first, with `user.conf` loaded on top of it.<br>
+Tachytome owns it and writes it again whenever the builtin config changes, e.g. on every update, so changes made to it are lost, copy the lines you want to change to `user.conf` instead.<br>
+It contains detailed explanations of all the settings, I would highly suggest reading it.
 
 > [!NOTE]
 > Coming from 1.0.0, which used `mpv/script-opts/tachytome.conf`? See [Upgrading](#upgrading).
@@ -518,24 +524,25 @@ Replace `t`, `g` and `d` with keys of your choice.
 
 #### Configs
 
-`mpv/script-opts/tachytome/` can hold more `.conf` files next to `default.conf`, e.g. `work.conf` and `stream.conf`, picked with the `configs` option in `tachytome.conf`:
+`mpv/script-opts/tachytome/` can hold more `.conf` files next to `user.conf`, e.g. `work.conf` and `stream.conf`, picked with an optional `configs` line in `user.conf`:
 ```
-configs=default,work,stream,!old
+configs=work,stream,!old
 ```
 
 - Configs are named without `.conf`, later ones override earlier ones.
 - `!name` disables a config while keeping its place in the list.
-- Lines in `tachytome.conf` above the `configs=` line apply before the configs, lines below it override them.
-- Configs can set options and define [menus](#custom-menus), `configs` itself only works in `tachytome.conf`.
+- Lines in `user.conf` above the `configs=` line apply before the configs, lines below it override them.
+- Configs can set options and define [menus](#custom-menus), `configs` itself only works in `user.conf`.
+- `default.conf` and `user.conf` are always loaded and can't be listed.
 - `.conf` files in the dir that aren't listed show up as disabled.
 - Switch them from the menu with `c` in Settings, which writes the `configs=` line and reloads options and menus.<br>
   Options changed from the menu during the session are reset to the config values on reload.
 - Switching the menu, language or version from the menu saves it to whichever file sets it, e.g. `work.conf` when it's the one that wins.<br>
-  When no file sets it yet, it goes to the first enabled config.
+  When no file sets it yet, it goes to the first enabled config, or `user.conf` when there's none.
 
 #### Custom Menus
 
-The Tachytome menu is fully configurable through menus in your configs, e.g. `default.conf`.<br>
+The Tachytome menu is fully configurable through menus in your configs, e.g. `user.conf`.<br>
 Pick the active one with `selected_menu`, or switch it from the menu with `m`.
 
 ```

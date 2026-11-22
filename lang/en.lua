@@ -301,6 +301,14 @@ return {
     migrate_tracks_done    = "Track options converted to the tracks chain",
     migrate_tracks_skipped = "Track options left as they are, they're ignored with a warning",
 
+    migrate_user_intro     = "default.conf is now the full builtin config, written again on every update, your changes go in user.conf",
+    migrate_user_moved     = "Moved to user.conf: {list}",
+    migrate_user_nothing   = "Nothing to move, user.conf starts empty",
+    migrate_user_commented = "default wasn't enabled in configs, its lines are moved commented out",
+    migrate_user_configs   = "Configs kept: {list}",
+    migrate_user_removed   = "tachytome.conf is deleted, its lines are in user.conf",
+    migrate_user_done      = "Your changes moved to user.conf",
+
     ffmpeg_missing        = "FFmpeg is missing",
     ffmpeg_missing_linux  = "FFmpeg is missing, install it with your package manager",
     ffmpeg_install_prompt = "Install it automatically?",
