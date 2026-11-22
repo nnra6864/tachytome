@@ -7,9 +7,10 @@ local M = {
     version = "2.1.0"
 }
 
-local old_keys  = { combine_audio = true, combined_audio_only = true, combined_audio_name = true, audio_tracks = true, video_tracks = true }
-local stock_eff = utils.join_path(mp.get_script_directory() or "", "src/migrations/2.0.0/tachytome-effects.conf")
-local old_main  = utils.join_path(common.get_conf_dir(), "tachytome.conf")
+local old_keys    = { combine_audio = true, combined_audio_only = true, combined_audio_name = true, audio_tracks = true, video_tracks = true }
+local old_actions = { configs = "settings_manager" }
+local stock_eff   = utils.join_path(mp.get_script_directory() or "", "src/migrations/2.0.0/tachytome-effects.conf")
+local old_main    = utils.join_path(common.get_conf_dir(), "tachytome.conf")
 
 local function read_lines(path)
     local lines = {}
@@ -91,23 +92,53 @@ local function conf_files()
     return dir, files
 end
 
+local function rename_action(line, inside)
+    local tokens = {}
+    for from, word, to in line:gmatch("()(%S+)()") do tokens[#tokens + 1] = { from = from, word = word, to = to } end
+    local k = 1
+    if not inside then
+        if not tokens[1] or tokens[1].word ~= "menu" then return nil end
+        k = 2
+    end
+    while tokens[k + 2] and (tokens[k].word == "add" or tokens[k].word == "hide") do k = k + 1 end
+    local action = tokens[k + 1]
+    if not action or not old_actions[action.word] then return nil end
+    return line:sub(1, action.from - 1) .. old_actions[action.word] .. line:sub(action.to), action.word
+end
+
 local function scan()
     local dir, files = conf_files()
     local found      = {}
     for _, name in ipairs(files) do
-        local path  = utils.join_path(dir, name)
-        local lines = read_lines(path)
-        local opts  = {}
-        local rows  = {}
+        local path    = utils.join_path(dir, name)
+        local lines   = read_lines(path)
+        local opts    = {}
+        local rows    = {}
+        local actions = {}
+        local renamed = {}
+        local depth   = 0
         for i, line in ipairs(lines) do
-            local eq  = line:find("=", 1, true)
-            local key = eq and line:sub(1, 1) ~= "#" and line:sub(1, eq - 1)
+            local text = line:match("^%s*(.-)%s*$")
+            local eq   = line:find("=", 1, true)
+            local key  = depth == 0 and eq and line:sub(1, 1) ~= "#" and line:sub(1, eq - 1)
             if key and old_keys[key] then
                 opts[key]       = line:sub(eq + 1)
                 rows[#rows + 1] = i
+            elseif depth == 0 and text:find("^menu%s+[^%s{]+%s*{$") then
+                depth = 1
+            elseif depth > 0 and text:sub(1, 1) ~= "#" and text:find("{$") then
+                depth = depth + 1
+            elseif depth > 0 and text == "}" then
+                depth = depth - 1
+            elseif text:sub(1, 1) ~= "#" and not (depth > 0 and text:find("^base%s")) then
+                local new, old = rename_action(line, depth > 0)
+                if new then
+                    actions[i]            = new
+                    renamed[#renamed + 1] = string.format("%s: %s -> %s", name, old, old_actions[old])
+                end
             end
         end
-        if #rows > 0 then found[#found + 1] = { name = name, path = path, rows = rows, chain = M.chain(opts) } end
+        if #rows > 0 or #renamed > 0 then found[#found + 1] = { name = name, path = path, rows = rows, chain = M.chain(opts), actions = actions, renamed = renamed } end
     end
     return found
 end
@@ -259,22 +290,28 @@ function M.plan()
     local user  = common.file_exists(old_main)
     if #found == 0 and not user then return nil end
 
-    local plan = { files = found, user = user, lines = {} }
-    if #found > 0 then
-        local list = {}
-        for _, f in ipairs(found) do list[#list + 1] = string.format("%s: tracks=%s", f.name, f.chain) end
-        plan.lines[#plan.lines + 1] = { key = "migrate_tracks_intro" }
-        plan.lines[#plan.lines + 1] = { key = "migrate_tracks", list = list }
+    local plan    = { files = found, user = user, lines = {} }
+    local tracks  = {}
+    local renamed = {}
+    for _, f in ipairs(found) do
+        if #f.rows > 0 then tracks[#tracks + 1] = string.format("%s: tracks=%s", f.name, f.chain) end
+        for _, entry in ipairs(f.renamed) do renamed[#renamed + 1] = entry end
     end
+    if #tracks > 0 then
+        plan.lines[#plan.lines + 1] = { key = "migrate_tracks_intro" }
+        plan.lines[#plan.lines + 1] = { key = "migrate_tracks", list = tracks }
+    end
+    if #renamed > 0 then plan.lines[#plan.lines + 1] = { key = "migrate_actions", list = renamed } end
     if user then user_lines(plan) end
-    plan.done    = user and "migrate_user_done" or "migrate_tracks_done"
-    plan.skipped = user and "migrate_skipped" or "migrate_tracks_skipped"
+    plan.done    = user and "migrate_user_done" or #tracks > 0 and "migrate_tracks_done" or "migrate_actions_done"
+    plan.skipped = user and "migrate_skipped" or #tracks > 0 and "migrate_tracks_skipped" or "migrate_actions_skipped"
     return plan
 end
 
 function M.apply(plan)
     for _, f in ipairs(plan.files) do
         local lines = read_lines(f.path)
+        for i, line in pairs(f.actions) do lines[i] = line end
         for k = #f.rows, 1, -1 do
             if k == 1 and f.chain ~= "" then
                 lines[f.rows[k]] = "tracks=" .. f.chain

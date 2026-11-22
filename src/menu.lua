@@ -316,7 +316,6 @@ local items = {
 
 local items_by_name = {}
 for _, item in ipairs(items) do items_by_name[item.name] = item end
-items_by_name.configs = items_by_name.settings_manager
 
 local function row_label(row)
     if row.label then

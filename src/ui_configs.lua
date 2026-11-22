@@ -102,7 +102,7 @@ function M.show(configs, on_apply, on_close)
             if #vis > 0 and ui.position(vis, cursor) == 0 then cursor = vis[1] end
             local body = ui.list(#vis, ui.position(vis, cursor), function(k)
                 local row     = rows[vis[k]]
-                local val     = row.pinned and string.format("%s%s", theme.c("value_color"), theme.escape(lang.t("configs_always")))
+                local val     = row.pinned and string.format("%s%s", theme.c("dim_text_color"), theme.escape(lang.t("configs_always")))
                     or row.enabled and string.format("%s%s", theme.c("on_color"), state.opts.on_text)
                     or string.format("%s%s", theme.c("off_color"), state.opts.off_text)
                 local missing = row.exists and "" or string.format(" %s%s", theme.c("warning_color"), theme.escape(lang.t("configs_missing")))

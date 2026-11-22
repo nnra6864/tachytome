@@ -317,6 +317,10 @@ return {
     migrate_tracks_done    = "Track options converted to the tracks chain",
     migrate_tracks_skipped = "Track options left as they are, they're ignored with a warning",
 
+    migrate_actions         = "Menu actions renamed: {list}",
+    migrate_actions_done    = "Menu actions renamed",
+    migrate_actions_skipped = "Menu actions left as they are, the old names do nothing",
+
     migrate_user_intro     = "default.conf is now the full builtin config, written again on every update, your changes go in user.conf",
     migrate_user_moved     = "Moved to user.conf: {list}",
     migrate_user_nothing   = "Nothing to move, user.conf starts empty",

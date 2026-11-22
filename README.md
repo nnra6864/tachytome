@@ -147,6 +147,7 @@ Updates that cross a major version, e.g. `2.4.1 -> 3.0.0`, are pointed out befor
 - `combine_audio`, `combined_audio_only`, `combined_audio_name`, `audio_tracks` and `video_tracks` become one [`tracks`](#tracks) chain in the same config file, e.g. `audio_tracks=1,3` with `combine_audio=yes` becomes `tracks=keep 1,3 mix "Combined" at 1`, first like the old combined track.
 - `combined_audio_name` moves into the mix, `Combined` when it wasn't set, so the track keeps its old title, e.g. `mix "Voice"`, and Combined Only becomes `keep @mixes`.
 - Interrupted render queues are converted too, Skip leaves the old options in place, where they're ignored with a warning.
+- The `configs` menu action is renamed to `settings_manager` in your menus.
 - A `default.eff` you never changed is replaced with the new one, its commented out examples become [disabled](#effects) effects, a changed one is left as it is.
 - `default.conf` becomes the full builtin config, see [Config](#config), and `user.conf` replaces `tachytome.conf`.
 - The lines of `tachytome.conf` and every line you uncommented in `default.conf` move to `user.conf`, then `tachytome.conf` is deleted.
@@ -540,7 +541,6 @@ configs=work,stream,!old
 - Manage them from the menu with the [Settings Manager](#settings-manager), `c` in Settings, which writes the `configs=` line, at the top of `user.conf` when there's none yet, and reloads options and menus.<br>
   Options changed from the menu during the session are reset to the config values on reload.
 - Switching the menu, language or version from the menu saves it to `user.conf`, below the `configs=` line so it wins over every config.
-- The `configs` menu action still works as the old name of `settings_manager`.
 
 #### Custom Menus
 
