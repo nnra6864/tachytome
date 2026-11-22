@@ -11,8 +11,7 @@ local M = {
 
 local steps = {
     require 'src.migrations.2_0_0',
-    require 'src.migrations.2_1_0',
-    require 'src.migrations.2_2_0'
+    require 'src.migrations.2_1_0'
 }
 
 local version_path = utils.join_path(common.get_state_dir(), "version")

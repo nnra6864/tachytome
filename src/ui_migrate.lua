@@ -51,10 +51,10 @@ function M.run(on_reload, on_done)
             end
             if idx == 1 then
                 entry.step.apply(entry.plan)
-                notify.show(lang.t(entry.step.done or "migrate_done"), true)
+                notify.show(lang.t(entry.plan.done or entry.step.done or "migrate_done"), true)
             else
                 entry.step.skip(entry.plan)
-                notify.show(lang.t(entry.step.skipped or "migrate_skipped"), true)
+                notify.show(lang.t(entry.plan.skipped or entry.step.skipped or "migrate_skipped"), true)
             end
             run_step(i + 1)
         end)

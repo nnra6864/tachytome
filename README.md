@@ -148,14 +148,11 @@ Updates that cross a major version, e.g. `2.4.1 -> 3.0.0`, are pointed out befor
 - `combined_audio_name` moves into the mix, `Combined` when it wasn't set, so the track keeps its old title, e.g. `mix "Voice"`, and Combined Only becomes `keep @mixes`.
 - Interrupted render queues are converted too, Skip leaves the old options in place, where they're ignored with a warning.
 - A `default.eff` you never changed is replaced with the new one, its commented out examples become [disabled](#effects) effects, a changed one is left as it is.
-
-#### 2.1.0 -> 2.2.0
-
 - `default.conf` becomes the full builtin config, see [Config](#config), and `user.conf` replaces `tachytome.conf`.
 - The lines of `tachytome.conf` and every line you uncommented in `default.conf` move to `user.conf`, then `tachytome.conf` is deleted.
 - `default` is dropped from `configs=`, the lines from `default.conf` go above that line when `default` was the first enabled config, below it otherwise.<br>
   When `default` wasn't enabled, they're moved commented out.
-- Skip keeps `tachytome.conf` and `default.conf` as `.bak` and starts with an empty `user.conf`.
+- Skip also keeps `tachytome.conf` and `default.conf` as `.bak` and starts with an empty `user.conf`.
 
 ## Usage
 
