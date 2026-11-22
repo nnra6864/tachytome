@@ -1104,7 +1104,7 @@ function M.toggle_combine()
         table.remove(chain.layers, mix)
         if only and not has_mix(chain.layers) then table.remove(chain.layers, #chain.layers) end
     else
-        table.insert(chain.layers, only or #chain.layers + 1, { op = "mix", at = 1 })
+        table.insert(chain.layers, only or #chain.layers + 1, { op = "mix", name = "Combined", at = 1 })
     end
     save(chain)
     return not mix
@@ -1120,7 +1120,7 @@ function M.toggle_only()
         save(chain)
         return false
     end
-    if not has_mix(layers) then chain.layers[#chain.layers + 1] = { op = "mix", at = 1 } end
+    if not has_mix(layers) then chain.layers[#chain.layers + 1] = { op = "mix", name = "Combined", at = 1 } end
     chain.layers[#chain.layers + 1] = { op = "keep", list = { { kind = "mixes" } } }
     save(chain)
     return true

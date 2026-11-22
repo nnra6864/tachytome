@@ -229,7 +229,7 @@ The `simple` menu keeps every item on a single level, switch to it with `s-s` `m
 |---------|------------------|-------------------------------------------------------------------------------------|
 | e       | Audio Encoder    | Set the audio encoder, `copy` keeps the source audio.                               |
 | b       | Audio Bitrate    | Set the bitrate, e.g. `128k`, shows the source or `Best`.<br>Empty resets it.       |
-| c       | Combine Audio    | Mix the kept tracks into a first track, a trailing `mix at 1` in [Tracks](#tracks). |
+| c       | Combine Audio    | Mix the kept tracks into a first track, `mix "Combined" at 1` in [Tracks](#tracks). |
 | o       | Combined Only    | Keep only the mix, a trailing `keep @mixes`, turns Combine Audio on too.            |
 
 ##### Audio Export
@@ -825,7 +825,8 @@ Change it on the fly in the [Tracks List](#tracks-list) and with Combine Audio a
 - In lists a name needs quotes when it holds spaces or reads like something else, `all`, `none`, a number, an op word or a preset, e.g. `drop "Mix"` or `keep "Mix 2",1`.
 - `all` in a later layer includes earlier mixes, so `mix mix all` mixes the source tracks again together with the first mix, making them louder in it.
 - The first mix is the default track, mixes use the Audio Encoder, or the codec of their first track with `copy`, the rest is copied unless something needs re-encoding.
-- Combine Audio and Combined Only add or remove a trailing `mix at 1` and `keep @mixes`, so the mix comes first like before 2.1.0.
+- Combine Audio and Combined Only add or remove a trailing `mix "Combined" at 1` and `keep @mixes`, so the mix comes first and is named Combined like before 2.1.0.<br>
+  Any trailing mix without a track list counts as Combine Audio, whatever its name.<br>
   They see the tail inside a trailing preset too, so they show ON for `combined_only`, changing one there writes the preset's layers out in its place.
 
 | Chain                         | Desktop, Discord and Mic                                                   |
