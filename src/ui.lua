@@ -36,7 +36,7 @@ function M.dim_lines(lines)
         local indent = #line:match("^ *")
         out[i]       = line == "" and "\\h" or string.rep("\\h", indent) .. theme.escape(line:sub(indent + 1))
     end
-    return string.format("\\N%s%s%s%s", theme.f(true), theme.c("dim_text_color"), table.concat(out, "\\N"), theme.reset())
+    return string.format("\\N%s\\h\\N%s%s%s", theme.f(true), theme.c("dim_text_color"), table.concat(out, "\\N"), theme.reset())
 end
 
 local key_rank    = { Tab = 1, ["0-9"] = 2, Enter = 3, Esc = 4 }
