@@ -6,15 +6,9 @@ question that needs an answer before that item starts.
 New strings are English only for now, translations wait for the last
 item.
 
-## 1. Settings Manager
-- Replaces Configs in Settings: the configs list with `user` pinned on
-  top, Tab enables or disables, Shift+Up/Down reorders, like now.
-- New keys create, rename and delete a config, delete asks first.
-- Enter opens the Settings Editor on the selected config.
-- Save Settings and its Reset are removed, Reset becomes unset all in
-  the editor. Menu, Language and Version keep saving to `user.conf`.
-
-## 2. Settings Editor
+## 1. Settings Editor
+- Enter in the Settings Manager opens it on the selected config, saving
+  the manager's list first.
 - Edits one config file. Lists every option from the builtin config,
   the hovered one's comment block shows dim under the list like a
   preset's description. No menus, only option values.
@@ -32,7 +26,7 @@ item.
   `configs=` asks to add it to `user.conf`.
 - Esc with unsaved changes asks: Save, Discard or Cancel.
 
-## 3. default.res, default.trk and default.eff are owned by Tachytome
+## 2. default.res, default.trk and default.eff are owned by Tachytome
 - They're written again on every update like `default.conf`, and are
   loaded first, the rest alphabetically. A bare name picks the last
   file that defines it, so your own preset wins over a default one with
@@ -42,20 +36,20 @@ item.
 - Migrating from 2.x moves presets and effects that differ from that
   version's builtin ones into `user.*`.
 
-## 4. Edits to default files are caught
+## 3. Edits to default files are caught
 - Tachytome remembers a hash of each `default.*` file it writes. One
   that doesn't match on start warns once and asks: move the changes to
   `user.*` or another file, undo them, or keep the file and stop
   updating it.
 
-## 5. Reset presets and effects to default
+## 4. Reset presets and effects to default
 - `R` in the Preset Manager resets that kind: empty `user.res`,
   `user.trk` or `user.eff`, or also delete every other file of that
   kind, or Cancel.
 - Selected effects and chains using a preset that's gone say so like a
   deleted preset does now.
 
-## 6. Missing Serbian translations
+## 5. Missing Serbian translations
 - `lang/sr.lua` lacks the keys added since it was written, mostly Tracks:
   the `hint_tracks*`, `migrate_tracks*` and `tracks_*` strings,
   `key_position`, `key_rename`, `key_type` and `resolution_after`.
