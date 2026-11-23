@@ -343,6 +343,15 @@ function M.describe(key)
     return out
 end
 
+function M.section(key)
+    local current = nil
+    for _, line in ipairs(read_lines(M.builtin_path)) do
+        current = line:match("^## (.+)$") or current
+        if line:sub(1, #key + 1) == key .. "=" then return current end
+    end
+    return nil
+end
+
 function M.file_options(name)
     local vals = {}
     for _, row in ipairs(option_rows(read_lines(M.config_path(name)))) do

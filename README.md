@@ -508,7 +508,8 @@ Creating, renaming and deleting change the file right away, the list itself is s
 
 #### Settings Editor
 
-Lists every option of one config file, the hovered one's description shows under the list.<br>
+Lists every option of one config file in the builtin config's order, the hovered one's description shows under the list and its group in the title.<br>
+Quality and Preset only list the current encoder in their description.<br>
 An option set in the file shows its name bright, marked `*` until saved, one it doesn't set shows its name dim with the value it gets from `default.conf` and the other configs.<br>
 A set option that a later config or `user.conf` overrides says what it's overridden to.<br>
 Color options show their value outlined in that color, with its alpha, in white on a dark color and black on a light one.
@@ -539,7 +540,8 @@ Put only what you want to change in it, everything else comes from `default.conf
 
 `default.conf` is a copy of the [builtin config](./tachytome.conf), always loaded first, with `user.conf` loaded on top of it.<br>
 Tachytome owns it and writes it again whenever the builtin config changes, e.g. on every update, so changes made to it are lost, copy the lines you want to change to `user.conf` instead.<br>
-It contains detailed explanations of all the settings, I would highly suggest reading it.
+It explains every setting, grouped under `## ` headers like Video, Audio and Colors, I would highly suggest reading it.<br>
+The chains for `resolution` and `tracks` are only summed up there, their full syntax is in [Resolution](#resolution) and [Tracks](#tracks).
 
 > [!NOTE]
 > Coming from 1.0.0, which used `mpv/script-opts/tachytome.conf`? See [Upgrading](#upgrading).
