@@ -234,6 +234,9 @@ return {
     configs_deleted      = "Deleted {name}",
     configs_write_failed = "Failed to change {name}",
     configs_applied      = "Configs: {list}",
+    configs_reset_all    = "Delete every config and empty user.conf",
+    configs_reset_done   = "Back to the defaults once this closes, u to undo",
+    configs_reset_none   = "Nothing to reset, everything is at its default",
 
     config_editor        = "Config Editor: {name}",
     settings_overridden  = "overridden to {value}",

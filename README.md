@@ -525,7 +525,12 @@ Creating, renaming and deleting change the file right away, the list itself is s
 | n            | New       | Create an empty config, enabled at the end of the list.                         |
 | r            | Rename    | Rename the config's file and its entry.                                         |
 | d            | Delete    | Delete the config's file, asks first.                                           |
+| R            | Reset     | Go back to the defaults, asks first.                                            |
+| u            | Undo      | Undo the reset, for 5 seconds.                                                  |
 | Esc          | Close     | Save the list to `user.conf` and reload when it changed.                        |
+
+Reset offers to empty `user.conf`, keeping the `configs=` line so your other configs stay, or to delete every config and empty `user.conf` too.<br>
+The defaults apply when the manager closes.
 
 #### Config Editor
 

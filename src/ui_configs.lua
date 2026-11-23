@@ -1,6 +1,7 @@
 local mp          = require 'mp'
 local common      = require 'src.common'
 local conf        = require 'src.conf'
+local file_lines  = require 'src.file_lines'
 local list_search = require 'src.list_search'
 local state       = require 'src.state'
 local theme       = require 'src.theme'
@@ -9,19 +10,37 @@ local notify      = require 'src.notify'
 local ui          = require 'src.ui'
 local ui_input    = require 'src.ui_input'
 local ui_confirm  = require 'src.ui_confirm'
+local ui_choice   = require 'src.ui_choice'
 
 local M = {}
 
-local bindings = { "cfg-up", "cfg-down", "cfg-j", "cfg-k", "cfg-move-up", "cfg-move-down", "cfg-K", "cfg-J", "cfg-tab", "cfg-enter", "cfg-new", "cfg-rename", "cfg-delete", "cfg-search", "cfg-esc" }
+local UNDO_TIME = 5
+
+local bindings = { "cfg-up", "cfg-down", "cfg-j", "cfg-k", "cfg-move-up", "cfg-move-down", "cfg-K", "cfg-J", "cfg-tab", "cfg-enter", "cfg-new", "cfg-rename", "cfg-delete", "cfg-reset", "cfg-undo", "cfg-search", "cfg-esc" }
 
 local function trim(s)
     return (s:match("^%s*(.-)%s*$"))
 end
 
+local function copy_rows(rows)
+    local out = {}
+    for i, row in ipairs(rows) do out[i] = { name = row.name, enabled = row.enabled, exists = row.exists, pinned = row.pinned } end
+    return out
+end
+
 function M.show(configs, on_apply, on_close, on_edit)
     local rows    = { { name = "user", enabled = true, exists = true, pinned = true } }
     local changed = false
+    local undo    = nil
+    local timer   = nil
+    local refresh = nil
     for _, c in ipairs(configs) do rows[#rows + 1] = { name = c.name, enabled = c.enabled, exists = c.exists } end
+
+    local function forget_undo()
+        if timer then timer:kill() end
+        timer = nil
+        undo  = nil
+    end
 
     local function taken(name, except)
         local low = name:lower()
@@ -69,6 +88,7 @@ function M.show(configs, on_apply, on_close, on_edit)
 
         local function teardown()
             active         = false
+            refresh        = nil
             state.ui_owner = nil
             search.close()
             ov:remove()
@@ -84,6 +104,7 @@ function M.show(configs, on_apply, on_close, on_edit)
         local function close()
             if not active then return end
             teardown()
+            forget_undo()
             if not changed then
                 if on_close then on_close() end
                 return
@@ -114,10 +135,16 @@ function M.show(configs, on_apply, on_close, on_edit)
             end)
             if #vis == 0 then body = search.empty() end
 
-            local hints = search.hints({ { "Up/Down", "navigate" }, { "Tab", "toggle" }, { "Enter", "edit" }, { "Shift+Up/Down", "move" }, { "n", "new" }, { "r", "rename" }, { "d", "delete" }, { "/", "search" }, { "Esc", "close" } })
+            local hints = { { "Up/Down", "navigate" }, { "Tab", "toggle" }, { "Enter", "edit" }, { "Shift+Up/Down", "move" }, { "n", "new" }, { "r", "rename" }, { "d", "delete" }, { "R", "reset" } }
+            if undo then hints[#hints + 1] = { "u", "undo" } end
+            hints[#hints + 1] = { "/", "search" }
+            hints[#hints + 1] = { "Esc", "close" }
+            hints = search.hints(hints)
             ov.data = search.title(lang.t("menu_config_manager")) .. "\\N" .. body .. "\\N" .. ui.dim(lang.t("configs_dir", { dir = common.display_path(common.get_conf_dir()) })) .. "\\N" .. ui.tooltip(hints)
             ov:update()
         end
+
+        refresh = draw
 
         local function move_cursor(delta)
             cursor = ui.step(visible(), cursor, delta)
@@ -200,6 +227,83 @@ function M.show(configs, on_apply, on_close, on_edit)
             end, function() open(cursor) end)
         end
 
+        local function reset_to(keep_list)
+            local files = {}
+            local main  = conf.main_path()
+            local lines = file_lines.read(main) or {}
+            local kept  = {}
+            for _, line in ipairs(lines) do
+                if keep_list and line:match("^configs=") then kept[#kept + 1] = line end
+            end
+            files[1] = { path = main, before = lines }
+            if not file_lines.write(main, kept) then
+                notify.show(lang.t("configs_write_failed", { name = "user" }), true, "error")
+                return open(cursor)
+            end
+            local before_rows = copy_rows(rows)
+            if not keep_list then
+                for i = #rows, 2, -1 do
+                    local path = conf.config_path(rows[i].name)
+                    if rows[i].exists then
+                        files[#files + 1] = { path = path, before = file_lines.read(path) or {} }
+                        os.remove(path)
+                    end
+                    table.remove(rows, i)
+                end
+            end
+            forget_undo()
+            undo    = { files = files, rows = before_rows, changed = changed }
+            timer   = mp.add_timeout(UNDO_TIME, function()
+                timer = nil
+                undo  = nil
+                if refresh then refresh() end
+            end)
+            changed = true
+            notify.show(lang.t("configs_reset_done"), true)
+            open(1)
+        end
+
+        local function reset()
+            local has_own = false
+            for _, line in ipairs(file_lines.read(conf.main_path()) or {}) do
+                if not file_lines.blank(line) and not line:match("^configs=") then has_own = true end
+            end
+            local choices = {}
+            local actions = {}
+            if has_own then
+                choices[#choices + 1] = { label = lang.t("presets_reset_user", { file = "user.conf" }) }
+                actions[#choices]     = function() reset_to(true) end
+            end
+            if #rows > 1 then
+                choices[#choices + 1] = { label = lang.t("configs_reset_all") }
+                actions[#choices]     = function() reset_to(false) end
+            end
+            if #choices == 0 then return notify.show(lang.t("configs_reset_none"), true) end
+            choices[#choices + 1] = { label = lang.t("choice_cancel") }
+            for i, choice in ipairs(choices) do choice.key = tostring(i) end
+            teardown()
+            ui_choice.show(lang.t("presets_reset"), common.display_path(common.get_conf_dir()), choices, #choices, function(idx)
+                if actions[idx] then return actions[idx]() end
+                open(cursor)
+            end)
+        end
+
+        local function undo_reset()
+            if not undo then return end
+            local entry = undo
+            forget_undo()
+            for _, f in ipairs(entry.files) do
+                if not file_lines.write(f.path, f.before) then
+                    notify.show(lang.t("configs_write_failed", { name = f.path }), true, "error")
+                    return draw()
+                end
+            end
+            rows    = entry.rows
+            changed = entry.changed
+            notify.show(lang.t("presets_reset_undone"), true)
+            draw()
+        end
+
         search = list_search.new({
             prefix = "cfg",
             labels = labels,
@@ -224,6 +328,8 @@ function M.show(configs, on_apply, on_close, on_edit)
         mp.add_forced_key_binding("n", "cfg-new", create)
         mp.add_forced_key_binding("r", "cfg-rename", rename)
         mp.add_forced_key_binding("d", "cfg-delete", delete)
+        mp.add_forced_key_binding("R", "cfg-reset", reset)
+        mp.add_forced_key_binding("u", "cfg-undo", undo_reset)
         mp.add_forced_key_binding("/", "cfg-search", search.start)
         mp.add_forced_key_binding("ESC", "cfg-esc", function()
             if search.filtering() then return search.clear() end

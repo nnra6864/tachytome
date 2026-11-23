@@ -379,9 +379,15 @@ function M.write_configs(list)
     local lines = read_lines(M.user_path)
 
     local idx   = configs_line(lines)
-    if idx then
+    if idx and #names == 0 then
+        table.remove(lines, idx)
+        if lines[idx] == "" and (idx == 1 or lines[idx - 1] == "") then table.remove(lines, idx) end
+        return write_lines(M.user_path, lines, "configs")
+    elseif idx then
         lines[idx] = entry
         return write_lines(M.user_path, lines, "configs")
+    elseif #names == 0 then
+        return true
     end
 
     if #lines > 0 then table.insert(lines, 1, "") end

@@ -234,6 +234,9 @@ return {
     configs_deleted      = "Obrisano {name}",
     configs_write_failed = "Promena {name} nije uspela",
     configs_applied      = "Konfiguracije: {list}",
+    configs_reset_all    = "Obriši sve konfiguracije i isprazni user.conf",
+    configs_reset_done   = "Podrazumevane vrednosti važe kad se ovo zatvori, u za poništavanje",
+    configs_reset_none   = "Nema šta da se resetuje, sve je podrazumevano",
 
     config_editor        = "Uređivanje konfiguracije: {name}",
     settings_overridden  = "pregaženo na {value}",
