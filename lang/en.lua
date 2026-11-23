@@ -182,8 +182,6 @@ return {
     tracks_disabled   = "Tracks: preset '{token}' is disabled",
     tracks_needs_list = "Tracks: '{token}' needs a track list",
     tracks_name_taken = "Tracks: the name '{name}' is already used",
-    tracks_mix        = "Mix",
-    tracks_mix_n      = "Mix {n}",
     tracks_mix_of     = "mix {list}",
     tracks_source     = "source {n}",
     tracks_in_out     = "{input} in > {output} out",

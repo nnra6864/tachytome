@@ -444,7 +444,7 @@ function M.run(layers, audio_count, upto)
             if not name then
                 repeat
                     unnamed = unnamed + 1
-                    name    = unnamed == 1 and lang.t("tracks_mix") or lang.t("tracks_mix_n", { n = unnamed })
+                    name    = unnamed == 1 and "Mix" or "Mix " .. unnamed
                 until names[name:lower()] == nil
             elseif names[name:lower()] ~= nil then
                 return lang.t("tracks_name_taken", { name = name })

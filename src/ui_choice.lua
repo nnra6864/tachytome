@@ -33,9 +33,10 @@ function M.show(title, body, choices, esc_index, on_pick)
 
     local rows = {}
     for i, choice in ipairs(choices) do
-        local keys = { choice.key }
+        local keys = {}
         if choice.alt then keys[#keys + 1] = choice.alt end
         if i == esc_index then keys[#keys + 1] = "ESC" end
+        keys[#keys + 1] = choice.key
         rows[i] = { keys = table.concat(keys, ","), label = choice.label }
         for _, key in ipairs(keys) do bind(key, i) end
     end

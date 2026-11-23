@@ -710,6 +710,7 @@ return {
 - Key tooltips are built from `key_hint`, e.g. `{keys} to {action}`, and one `key_<action>` per action, e.g. `key_navigate`.
 - Option descriptions in the Settings Editor are `opt_<option>`, a list of lines, e.g. `opt_font_size = { "Font size" }`, and their groups `section_<group>`, e.g. `section_input_cursor`.
 - Presets and effects you share can carry their own translations, see [Preset Descriptions](#preset-descriptions).
+- Chain words and names chains can refer to aren't translated, e.g. `mix`, `all` and the default mix names `Mix` and `Combined`, so a chain works the same in every language.
 - To add a language, copy `lang/en.lua` to `lang/<code>.lua` and translate the text.
 
 ### Recovery
