@@ -107,6 +107,8 @@ M.ranges = {
     start_out_duration = { min = -1 }
 }
 
+M.ffmpeg_colors = { pad_color = true }
+
 local families = { "av1", "h265", "h264" }
 
 function M.describe(key, encoder)

@@ -122,7 +122,7 @@ function M.show(opts)
         hints[#hints + 1] = { "R", "reset" }
         hints[#hints + 1] = { "/", "search" }
         hints[#hints + 1] = { "Esc", "back" }
-        if row and row.kind == "preset" then body = body .. ui.dim_lines(descs[row.preset]) end
+        if row and row.kind == "preset" then body = body .. ui.tips(descs[row.preset]) end
         ov.data = search.title(opts.title) .. "\\N" .. body .. "\\N" .. ui.tooltip(search.hints(hints))
         ov:update()
     end

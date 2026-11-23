@@ -239,7 +239,7 @@ return {
     configs_write_failed = "Failed to change {name}",
     configs_applied      = "Configs: {list}",
     configs_reset_all    = "Delete every config and empty user.conf",
-    configs_reset_done   = "Back to the defaults once this closes, u to undo",
+    configs_reset_done   = "Back to the defaults, u to undo",
     configs_reset_none   = "Nothing to reset, everything is at its default",
     configs_reset_list   = "Configs:",
     configs_sets_none    = "Sets no options",
@@ -423,6 +423,8 @@ return {
         "  yes  the title shows the result after the hovered layer",
         "  no   every layer shows its own result, e.g. 1920x1080 -> 960x540"
     },
+    opt_key_hints           = { "Shows the keys at the bottom of lists, inputs and dialogs" },
+    opt_tips                = { "Shows descriptions under lists, hints under inputs and the configs dir in the Config Manager" },
 
     opt_language = {
         "UI language, auto detects the system language on every start",

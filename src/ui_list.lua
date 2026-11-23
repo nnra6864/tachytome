@@ -79,7 +79,7 @@ function M.show(title, items, current_val, on_select, on_cancel, opts)
         hints[#hints + 1] = { "/", "search" }
         hints[#hints + 1] = { "Esc", "cancel" }
         hints             = search.hints(hints)
-        if opts.describe and #vis > 0 then body = body .. ui.dim_lines(opts.describe(cursor)) end
+        if opts.describe and #vis > 0 then body = body .. ui.tips(opts.describe(cursor)) end
         ov.data = search.title(title) .. "\\N" .. body .. "\\N" .. ui.tooltip(hints)
         ov:update()
     end

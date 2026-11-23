@@ -37,7 +37,7 @@ local function copy_rows(rows)
     return out
 end
 
-function M.show(configs, on_apply, on_close, on_edit)
+function M.show(configs, on_apply, on_close, on_edit, on_reset)
     local rows    = { { name = "user", enabled = true, exists = true, pinned = true } }
     local changed = false
     local undo    = nil
@@ -131,6 +131,12 @@ function M.show(configs, on_apply, on_close, on_edit)
             return ui.visible(#rows, function(i) return search.keep(rows[i].name) end)
         end
 
+        local function apply_now()
+            if not on_reset then return end
+            on_reset(list())
+            changed = false
+        end
+
         local function draw()
             local vis = visible()
             if #vis > 0 and ui.position(vis, cursor) == 0 then cursor = vis[1] end
@@ -149,7 +155,7 @@ function M.show(configs, on_apply, on_close, on_edit)
             hints[#hints + 1] = { "/", "search" }
             hints[#hints + 1] = { "Esc", "close" }
             hints = search.hints(hints)
-            ov.data = search.title(lang.t("menu_config_manager")) .. "\\N" .. body .. "\\N" .. ui.dim(lang.t("configs_dir", { dir = common.display_path(common.get_conf_dir()) })) .. "\\N" .. ui.tooltip(hints)
+            ov.data = search.title(lang.t("menu_config_manager")) .. "\\N" .. body .. "\\N" .. ui.tip(lang.t("configs_dir", { dir = common.display_path(common.get_conf_dir()) })) .. "\\N" .. ui.tooltip(hints)
             ov:update()
         end
 
@@ -270,6 +276,7 @@ function M.show(configs, on_apply, on_close, on_edit)
                 if refresh then refresh() end
             end)
             changed = true
+            apply_now()
             notify.show(lang.t("configs_reset_done"), true)
             open(1)
         end
@@ -318,6 +325,7 @@ function M.show(configs, on_apply, on_close, on_edit)
             end
             rows    = entry.rows
             changed = entry.changed
+            apply_now()
             notify.show(lang.t("presets_reset_undone"), true)
             draw()
         end

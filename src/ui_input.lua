@@ -32,7 +32,7 @@ local function render()
     local preview     = current_preview and current_preview(buffer) or ""
     local preview_str = preview ~= "" and string.format("\\N%s%s-> %s%s", theme.f(true), theme.c("value_color"), theme.escape(preview), theme.reset()) or ""
     local current_str = current_value ~= "" and ui.dim(lang.t("value_current", { value = current_value })):gsub("\n", "\\N") or ""
-    local hint_str    = current_hint and ui.dim(current_hint) or ""
+    local hint_str    = ui.tip(current_hint)
 
     local line = edit.render(layers, theme.align(7) .. theme.f() .. theme.c("text_color"), current_title .. " > ", buffer, cursor)
     overlay.data = string.format("%s%s%s%s%s%s", line, theme.reset(), preview_str, current_str, hint_str, ui.tooltip(hints))

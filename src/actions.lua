@@ -621,7 +621,7 @@ function M.select_configs(on_reload, on_complete)
             if on_reload then on_reload() end
             M.select_configs(on_reload, on_complete)
         end)
-    end)
+    end, function(list) apply_configs(list, on_reload) end)
 end
 
 function M.select_language(on_complete)

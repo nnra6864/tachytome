@@ -239,7 +239,7 @@ return {
     configs_write_failed = "Promena {name} nije uspela",
     configs_applied      = "Konfiguracije: {list}",
     configs_reset_all    = "Obriši sve konfiguracije i isprazni user.conf",
-    configs_reset_done   = "Podrazumevane vrednosti važe kad se ovo zatvori, u za poništavanje",
+    configs_reset_done   = "Vraćeno na podrazumevane vrednosti, u za poništavanje",
     configs_reset_none   = "Nema šta da se resetuje, sve je podrazumevano",
     configs_reset_list   = "Konfiguracije:",
     configs_sets_none    = "Ne postavlja nijednu opciju",
@@ -423,6 +423,8 @@ return {
         "  yes  naslov prikazuje rezultat posle tog sloja",
         "  no   svaki sloj prikazuje svoj rezultat, npr. 1920x1080 -> 960x540"
     },
+    opt_key_hints           = { "Prikazuje tastere na dnu lista, unosa i dijaloga" },
+    opt_tips                = { "Prikazuje opise ispod lista, savete ispod unosa i direktorijum konfiguracija u Upravljanju konfiguracijama" },
 
     opt_language = {
         "Jezik interfejsa, auto prepoznaje jezik sistema pri svakom pokretanju",

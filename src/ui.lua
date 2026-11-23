@@ -1,5 +1,6 @@
 local mp     = require 'mp'
 local common = require 'src.common'
+local state  = require 'src.state'
 local theme  = require 'src.theme'
 local lang   = require 'src.lang'
 
@@ -39,11 +40,22 @@ function M.dim_lines(lines)
     return string.format("\\N%s\\h\\N%s%s%s", theme.f(true), theme.c("dim_text_color"), table.concat(out, "\\N"), theme.reset())
 end
 
+function M.tips(lines)
+    if not state.opts.tips then return "" end
+    return M.dim_lines(lines)
+end
+
+function M.tip(text)
+    if not state.opts.tips or not text then return "" end
+    return M.dim(text)
+end
+
 local key_rank    = { Tab = 1, ["0-9"] = 2, Enter = 3, ["Shift+Enter"] = 4, Esc = 5 }
 local nav_rank    = { navigate = 1, history = 2, move = 3, search = 4 }
 local action_rank = { add = 1, presets = 2, save_as = 3, use = 4, type = 5, rename = 6, position = 7, mode = 8, scaler = 9, path = 10, edit = 11, audio = 12, video = 13, delete = 14 }
 
 function M.tooltip(hints)
+    if not state.opts.key_hints then return "" end
     local groups = { {}, {}, {} }
     for i, hint in ipairs(hints) do
         local key  = hint[1]:match("^[^/]+")

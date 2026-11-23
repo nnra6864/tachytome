@@ -131,7 +131,7 @@ function M.show(on_close)
         if #vis == 0 then body = search.empty() end
         local hints = search.hints({ { "Up/Down", "navigate" }, { "Tab", "toggle" }, { "d", "edit" }, { "m", "manage" }, { "/", "search" }, { "Enter", "apply" }, { "Esc", "cancel" } })
         local row = #nav > 0 and rows[cursor]
-        if row and row.kind == "preset" then body = body .. ui.dim_lines(descs[row.preset]) end
+        if row and row.kind == "preset" then body = body .. ui.tips(descs[row.preset]) end
         ov.data = search.title(lang.t("menu_effects")) .. "\\N" .. body .. "\\N" .. ui.tooltip(hints)
         ov:update()
     end

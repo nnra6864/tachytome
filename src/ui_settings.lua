@@ -4,6 +4,7 @@ local conf        = require 'src.conf'
 local effects     = require 'src.effects'
 local resolution  = require 'src.resolution'
 local tracks      = require 'src.tracks'
+local ffmpeg      = require 'src.ffmpeg'
 local options     = require 'src.options'
 local list_search = require 'src.list_search'
 local state       = require 'src.state'
@@ -214,7 +215,7 @@ function M.show(name, enabled, pickers, on_close)
         end
 
         local function value_text(key, val)
-            local swatch = key:find("_color$") and theme.swatch(val)
+            local swatch = key:find("_color$") and theme.swatch(val, options.ffmpeg_colors[key] and ffmpeg.color_hex(val) or nil)
             if swatch then return swatch end
             return string.format("%s%s", theme.c("value_color"), theme.escape(shown(val)))
         end
@@ -238,7 +239,7 @@ function M.show(name, enabled, pickers, on_close)
             if #vis == 0 then
                 body = search.empty()
             else
-                body = body .. ui.dim_lines(options.describe(keys[cursor], effective.video_encoder))
+                body = body .. ui.tips(options.describe(keys[cursor], effective.video_encoder))
             end
 
             local title   = lang.t("config_editor", { name = name .. ".conf" })

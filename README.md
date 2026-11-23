@@ -305,6 +305,7 @@ Updating through git switches the checkout to the branch, or detaches it at the 
 
 Shift+Enter only works in inputs that take several lines, the description when [saving a preset](#saving-presets) for now, the rest stay on one line.<br>
 Inputs show the current value and a hint on the accepted format below the prompt.<br>
+Once you know your way around, `tips=no` hides the hints under inputs, the descriptions under lists and the configs dir in the Config Manager, and `key_hints=no` hides the Keys at the bottom of lists, inputs and dialogs.<br>
 Submitting an empty input resets to the default where there is one, e.g. the source FPS for FPS or the default path for Path, otherwise it keeps the current value.<br>
 Esc closes any prompt or dialog without changing anything.<br>
 A dialog whose choice changes things you can't see from it lists them dim under its choices, one per line, Up/Down or j/k scroll a long list.
@@ -533,7 +534,7 @@ Creating, renaming and deleting change the file right away, the list itself is s
 
 Reset offers to empty `user.conf`, keeping the `configs=` line so your other configs stay, or to delete every config and empty `user.conf` too.<br>
 It lists the options set in `user.conf` and the configs there are, Enter empties `user.conf`, deleting one lists the options it sets.<br>
-The defaults apply when the manager closes.
+The defaults apply right away, and so does undoing the reset.
 
 #### Config Editor
 
@@ -541,7 +542,7 @@ Lists every option of one config file in the builtin config's order, the hovered
 Descriptions follow the UI language, Quality and Preset show the range, values and recommended one of the current encoder.<br>
 An option set in the file shows its name bright, marked `*` until saved, one it doesn't set shows its name dim, highlighted like the rest when hovered, with the value it gets from the defaults and the other configs.<br>
 A set option that a later config or `user.conf` overrides says what it's overridden to.<br>
-Color options show their value outlined in that color, with its alpha, in white on a dark color and black on a light one.
+Color options show their value outlined in that color, with its alpha, in white on a dark color and black on a light one, `pad_color` too for any ffmpeg color, e.g. `black` or `red@0.5`.
 
 - Every change applies to the session right away, so you see a color, font or encoder change as you make it.<br>
   A config that isn't enabled is previewed as if it were.

@@ -41,8 +41,8 @@ function M.mix(ha, hb, t)
     return string.format("{\\c&H%02X%02X%02X&}", b, g, r)
 end
 
-function M.swatch(text)
-    local h = tostring(text):gsub("^#", "")
+function M.swatch(text, color)
+    local h = tostring(color or text):gsub("^#", "")
     if not h:find("^%x+$") or (#h ~= 6 and #h ~= 8) then return nil end
     local r, g, b = channels(h:sub(1, 6))
     local alpha   = #h == 8 and 255 - tonumber(h:sub(7, 8), 16) or 0

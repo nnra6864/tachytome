@@ -1,9 +1,31 @@
+local utils      = require 'mp.utils'
 local common     = require 'src.common'
 local effects    = require 'src.effects'
 local resolution = require 'src.resolution'
 local tracks     = require 'src.tracks'
 
 local M = {}
+
+local color_names = nil
+
+local function named_colors()
+    if color_names then return color_names end
+    color_names = {}
+    local res = utils.subprocess({ args = { "ffmpeg", "-hide_banner", "-colors" }, cancellable = false })
+    for name, hex in (res.stdout or ""):gmatch("(%a+)%s+#(%x+)") do color_names[name:lower()] = hex end
+    return color_names
+end
+
+function M.color_hex(text)
+    local base, alpha = tostring(text):match("^([^@]*)@?(.*)$")
+    local hex         = base:lower():match("^0x(%x+)$") or base:match("^#(%x+)$") or base:match("^(%x+)$") or named_colors()[base:lower()]
+    if not hex or (#hex ~= 6 and #hex ~= 8) then return nil end
+    if alpha == "" then return hex end
+    local a = alpha:lower():match("^0x(%x%x?)$")
+    a       = a and tonumber(a, 16) or (tonumber(alpha) and math.floor(tonumber(alpha) * 255 + 0.5))
+    if not a or a < 0 or a > 255 then return nil end
+    return string.format("%s%02X", hex:sub(1, 6), a)
+end
 
 local function display_size(s)
     local w = tonumber(s.width)
