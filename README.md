@@ -511,7 +511,7 @@ Creating, renaming and deleting change the file right away, the list itself is s
 Lists every option of one config file, the hovered one's description shows under the list.<br>
 An option set in the file shows its name bright, marked `*` until saved, one it doesn't set shows its name dim with the value it gets from `default.conf` and the other configs.<br>
 A set option that a later config or `user.conf` overrides says what it's overridden to.<br>
-Color options show their value in that color, with its alpha, outlined in the inverted color so it stays readable.
+Color options show their value outlined in that color, with its alpha, in white on a dark color and black on a light one.
 
 - Every change applies to the session right away, so you see a color, font or encoder change as you make it.<br>
   A config that isn't enabled is previewed as if it were.
