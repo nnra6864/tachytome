@@ -149,8 +149,8 @@ Updates that cross a major version, e.g. `2.4.1 -> 3.0.0`, are pointed out befor
 - Interrupted render queues are converted too, Skip leaves the old options in place, where they're ignored with a warning.
 - The `configs` menu action is renamed to `settings_manager` in your menus.
 - A `default.eff` you never changed is replaced with the new one, its commented out examples become [disabled](#effects) effects, a changed one is left as it is.
-- `default.conf` becomes the full builtin config, see [Config](#config), and `user.conf` replaces `tachytome.conf`.
-- The lines of `tachytome.conf` and every line you uncommented in `default.conf` move to `user.conf`, then `tachytome.conf` is deleted.
+- `user.conf` replaces `tachytome.conf` and `default.conf`, the defaults come from Tachytome itself, see [Config](#config).
+- The lines of `tachytome.conf` and every line you uncommented in `default.conf` move to `user.conf`, then both files are deleted.
 - `default` is dropped from `configs=`, the lines from `default.conf` go above that line when `default` was the first enabled config, below it otherwise.<br>
   When `default` wasn't enabled, they're moved commented out.
 - Skip also keeps `tachytome.conf` and `default.conf` as `.bak` and starts with an empty `user.conf`.
@@ -309,7 +309,7 @@ Esc closes any prompt or dialog without changing anything.
 Words end at whitespace and separators like `-`, `_`, `/`, `\`, `.`, `,`, `:`, `;` and brackets, e.g. ctrl+Backspace on `~/Videos/my_clip` leaves `~/Videos/my_`.<br>
 The cursor is a bar by default, set `cursor_style` to `bar`, `underline` or `block` to change it.<br>
 It's drawn above the text, the block also redraws the character under it on top, in the inverse of the cursor color by default.<br>
-See the `cursor_` options in the [builtin config](./tachytome.conf) for its colors and glow.
+See the Input Cursor options in the [Settings Editor](#settings-editor) for its colors and glow.
 
 #### Path
 
@@ -489,6 +489,14 @@ vertical = 1080x1920 cover
 - It's every comment line up to the first blank line above, a bare `#` is an empty line in it, indentation after `# ` is kept.
 - Presets written one after another with no blank line between share the comment above the group, unless one has its own comment right above it.
 - A comment with a blank line under it, like a file's header, belongs to no preset.
+- A `[code]` line starts a translation, e.g. `[sr]`, the lines above the first one are shown when there's none for the UI language:
+  ```
+  # Vertical 9:16 for Shorts, Reels and TikTok
+  # [sr]
+  # Vertikalno 9:16 za Shorts, Reels i TikTok
+  vertical = 1080x1920 cover
+  ```
+  The code is a language file's name, e.g. `sr`, an `[sr]` also matches `sr-RS`, without any lines above the first one `[en]` is used, or the first block.
 
 #### Settings Manager
 
@@ -509,8 +517,8 @@ Creating, renaming and deleting change the file right away, the list itself is s
 #### Settings Editor
 
 Lists every option of one config file in the builtin config's order, the hovered one's description shows under the list and its group in the title.<br>
-Quality and Preset only list the current encoder in their description.<br>
-An option set in the file shows its name bright, marked `*` until saved, one it doesn't set shows its name dim with the value it gets from `default.conf` and the other configs.<br>
+Descriptions follow the UI language, Quality and Preset show the range, values and recommended one of the current encoder.<br>
+An option set in the file shows its name bright, marked `*` until saved, one it doesn't set shows its name dim with the value it gets from the defaults and the other configs.<br>
 A set option that a later config or `user.conf` overrides says what it's overridden to.<br>
 Color options show their value outlined in that color, with its alpha, in white on a dark color and black on a light one.
 
@@ -521,8 +529,8 @@ Color options show their value outlined in that color, with its alpha, in white 
 - Options with a fixed set of values, like the container, modes, scalers, cursor style and easings, open a list.<br>
   `e` in the list types a value instead where other values work too, like another container, an empty one or a `bezier(...)` easing.
 - Typed numbers are checked against their range, e.g. 0 to 1 for the glow blur, the hint shows it.
-- Saving writes only the options you changed, keeps the file's other lines and comments, and adds the option's description from the builtin config above a new one.<br>
-  Unsetting an option removes its line and that description.
+- Saving writes only the options you changed and keeps the file's other lines and comments, a new option goes at the end.<br>
+  Unsetting an option removes its line.
 - Saving a config that isn't enabled asks to enable it in `user.conf`, No saves the file and puts the session back.
 - Closing with unsaved changes asks to Save, Discard or Cancel, Discard also puts the session back.
 
@@ -539,12 +547,11 @@ Color options show their value outlined in that color, with its alpha, in white 
 ### Config
 
 You can configure Tachytome with the `mpv/script-opts/tachytome/user.conf` file, generated empty on the first launch.<br>
-Put only what you want to change in it, everything else comes from `default.conf` next to it.
+Put only what you want to change in it, everything else comes from the defaults in the [builtin config](./tachytome.conf), loaded first.
 
-`default.conf` is a copy of the [builtin config](./tachytome.conf), always loaded first, with `user.conf` loaded on top of it.<br>
-Tachytome owns it and writes it again whenever the builtin config changes, e.g. on every update, so changes made to it are lost, copy the lines you want to change to `user.conf` instead.<br>
-It explains every setting, grouped under `## ` headers like Video, Audio and Colors, I would highly suggest reading it.<br>
-The chains for `resolution` and `tracks` are only summed up there, their full syntax is in [Resolution](#resolution) and [Tracks](#tracks).
+The easiest way to change settings is the [Settings Editor](#settings-editor), `c` in Settings, then Enter on a config.<br>
+It describes every option in your language and shows the change right away, the builtin config only lists the options and their defaults, grouped under `## ` headers like Video, Audio and Colors.<br>
+The chains for `resolution` and `tracks` are only summed up in their description, their full syntax is in [Resolution](#resolution) and [Tracks](#tracks).
 
 > [!NOTE]
 > Coming from 1.0.0, which used `mpv/script-opts/tachytome.conf`? See [Upgrading](#upgrading).
@@ -568,7 +575,7 @@ configs=work,stream,!old
 - `!name` disables a config while keeping its place in the list.
 - Lines in `user.conf` above the `configs=` line apply before the configs, lines below it override them.
 - Configs can set options and define [menus](#custom-menus), `configs` itself only works in `user.conf`.
-- `default.conf` and `user.conf` are always loaded and can't be listed.
+- `user.conf` is always loaded and can't be listed, `default` is reserved too.
 - `.conf` files in the dir that aren't listed show up as disabled.
 - Manage them from the menu with the [Settings Manager](#settings-manager), `c` in Settings, which writes the `configs=` line, at the top of `user.conf` when there's none yet, and reloads options and menus.<br>
   Options changed from the menu during the session are reset to the config values on reload.
@@ -701,6 +708,8 @@ return {
 - Submenus are labeled by `submenu_<id>`, e.g. `submenu_video`, or their capitalized id when there's no such key, e.g. `my_stuff` shows as `My stuff`.
 - Menu item labels, `menu_<action>`, are reused as the titles of the screens they open and in their notifications, e.g. `Quality: 30`.
 - Key tooltips are built from `key_hint`, e.g. `{keys} to {action}`, and one `key_<action>` per action, e.g. `key_navigate`.
+- Option descriptions in the Settings Editor are `opt_<option>`, a list of lines, e.g. `opt_font_size = { "Font size" }`, and their groups `section_<group>`, e.g. `section_input_cursor`.
+- Presets and effects you share can carry their own translations, see [Preset Descriptions](#preset-descriptions).
 - To add a language, copy `lang/en.lua` to `lang/<code>.lua` and translate the text.
 
 ### Recovery

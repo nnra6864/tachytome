@@ -113,6 +113,42 @@ function M.has(key)
     return strings[key] ~= nil or fallback[key] ~= nil
 end
 
+function M.lines(key)
+    local val = strings[key] or fallback[key]
+    if type(val) == "table" then return val end
+    if type(val) == "string" then return { val } end
+    return {}
+end
+
+local function current(tag)
+    local code = normalize(M.code)
+    return tag == code or code:sub(1, #tag + 1) == tag .. "-"
+end
+
+function M.pick(lines)
+    local blocks = { [""] = {} }
+    local order  = {}
+    local tag    = ""
+    for _, line in ipairs(lines) do
+        local marker = line:match("^%s*%[(%l%l%l?)%]%s*$") or line:match("^%s*%[(%l%l%l?[_-]%w+)%]%s*$")
+        if marker then
+            tag = normalize(marker)
+            if not blocks[tag] then
+                blocks[tag]       = {}
+                order[#order + 1] = tag
+            end
+        else
+            table.insert(blocks[tag], line)
+        end
+    end
+    if #order == 0 then return lines end
+    for _, t in ipairs(order) do
+        if current(t) then return blocks[t] end
+    end
+    if #blocks[""] > 0 then return blocks[""] end
+    return blocks.en or blocks[order[1]]
+end
+
 function M.t(key, vars)
     local text = strings[key] or fallback[key] or key
     if not vars then return text end

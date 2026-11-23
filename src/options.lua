@@ -1,4 +1,5 @@
 local common     = require 'src.common'
+local conf       = require 'src.conf'
 local easing     = require 'src.easing'
 local resolution = require 'src.resolution'
 local text_edit  = require 'src.text_edit'
@@ -34,10 +35,6 @@ for _, e in ipairs(M.encoders) do by_name[e.name] = e end
 
 function M.encoder(name)
     return by_name[tostring(name):lower()] or by_name.av1
-end
-
-function M.is_encoder(name)
-    return by_name[name] ~= nil
 end
 
 function M.encoder_names()
@@ -109,6 +106,27 @@ M.ranges = {
     start_in_duration  = { min = -1 },
     start_out_duration = { min = -1 }
 }
+
+local families = { "av1", "h265", "h264" }
+
+function M.describe(key, encoder)
+    local out = {}
+    for _, line in ipairs(lang.lines("opt_" .. key)) do out[#out + 1] = line end
+    local e = M.encoder(encoder)
+    if key == "video_encoder" then
+        for _, family in ipairs(families) do out[#out + 1] = string.format("  %-5s %s", family, lang.t("encoder_" .. family)) end
+    elseif key == "quality" then
+        out[#out + 1] = lang.t("value_set", { label = e.name, value = lang.t("hint_quality", { label = M.quality_label(e), min = e.min, max = e.max, range = M.range_hint(e), recommended = e.quality }) })
+    elseif key == "preset" then
+        out[#out + 1] = lang.t("preset_list", { encoder = e.name, list = table.concat(e.presets, ", "), recommended = e.preset })
+    end
+    return out
+end
+
+function M.section(key)
+    local id = conf.section(key)
+    return id and lang.t("section_" .. id)
+end
 
 function M.range_hint(range)
     if range.max then return lang.t("hint_range", { min = range.min, max = range.max }) end

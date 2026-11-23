@@ -38,18 +38,26 @@ return {
     submenu_audio    = "Audio",
     submenu_settings = "Podešavanja",
 
-    value_on        = "Uključeno",
-    value_off       = "Isključeno",
-    value_none      = "Ništa",
-    value_all       = "Sve",
-    value_best      = "Najbolji",
-    value_default   = "Podrazumevano",
-    value_source    = "Izvor",
-    value_space     = "Razmak",
-    value_detecting = "traženje...",
-    value_current   = "Trenutno: {value}",
-    value_set       = "{label}: {value}",
-    value_invalid   = "Neispravno, {label}: {value}",
+    value_on          = "Uključeno",
+    value_off         = "Isključeno",
+    value_none        = "Ništa",
+    value_all         = "Sve",
+    value_best        = "Najbolji",
+    value_default     = "Podrazumevano",
+    value_source      = "Izvor",
+    value_space       = "Razmak",
+    value_detecting   = "traženje...",
+    value_recommended = "preporučeno",
+    value_current     = "Trenutno: {value}",
+    value_set         = "{label}: {value}",
+    value_invalid     = "Neispravno, {label}: {value}",
+
+    encoder_recommended = "Enkoder: {encoder}, Kvalitet {quality} i Preset {preset} po preporuci",
+    encoder_av1         = "najmanji fajlovi i najbolji kvalitet, svuda podržan",
+    encoder_h265        = "balans veličine, kvaliteta i brzine",
+    encoder_h264        = "samo radi kompatibilnosti, mnogo manje efikasan",
+    encoder_gpu         = "{family} na grafičkoj, mnogo brži, veći fajlovi",
+
     no_video      = "Nijedan video nije učitan",
     search_none   = "Nema poklapanja",
 
@@ -100,7 +108,9 @@ return {
     choice_later     = "Kasnije",
     choice_save      = "Sačuvaj",
 
-    hint_quality       = "{label}, od {min} do {max}",
+    hint_quality       = "{label}, {range}, preporučeno {recommended}",
+    hint_range         = "od {min} do {max}",
+    hint_min           = "{min} ili više",
     hint_fps           = "Prazno koristi FPS izvora",
     hint_keyframes     = "Frejmovi, npr. 120, ili sekunde, npr. 2s, prazno prati izvor",
     hint_audio_bitrate = "npr. 128k, prazno zadržava protok izvora, ili najbolji kvalitet kada se kodek menja",
@@ -162,6 +172,190 @@ return {
     tracks_no_video = "Nema video traka",
 
     configs_missing = "(nedostaje)",
+
+    preset_list = "{encoder}, od najvećeg do najmanjeg truda: {list}, preporučeno {recommended}",
+
+    section_output               = "Izlaz",
+    section_video                = "Video",
+    section_resolution           = "Rezolucija",
+    section_audio                = "Audio",
+    section_tracks               = "Trake",
+    section_effects              = "Efekti",
+    section_stats                = "Statistike",
+    section_text                 = "Tekst",
+    section_colors               = "Boje",
+    section_input_cursor         = "Kursor unosa",
+    section_animations           = "Animacije",
+    section_menu                 = "Meni",
+    section_language_and_version = "Jezik i verzija",
+
+    opt_output_dir        = {
+        "Folder u koji idu renderi, upisana putanja je relativna u odnosu na njega",
+        "Prazno koristi folder izvora, kao i putanja koja počinje sa ./",
+        "Sve prefikse pogledajte u delu Path u README-u"
+    },
+    opt_suffix            = {
+        "Dodaje se na podrazumevano ime izlaza da ne bi prepisao izvor",
+        "Može biti prazno kada renderi idu u drugi folder"
+    },
+    opt_space_replacement = { "Zamenjuje razmake u imenima izlaza, razmak ih zadržava, prazno ih uklanja" },
+    opt_container         = {
+        "Kontejner izlaza, mkv podržava najviše, prazno koristi kontejner izvora",
+        "Ekstenzija upisana u putanju važi za taj render, npr. clip.mp4",
+        "mka, opus, ogg, oga, m4a, mp3, aac, flac i wav su samo audio",
+        "opus, mp3, aac, flac i wav drže jednu traku, prvi miks ili zadržanu traku",
+        "Bez zadržanog videa podrazumevano ime koristi format same trake, ili mka za više njih"
+    },
+    opt_trash_source      = { "Premešta izvor u smeće posle renderovanja" },
+
+    opt_video_encoder     = {
+        "Video enkoder, nv_, amd_ i intel_ rade na grafičkoj",
+        "Enkoderi na grafičkoj su mnogo brži, ostali daju manje fajlove boljeg kvaliteta"
+    },
+    opt_quality           = { "Kvalitet enkodera, manje je bolji kvalitet i veći fajl" },
+    opt_preset            = { "Trud kompresije, više truda daje manji fajl istog kvaliteta" },
+    opt_keyframe_interval = {
+        "Najveći razmak između ključnih frejmova, kraći brže premotava ali pravi veće fajlove",
+        "Frejmovi, npr. 120, ili sekunde, npr. 2s",
+        "Prazno prati izvor, ili podrazumevano enkodera kada je razmak izvora ispod sekunde",
+        "Rez bez gubitaka ga ignoriše"
+    },
+    opt_lossless_cut      = {
+        "Seče bez ponovnog enkodiranja, odmah i netaknuto, ali su fajlovi veći",
+        "Isključuje Precizan rez, Rezoluciju i Efekte, miksevi se i dalje enkodiraju"
+    },
+    opt_accurate_cut      = {
+        "Seče na tačan frejm umesto na najbliži ključni frejm, ostavite uključeno",
+        "Renderi kasnije počinju kada je početak daleko u dugom videu",
+        "Isključuje Rez bez gubitaka"
+    },
+
+    opt_resolution_enabled = {
+        "Primenjuje lanac rezolucije na rendere, ostaje uključeno kroz fajlove",
+        "Isključuje Rez bez gubitaka, i Rez bez gubitaka isključuje nju"
+    },
+    opt_resolution         = {
+        "Lanac rezolucije, slojevi se primenjuju redom pre efekata, prazno zadržava izvor",
+        "  0.5x, 50%  množilac       1920x1080  okvir, popunjen po režimu",
+        "  1280w      širina         720h       visina",
+        "  720p       kraća strana   4:3        odnos strana",
+        "  auto       seče crne trake, stavite ga prvo, npr. auto 720p",
+        "  halfres    preset iz .res fajlova",
+        "Režim ili skaliranje odmah posle veličine ili preseta važi za nju, npr. 4:3 crop 0.5x",
+        "Detalje pogledajte u delu Resolution u README-u"
+    },
+    opt_resolution_mode    = {
+        "Režim za slojeve koji ga ne postavljaju, koriste ga samo okviri i odnosi strana",
+        "  fit      skalira da stane unutra, ostatak popunjava bojom popune",
+        "  cover    skalira da pokrije, višak seče od sredine",
+        "  stretch  skalira na tačnu veličinu, ne čuva odnos strana",
+        "  crop     iseca sredinu bez skaliranja"
+    },
+    opt_scaler_down        = { "Skaliranje za slojeve koji smanjuju kadar i ne postavljaju ga", "lanczos je najoštriji, area je mekši" },
+    opt_scaler_up          = { "Skaliranje za slojeve koji povećavaju kadar i ne postavljaju ga", "neighbor čuva oštre ivice piksela, npr. za pixel art" },
+    opt_pad_color          = { "Boja traka koje fit dodaje, bilo koja ffmpeg boja, npr. black ili 0x202020" },
+
+    opt_audio_encoder = {
+        "Audio enkoder, svi osim copy ponovo enkodiraju svaku zadržanu traku",
+        "copy zadržava audio izvora, ponovo ga enkodira njegovim kodekom samo kad treba,",
+        "npr. za efekte, mikseve ili postavljen protok",
+        "Format samo za audio koji ne može da drži kodek koristi svoj, npr. aac u .opus"
+    },
+    opt_audio_bitrate = {
+        "Audio protok, npr. 128k, postavljen ponovo enkodira svaku zadržanu traku",
+        "Prazno zadržava protok izvora uz isti kodek, ili koristi najbolji kvalitet:",
+        "256k po kanalu za opus i aac, 320k za mp3, kvalitet 10 za vorbis",
+        "flac i pcm ga ignorišu, izvori bez gubitaka se ne enkodiraju ponovo samo zbog njega"
+    },
+
+    opt_tracks      = {
+        "Lanac traka za svaki fajl, slojevi se primenjuju redom, prazno zadržava sve trake",
+        "  keep <lista>                 zadržava samo ove",
+        "  drop <lista>                 izbacuje ove",
+        "  mix [lista] [\"ime\"] [at N]   dodaje miks liste, ili zadržanih traka",
+        "  rename <traka> \"ime\" ...     postavlja naslove, npr. rename 1 \"Igra\" 3 \"Mikrofon\"",
+        "  move <traka> at N ...        pomera trake, npr. move 3 at 1",
+        "  video <lista>                zadržane video trake, none renderuje samo audio",
+        "  combined                     preset iz .trk fajlova",
+        "Liste su brojevi ili imena traka, all, none, @mixes ili @sources",
+        "- isključuje, npr. all -2, brojevi broje ono što su prethodni slojevi ostavili",
+        "npr. mix keep @mixes miksuje sve trake u jednu",
+        "Detalje pogledajte u delu Tracks u README-u"
+    },
+    opt_tracks_type = { "Vrsta traka na kojoj se otvara lista Traka" },
+
+    opt_effects_enabled = { "Primenjuje izabrane efekte na rendere, isključuje Rez bez gubitaka" },
+    opt_effects_presets = {
+        "Efekti izabrani pri pokretanju iz .eff fajlova, odvojeni zarezom, npr. fade,blur_fade",
+        "fajl/ime bira jedan iz određenog fajla, npr. default/fade"
+    },
+
+    opt_show_stats_screen   = { "Prikazuje ekran sa statistikama posle renderovanja" },
+    opt_show_stats_terminal = { "Ispisuje statistike u terminal posle renderovanja" },
+    opt_stats_osd_time      = { "Koliko sekundi ekran sa statistikama ostaje" },
+
+    opt_font            = {
+        "Font za sav tekst, neka bude monospace zbog kolona menija i kursora unosa",
+        "Prazno bira Consolas na Windows-u, Menlo na macOS-u, monospace drugde"
+    },
+    opt_font_size       = { "Veličina fonta" },
+    opt_small_font_size = { "Veličina fonta manjeg teksta, npr. saveta i opisa" },
+    opt_glow_size       = { "Veličina sjaja oko teksta, 0 ga isključuje" },
+    opt_glow_blur       = { "Zamućenje sjaja teksta, od 0 za oštre ivice do 1 za potpuno zamućeno" },
+    opt_glow_color      = { "Boja sjaja teksta, RRGGBB ili RRGGBBAA" },
+
+    opt_text_color     = { "Boja teksta" },
+    opt_dim_text_color = { "Boja prigušenog teksta, npr. saveta, opisa i trenutnih vrednosti" },
+    opt_value_color    = { "Boja vrednosti, npr. 30" },
+    opt_on_text        = { "Tekst za uključeno, pored prekidača i izabranih stavki liste" },
+    opt_on_color       = { "Boja za uključeno" },
+    opt_off_text       = { "Tekst za isključeno" },
+    opt_off_color      = { "Boja za isključeno" },
+    opt_warning_color  = { "Boja upozorenja" },
+    opt_error_color    = { "Boja grešaka" },
+    opt_flash_color    = { "Boja kojom zatreperi pokrenuta stavka" },
+
+    opt_cursor_style      = {
+        "Oblik kursora unosa",
+        "  bar        tanka linija ispred znaka",
+        "  underline  linija ispod znaka",
+        "  block      popunjava znak, koji se iscrtava preko bojom teksta kursora"
+    },
+    opt_cursor_color      = { "Boja kursora unosa, prazno koristi boju vrednosti" },
+    opt_cursor_glow_size  = { "Veličina sjaja kursora, 0 ga isključuje" },
+    opt_cursor_glow_blur  = { "Zamućenje sjaja kursora, od 0 za oštre ivice do 1 za potpuno zamućeno" },
+    opt_cursor_glow_color = { "Boja sjaja kursora" },
+    opt_cursor_text_color = { "Boja znaka ispod block kursora, prazno obrće boju kursora" },
+
+    opt_flash_in_duration  = { "Koliko sekundi pokrenutoj stavci treba da zatreperi" },
+    opt_flash_in_easing    = { "Ublažavanje treptaja, ime sa easings.net", "ili kubna bezier kriva, npr. bezier(0.22, 1, 0.36, 1)" },
+    opt_flash_out_duration = { "Koliko sekundi pokrenutoj stavci treba da se vrati" },
+    opt_flash_out_easing   = { "Ublažavanje vraćanja, kao kod treptaja" },
+    opt_start_stagger      = { "Sekunde između početka treptaja stavki kada se meni otvori" },
+    opt_start_in_duration  = { "Sekunde treptaja kada se meni otvori, -1 koristi trajanje treptaja" },
+    opt_start_in_easing    = { "Ublažavanje treptaja kada se meni otvori, prazno koristi ono od treptaja" },
+    opt_start_out_duration = { "Sekunde vraćanja kada se meni otvori, -1 koristi trajanje vraćanja" },
+    opt_start_out_easing   = { "Ublažavanje vraćanja kada se meni otvori, prazno koristi ono od vraćanja" },
+
+    opt_selected_menu       = { "Meni koji se koristi, default, simple ili onaj definisan u konfiguraciji" },
+    opt_menu_path_separator = { "Razdvaja podmenije u naslovu menija, npr. < Tachytome / Podešavanja >" },
+    opt_layer_preview       = {
+        "Pregled sloja na kom je kursor u listama Rezolucije i Traka",
+        "  yes  naslov prikazuje rezultat posle tog sloja",
+        "  no   svaki sloj prikazuje svoj rezultat, npr. 1920x1080 -> 960x540"
+    },
+
+    opt_language = {
+        "Jezik interfejsa, auto prepoznaje jezik sistema pri svakom pokretanju",
+        "Jezici i prevodi koji nedostaju koriste engleski"
+    },
+    opt_version  = {
+        "Verzija koju Ažuriranje instalira",
+        "  latest  izdanje označeno kao Latest, ili najviši tag verzije",
+        "  master  ime grane prati tu granu",
+        "  2.1     najnovija verzija koja se poklapa, npr. 3 za 3.x.x, 1.2.5 tačno za nju",
+        "Git klon koristi svoj remote, inače GitHub repo"
+    },
 
     stats_title        = "Tachytome statistike",
     stats_source_space = "Veličina izvora",
@@ -258,12 +452,12 @@ return {
     migrate_skipped    = "Krenuto ispočetka, stare datoteke su sačuvane kao .bak",
     migrate_later      = "Prenos je odložen, koriste se podrazumevane vrednosti dok se ne završi",
 
-    migrate_user_intro     = "default.conf je sada cela ugrađena konfiguracija, piše se ponovo pri svakom ažuriranju, vaše izmene idu u user.conf",
+    migrate_user_intro     = "Vaše izmene sada idu u user.conf, podrazumevane vrednosti dolaze iz samog Tachytome-a",
     migrate_user_moved     = "Premešteno u user.conf: {list}",
     migrate_user_nothing   = "Nema ničega za premeštanje, user.conf počinje prazan",
     migrate_user_commented = "default nije bio uključen u configs, njegove linije su premeštene zakomentarisane",
     migrate_user_configs   = "Zadržane konfiguracije: {list}",
-    migrate_user_removed   = "tachytome.conf se briše, njegove linije su u user.conf",
+    migrate_user_removed   = "tachytome.conf i default.conf se brišu, njihove linije su u user.conf",
     migrate_user_done      = "Vaše izmene su premeštene u user.conf",
 
     ffmpeg_missing        = "FFmpeg nedostaje",

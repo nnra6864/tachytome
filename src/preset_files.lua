@@ -1,6 +1,7 @@
 local utils      = require 'mp.utils'
 local common     = require 'src.common'
 local file_lines = require 'src.file_lines'
+local lang       = require 'src.lang'
 
 local M = {}
 
@@ -74,7 +75,7 @@ function M.descriptions(presets, ext, block)
     for _, p in ipairs(presets) do
         if p.file and p.line then
             if files[p.file] == nil then files[p.file] = file_lines.read(M.path(p.file, ext)) or false end
-            out[p] = files[p.file] and M.description(files[p.file], p.line, block) or {}
+            out[p] = files[p.file] and lang.pick(M.description(files[p.file], p.line, block)) or {}
         end
     end
     return out

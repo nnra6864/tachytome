@@ -237,6 +237,190 @@ return {
     settings_enable      = "{name} isn't enabled, enable it in user.conf?",
     settings_unsaved     = "{name} has unsaved changes",
 
+    preset_list = "{encoder}, most to least effort: {list}, recommended {recommended}",
+
+    section_output               = "Output",
+    section_video                = "Video",
+    section_resolution           = "Resolution",
+    section_audio                = "Audio",
+    section_tracks               = "Tracks",
+    section_effects              = "Effects",
+    section_stats                = "Stats",
+    section_text                 = "Text",
+    section_colors               = "Colors",
+    section_input_cursor         = "Input Cursor",
+    section_animations           = "Animations",
+    section_menu                 = "Menu",
+    section_language_and_version = "Language and Version",
+
+    opt_output_dir        = {
+        "Dir renders go to, a typed path is relative to it",
+        "Empty uses the source's dir, a path starting with ./ does too",
+        "See Path in the README for every prefix"
+    },
+    opt_suffix            = {
+        "Added to the default output name so it doesn't overwrite the source",
+        "Can be empty when renders go to another dir"
+    },
+    opt_space_replacement = { "Replaces spaces in output names, a space keeps them, empty removes them" },
+    opt_container         = {
+        "Output container, mkv supports the most, empty uses the source's",
+        "An extension typed in the path wins for that render, e.g. clip.mp4",
+        "mka, opus, ogg, oga, m4a, mp3, aac, flac and wav are audio only",
+        "opus, mp3, aac, flac and wav hold one track, the first mix or kept track",
+        "With no video kept, the default name uses the track's own format, or mka for several"
+    },
+    opt_trash_source      = { "Moves the source to the trash after a render" },
+
+    opt_video_encoder     = {
+        "Video encoder, the nv_, amd_ and intel_ ones run on the GPU",
+        "GPU encoders are much faster, the others give smaller files at better quality"
+    },
+    opt_quality           = { "Encoder quality, lower is better quality and a larger file" },
+    opt_preset            = { "Compression effort, more effort gives a smaller file at the same quality" },
+    opt_keyframe_interval = {
+        "Max distance between keyframes, shorter seeks faster but makes larger files",
+        "Frames, e.g. 120, or seconds, e.g. 2s",
+        "Empty matches the source, or the encoder's default when the source's is under a second",
+        "Lossless Cut ignores it"
+    },
+    opt_lossless_cut      = {
+        "Cuts without re-encoding, instant and untouched, but the files are larger",
+        "Turns off Accurate Cut, Resolution and Effects, mixes still get encoded"
+    },
+    opt_accurate_cut      = {
+        "Cuts at the exact frame instead of the nearest keyframe, keep it on",
+        "Renders take longer to start when the mark in is far into a long video",
+        "Turns off Lossless Cut"
+    },
+
+    opt_resolution_enabled = {
+        "Applies the resolution chain to renders, stays on across files",
+        "Turns off Lossless Cut, and Lossless Cut turns it off"
+    },
+    opt_resolution         = {
+        "Resolution chain, layers applied in order before the effects, empty keeps the source",
+        "  0.5x, 50%  multiplier    1920x1080  box, filled by the mode",
+        "  1280w      width         720h       height",
+        "  720p       short side    4:3        aspect",
+        "  auto       crops black bars, put it first, e.g. auto 720p",
+        "  halfres    a preset from the .res files",
+        "A mode or scaler right after a size or preset applies to it, e.g. 4:3 crop 0.5x",
+        "See Resolution in the README for the details"
+    },
+    opt_resolution_mode    = {
+        "Mode for layers that don't set one, only boxes and aspects use it",
+        "  fit      scales to fit inside, pads with the pad color",
+        "  cover    scales to cover, crops the overflow from the center",
+        "  stretch  scales to the exact size, ignoring the aspect",
+        "  crop     cuts the center out without scaling"
+    },
+    opt_scaler_down        = { "Scaler for layers that shrink the frame and don't set one", "lanczos is the sharpest, area is softer" },
+    opt_scaler_up          = { "Scaler for layers that grow the frame and don't set one", "neighbor keeps hard pixel edges, e.g. for pixel art" },
+    opt_pad_color          = { "Color of the bars fit adds, any ffmpeg color, e.g. black or 0x202020" },
+
+    opt_audio_encoder = {
+        "Audio encoder, all but copy re-encode every kept track",
+        "copy keeps the source audio, re-encoding with its codec only when needed,",
+        "e.g. for effects, mixes or a set bitrate",
+        "An audio only format that can't hold the codec uses its own, e.g. aac into .opus"
+    },
+    opt_audio_bitrate = {
+        "Audio bitrate, e.g. 128k, setting it re-encodes every kept track",
+        "Empty keeps the source's with the same codec, or uses the best quality:",
+        "256k per channel for opus and aac, 320k for mp3, quality 10 for vorbis",
+        "flac and pcm ignore it, lossless sources aren't re-encoded just for it"
+    },
+
+    opt_tracks      = {
+        "Tracks chain every file starts with, layers applied in order, empty keeps every track",
+        "  keep <list>                 keeps only these",
+        "  drop <list>                 drops these",
+        "  mix [list] [\"name\"] [at N]  adds a mix of the list, or of the kept tracks",
+        "  rename <track> \"name\" ...   sets titles, e.g. rename 1 \"Game\" 3 \"Mic\"",
+        "  move <track> at N ...       moves tracks, e.g. move 3 at 1",
+        "  video <list>                the video tracks kept, none renders audio only",
+        "  combined                    a preset from the .trk files",
+        "Lists are track numbers or names, all, none, @mixes or @sources",
+        "A - excludes, e.g. all -2, numbers count what the layers before left",
+        "e.g. mix keep @mixes mixes every track into one",
+        "See Tracks in the README for the details"
+    },
+    opt_tracks_type = { "Track type the Tracks list opens on" },
+
+    opt_effects_enabled = { "Applies the selected effects to renders, turns off Lossless Cut" },
+    opt_effects_presets = {
+        "Effects selected on start from the .eff files, comma separated, e.g. fade,blur_fade",
+        "file/name picks one from a specific file, e.g. default/fade"
+    },
+
+    opt_show_stats_screen   = { "Shows the stats screen after a render" },
+    opt_show_stats_terminal = { "Prints the stats to the terminal after a render" },
+    opt_stats_osd_time      = { "Seconds the stats screen stays up" },
+
+    opt_font            = {
+        "Font for all text, keep it monospace for the menu columns and the input cursor",
+        "Empty picks Consolas on Windows, Menlo on macOS, monospace elsewhere"
+    },
+    opt_font_size       = { "Font size" },
+    opt_small_font_size = { "Font size of smaller text, e.g. hints and descriptions" },
+    opt_glow_size       = { "Size of the glow around text, 0 turns it off" },
+    opt_glow_blur       = { "Blur of the text glow, 0 for hard edges to 1 for fully blurred" },
+    opt_glow_color      = { "Color of the text glow, RRGGBB or RRGGBBAA" },
+
+    opt_text_color     = { "Color of the text" },
+    opt_dim_text_color = { "Color of dim text, e.g. hints, descriptions and current values" },
+    opt_value_color    = { "Color of values, e.g. 30" },
+    opt_on_text        = { "Text for on, next to toggles and selected list items" },
+    opt_on_color       = { "Color of on" },
+    opt_off_text       = { "Text for off" },
+    opt_off_color      = { "Color of off" },
+    opt_warning_color  = { "Color of warnings" },
+    opt_error_color    = { "Color of errors" },
+    opt_flash_color    = { "Color a triggered item flashes" },
+
+    opt_cursor_style      = {
+        "Shape of the input cursor",
+        "  bar        thin line before the character",
+        "  underline  line under the character",
+        "  block      fills the character, redrawn on top in the cursor text color"
+    },
+    opt_cursor_color      = { "Color of the input cursor, empty uses the value color" },
+    opt_cursor_glow_size  = { "Size of the cursor glow, 0 turns it off" },
+    opt_cursor_glow_blur  = { "Blur of the cursor glow, 0 for hard edges to 1 for fully blurred" },
+    opt_cursor_glow_color = { "Color of the cursor glow" },
+    opt_cursor_text_color = { "Color of the character under the block cursor, empty inverts the cursor color" },
+
+    opt_flash_in_duration  = { "Seconds a triggered item takes to flash" },
+    opt_flash_in_easing    = { "Easing of the flash, a name from easings.net", "or a cubic bezier, e.g. bezier(0.22, 1, 0.36, 1)" },
+    opt_flash_out_duration = { "Seconds a triggered item takes to fade back" },
+    opt_flash_out_easing   = { "Easing of the fade back, like the flash's" },
+    opt_start_stagger      = { "Seconds between items starting to flash when the menu opens" },
+    opt_start_in_duration  = { "Seconds of the flash when the menu opens, -1 uses the flash's" },
+    opt_start_in_easing    = { "Easing of the flash when the menu opens, empty uses the flash's" },
+    opt_start_out_duration = { "Seconds of the fade back when the menu opens, -1 uses the fade back's" },
+    opt_start_out_easing   = { "Easing of the fade back when the menu opens, empty uses the fade back's" },
+
+    opt_selected_menu       = { "Menu to use, default, simple or one defined in a config" },
+    opt_menu_path_separator = { "Separator between submenus in the menu title, e.g. < Tachytome / Settings >" },
+    opt_layer_preview       = {
+        "Previews the hovered layer in the Resolution and Tracks lists",
+        "  yes  the title shows the result after the hovered layer",
+        "  no   every layer shows its own result, e.g. 1920x1080 -> 960x540"
+    },
+
+    opt_language = {
+        "UI language, auto detects the system language on every start",
+        "Missing languages and translations fall back to English"
+    },
+    opt_version  = {
+        "Version Update installs",
+        "  latest  the release marked Latest, or the highest version tag",
+        "  master  a branch name follows that branch",
+        "  2.1     the newest matching version, e.g. 3 for 3.x.x, 1.2.5 for exactly that",
+        "A git clone uses its remote, otherwise the GitHub repo"
+    },
+
     stats_title        = "Tachytome Stats",
     stats_source_space = "Source Space",
     stats_output_space = "Output Space",
@@ -342,12 +526,12 @@ return {
     migrate_actions_done    = "Menu actions renamed",
     migrate_actions_skipped = "Menu actions left as they are, the old names do nothing",
 
-    migrate_user_intro     = "default.conf is now the full builtin config, written again on every update, your changes go in user.conf",
+    migrate_user_intro     = "Your changes now go in user.conf, the defaults come from Tachytome itself",
     migrate_user_moved     = "Moved to user.conf: {list}",
     migrate_user_nothing   = "Nothing to move, user.conf starts empty",
     migrate_user_commented = "default wasn't enabled in configs, its lines are moved commented out",
     migrate_user_configs   = "Configs kept: {list}",
-    migrate_user_removed   = "tachytome.conf is deleted, its lines are in user.conf",
+    migrate_user_removed   = "tachytome.conf and default.conf are deleted, their lines are in user.conf",
     migrate_user_done      = "Your changes moved to user.conf",
 
     ffmpeg_missing        = "FFmpeg is missing",

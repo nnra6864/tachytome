@@ -71,21 +71,6 @@ local function current()
     return vals
 end
 
-local function describe(key, encoder)
-    local lines = conf.describe(key)
-    if key == "video_encoder" then return lines end
-    local out = {}
-    for _, line in ipairs(lines) do
-        local indent, word = line:match("^(%s*)(%S+)")
-        if word == encoder then
-            out[#out + 1] = indent .. line:sub(#indent + 1):gsub("%s%s+", "  ")
-        elseif not word or not options.is_encoder(word) then
-            out[#out + 1] = line
-        end
-    end
-    return out
-end
-
 local function shown(val)
     if val == "" then return "\"\"" end
     return val
@@ -252,11 +237,11 @@ function M.show(name, enabled, pickers, on_close)
             if #vis == 0 then
                 body = search.empty()
             else
-                body = body .. ui.dim_lines(describe(keys[cursor], conf.format(effective.video_encoder)))
+                body = body .. ui.dim_lines(options.describe(keys[cursor], effective.video_encoder))
             end
 
             local title   = lang.t("settings_editor", { name = name .. ".conf" })
-            local section = #vis > 0 and conf.section(keys[cursor])
+            local section = #vis > 0 and options.section(keys[cursor])
             if section then title = string.format("%s %s %s", title, state.opts.menu_path_separator, section) end
             title = title .. (dirty() and " *" or "")
             local hints = search.hints({ { "Up/Down", "navigate" }, { "Enter", "edit" }, { "u", "unset" }, { "U", "unset_all" }, { "l", "load_current" }, { "s", "save" }, { "/", "search" }, { "Esc", "close" } })

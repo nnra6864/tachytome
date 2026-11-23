@@ -324,7 +324,10 @@ function M.apply(plan)
 
     if not plan.user or not common.file_exists(old_main) then return end
     common.ensure_dir(common.get_conf_dir())
-    if write_lines(conf.main_path(), (build_user())) then os.remove(old_main) end
+    if write_lines(conf.main_path(), (build_user())) then
+        os.remove(old_main)
+        os.remove(conf.default_path())
+    end
 end
 
 function M.skip(plan)
