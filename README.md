@@ -268,7 +268,7 @@ The `version` option takes:
 - A full or partial version, pinning the highest version tag it matches, e.g. `3` for the newest 3.x.x, `2.1` for the newest 2.1.x, or `1.2.5` for exactly 1.2.5.
 
 Version tags look like `v1.2.5` or `1.2.5`, others like `v2.0-rc1` are skipped.<br>
-Version lists `latest`, the branches and every release with its partial versions.<br>
+Version lists `latest`, the branches and every release with its partial versions, each partial one noting the release it installs now, e.g. `2  newest 2.x.x, now 2.1.0`.<br>
 A git clone reads them from the remote of the current branch, or `origin` when it's detached at a release, and asks that remote's host which release is Latest.<br>
 GitHub and Forgejo/Gitea hosts are supported, other hosts fall back to the highest version tag.<br>
 Without git, everything comes from the GitHub repo.<br>

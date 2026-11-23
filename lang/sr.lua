@@ -499,6 +499,9 @@ return {
     update_fetching_versions = "Učitavanje verzija...",
     update_versions_failed   = "Učitavanje verzija nije uspelo",
     update_major             = "Promena glavne verzije {from} -> {to}, pogledajte beleške izdanja",
+    version_latest           = "izdanje označeno kao Latest",
+    version_pin              = "najnovije {pin}, sada {version}",
+    version_branch           = "grana, neizdate izmene",
 
     migrate_title      = "Tachytome {version}",
     migrate_intro      = "Vaša konfiguracija je iz Tachytome 1.0.0 ili starijeg i može se preneti",

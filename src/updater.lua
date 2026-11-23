@@ -294,22 +294,29 @@ end
 function M.versions(callback)
     local function collect(refs, err)
         if not refs then return callback(nil, err) end
-        local list = {}
-        local seen = {}
-        local function add(name)
+        local list    = {}
+        local details = {}
+        local seen    = {}
+        local rels    = releases(refs.tags)
+        local function add(name, detail)
             if seen[name] then return end
             seen[name]      = true
             list[#list + 1] = name
+            details[name]   = detail
         end
-        add("latest")
+        add("latest", lang.t("version_latest"))
         for _, b in ipairs(refs.branches) do
-            if b == "master" then add(b) end
+            if b == "master" then add(b, lang.t("version_branch")) end
         end
-        for _, b in ipairs(refs.branches) do add(b) end
-        for _, r in ipairs(releases(refs.tags)) do
-            for i = 1, #r.nums do add(table.concat(r.nums, ".", 1, i)) end
+        for _, b in ipairs(refs.branches) do add(b, lang.t("version_branch")) end
+        for _, r in ipairs(rels) do
+            for i = 1, #r.nums - 1 do
+                local pin = table.concat(r.nums, ".", 1, i)
+                add(pin, lang.t("version_pin", { pin = pin .. string.rep(".x", #r.nums - i), version = r.tag }))
+            end
+            add(table.concat(r.nums, "."))
         end
-        callback(list)
+        callback(list, nil, details)
     end
 
     local dir = mp.get_script_directory()

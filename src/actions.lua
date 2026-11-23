@@ -544,7 +544,7 @@ end
 
 function M.select_version(on_complete)
     notify.show(lang.t("update_fetching_versions"), true)
-    updater.versions(function(list, err)
+    updater.versions(function(list, err, details)
         if not list then
             notify.show(lang.t("update_versions_failed"), true, "error")
             if err and err ~= "" then mp.msg.error(err) end
@@ -558,7 +558,9 @@ function M.select_version(on_complete)
             end
             notify_set("version", name)
             if on_complete then on_complete() end
-        end, on_complete)
+        end, on_complete, {
+            detail = function(i) return details[list[i]] or "" end
+        })
     end)
 end
 

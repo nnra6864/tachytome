@@ -499,6 +499,9 @@ return {
     update_fetching_versions = "Fetching versions...",
     update_versions_failed   = "Failed to fetch versions",
     update_major             = "Major version change {from} -> {to}, check the release notes",
+    version_latest           = "the release marked Latest",
+    version_pin              = "newest {pin}, now {version}",
+    version_branch           = "branch, unreleased changes",
 
     migrate_title      = "Tachytome {version}",
     migrate_intro      = "Your config is from Tachytome 1.0.0 or older and can be converted",
