@@ -41,6 +41,17 @@ function M.mix(ha, hb, t)
     return string.format("{\\c&H%02X%02X%02X&}", b, g, r)
 end
 
+function M.swatch(text)
+    local h = tostring(text):gsub("^#", "")
+    if not h:find("^%x+$") or (#h ~= 6 and #h ~= 8) then return nil end
+    local r, g, b = channels(h:sub(1, 6))
+    local alpha   = #h == 8 and 255 - tonumber(h:sub(7, 8), 16) or 0
+    local glow    = M.glow()
+    if glow == "" then glow = "{\\bord0}" end
+    return string.format("{\\c&H%02X%02X%02X&}{\\1a&H%02X&}{\\3c&H%02X%02X%02X&}{\\3a&H00&}{\\bord2}{\\blur0}%s{\\1a&H00&}%s%s",
+        b, g, r, alpha, 255 - b, 255 - g, 255 - r, M.escape(text), glow, M.reset())
+end
+
 function M.reset()
     return M.c("text_color")
 end

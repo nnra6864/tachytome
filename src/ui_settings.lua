@@ -221,15 +221,21 @@ function M.show(name, enabled, pickers, on_close)
             return ui.visible(#keys, function(i) return search.keep(keys[i]) end)
         end
 
+        local function value_text(key, val)
+            local swatch = key:find("_color$") and theme.swatch(val)
+            if swatch then return swatch end
+            return string.format("%s%s", theme.c("value_color"), theme.escape(shown(val)))
+        end
+
         local function row_text(key)
             local val = value(key)
             local eff = conf.format(effective[key])
             if not val then
-                return string.format("%s%s %s", theme.c("dim_text_color"), theme.escape(key), theme.escape(shown(eff)))
+                return string.format("%s%s %s", theme.c("dim_text_color"), theme.escape(key), value_text(key, eff))
             end
             local mark = values[key] ~= nil and "*" or ""
             local over = eff ~= val and string.format(" %s%s", theme.c("warning_color"), theme.escape(lang.t("settings_overridden", { value = shown(eff) }))) or ""
-            return string.format("%s%s %s%s%s", theme.escape(key), mark, theme.c("value_color"), theme.escape(shown(val)), over)
+            return string.format("%s%s %s%s", theme.escape(key), mark, value_text(key, val), over)
         end
 
         local function draw()
