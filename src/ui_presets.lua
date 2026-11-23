@@ -8,12 +8,13 @@ local notify       = require 'src.notify'
 local theme        = require 'src.theme'
 local lang         = require 'src.lang'
 local ui           = require 'src.ui'
+local ui_choice    = require 'src.ui_choice'
 
 local M = {}
 
 local UNDO_TIME = 5
 
-local bindings = { "up", "down", "j", "k", "tab", "d", "u", "search", "esc" }
+local bindings = { "up", "down", "j", "k", "tab", "d", "u", "reset", "search", "esc" }
 for i = 1, 10 do bindings[#bindings + 1] = tostring(i) end
 
 function M.show(opts)
@@ -118,6 +119,7 @@ function M.show(opts)
         local hints = { { "Up/Down", "navigate" }, { "Tab/0-9", "toggle" } }
         if not (row and row.kind == "preset" and row.preset.file == preset_files.builtin) then hints[#hints + 1] = { "d", "delete" } end
         if undo then hints[#hints + 1] = { "u", "undo" } end
+        hints[#hints + 1] = { "R", "reset" }
         hints[#hints + 1] = { "/", "search" }
         hints[#hints + 1] = { "Esc", "back" }
         if row and row.kind == "preset" then body = body .. ui.dim_lines(descs[row.preset]) end
@@ -182,6 +184,16 @@ function M.show(opts)
         undo  = nil
     end
 
+    local function remember(files, done)
+        forget_undo()
+        undo  = { files = files, done = done }
+        timer = mp.add_timeout(UNDO_TIME, function()
+            timer = nil
+            undo  = nil
+            if active then draw() end
+        end)
+    end
+
     local function delete_preset(p)
         if p.file == preset_files.builtin then
             notify.show(lang.t("presets_builtin", { name = full_name(p) }), true, "warn")
@@ -200,14 +212,8 @@ function M.show(opts)
             os.remove(path)
             after = nil
         end
-        forget_undo()
-        undo  = { path = path, before = before, after = after, eol = eol, name = full_name(p), file = p.file }
-        timer = mp.add_timeout(UNDO_TIME, function()
-            timer = nil
-            undo  = nil
-            if active then draw() end
-        end)
-        notify.show(lang.t(after and "presets_deleted" or "presets_deleted_file", { name = undo.name, file = file_name(p.file) }), true)
+        remember({ { path = path, file = p.file, before = before, after = after, eol = eol } }, lang.t("presets_restored", { name = full_name(p) }))
+        notify.show(lang.t(after and "presets_deleted" or "presets_deleted_file", { name = full_name(p), file = file_name(p.file) }), true)
         reload()
     end
 
@@ -215,17 +221,23 @@ function M.show(opts)
         if not undo then return end
         local entry = undo
         forget_undo()
-        if not file_lines.same(file_lines.read(entry.path), entry.after) then
-            notify.show(lang.t("presets_undo_changed", { file = file_name(entry.file) }), true, "warn")
-            return draw()
+        for _, f in ipairs(entry.files) do
+            if not file_lines.same(file_lines.read(f.path), f.after) then
+                notify.show(lang.t("presets_undo_changed", { file = file_name(f.file) }), true, "warn")
+                return draw()
+            end
         end
-        if not file_lines.write(entry.path, entry.before, entry.eol) then
-            notify.show(lang.t("presets_write_failed", { file = file_name(entry.file) }), true, "error")
-            return draw()
+        for _, f in ipairs(entry.files) do
+            if not file_lines.write(f.path, f.before, f.eol) then
+                notify.show(lang.t("presets_write_failed", { file = file_name(f.file) }), true, "error")
+                return reload()
+            end
         end
-        notify.show(lang.t("presets_restored", { name = entry.name }), true)
+        notify.show(entry.done, true)
         reload()
     end
+
+    local bind
 
     local function teardown()
         if not active then return end
@@ -241,6 +253,60 @@ function M.show(opts)
         if not active then return end
         teardown()
         if opts.on_close then opts.on_close() end
+    end
+
+    local function resume()
+        active         = true
+        state.ui_owner = "presets"
+        bind()
+        reload()
+    end
+
+    local function remove_files(files)
+        local entries = {}
+        local names   = {}
+        for _, file in ipairs(files) do
+            local path       = path_of(file)
+            local lines, eol = file_lines.read(path)
+            os.remove(path)
+            entries[#entries + 1] = { path = path, file = file, before = lines or {}, eol = eol }
+            names[#names + 1]     = file_name(file)
+        end
+        resume()
+        remember(entries, lang.t("presets_reset_undone"))
+        notify.show(lang.t("presets_reset_done", { list = table.concat(names, ", ") }), true)
+        draw()
+    end
+
+    local function reset()
+        local files    = preset_files.list(kind.ext)
+        local names    = {}
+        local has_user = false
+        for _, file in ipairs(files) do
+            names[#names + 1] = file_name(file)
+            if file == preset_files.user then has_user = true end
+        end
+        if #files == 0 then
+            notify.show(lang.t("presets_reset_none"), true)
+            return draw()
+        end
+        local choices = {}
+        local actions = {}
+        if has_user then
+            choices[#choices + 1] = { label = lang.t("presets_reset_user", { file = file_name(preset_files.user) }) }
+            actions[#choices]     = function() remove_files({ preset_files.user }) end
+        end
+        if #files > (has_user and 1 or 0) then
+            choices[#choices + 1] = { label = lang.t("presets_reset_all", { ext = kind.ext }) }
+            actions[#choices]     = function() remove_files(files) end
+        end
+        choices[#choices + 1] = { label = lang.t("choice_cancel") }
+        for i, choice in ipairs(choices) do choice.key = tostring(i) end
+        teardown()
+        ui_choice.show(lang.t("presets_reset"), table.concat(names, ", "), choices, #choices, function(idx)
+            if actions[idx] then return actions[idx]() end
+            resume()
+        end)
     end
 
     local function move(delta)
@@ -265,7 +331,7 @@ function M.show(opts)
         end
     })
 
-    local function bind()
+    bind = function()
         local function move_up() move(-1) end
         local function move_down() move(1) end
 
@@ -290,6 +356,7 @@ function M.show(opts)
             if p then delete_preset(p) end
         end)
         mp.add_forced_key_binding("u", "presets-u", undo_delete)
+        mp.add_forced_key_binding("R", "presets-reset", reset)
         mp.add_forced_key_binding("/", "presets-search", search.start)
         mp.add_forced_key_binding("ESC", "presets-esc", function()
             if search.filtering() then return search.clear() end

@@ -453,7 +453,8 @@ Only the file's own tracks are listed, external audio files loaded into mpv aren
 |---------|--------|--------------------------------------------------------------|
 | Tab/0-9 | Toggle | Enable or disable the preset under the cursor, or by number. |
 | d       | Delete | Delete the preset.                                           |
-| u       | Undo   | Bring back the preset you just deleted, for 5 seconds.       |
+| u       | Undo   | Bring back what you just deleted or reset, for 5 seconds.    |
+| R       | Reset  | Go back to what comes with Tachytome, asks first.            |
 | Esc     | Back   | Go back to the list it was opened from.                      |
 
 `m` in the Resolution and Tracks Presets lists and in the Effects List opens it, listing every preset of that kind, the disabled ones too, under the file it's in, each with ON or OFF, and the chain for resolution and track presets.<br>
@@ -462,6 +463,8 @@ Every change is written to the file right away, so there's no Enter to apply, Es
 - Toggling adds or removes [`disabled`](#resolution-presets) in front of the preset's line, the rest of the file stays as it is.
 - Deleting removes the preset's lines, an effect's whole block, and its comment above when the comment and the preset stand alone between blank lines, so a comment over a group of presets stays.
 - A file left with no presets, enabled or disabled, is deleted.
+- Reset offers to empty `user.res`, `user.trk` or `user.eff`, your presets there and the ones you turned on or off, or to delete every file of that kind.<br>
+  Selected effects from a deleted file are deselected, a chain using a preset that's gone says so when it's used.
 
 The presets and effects that come with Tachytome are listed under `default`, read from Tachytome's own files, so updates bring their changes to you.<br>
 - They can't be deleted, toggling one writes `default/name = on` or `off` to `user.res`, `user.trk` or `user.eff`, toggling it back removes the line.
