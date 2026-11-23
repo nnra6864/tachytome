@@ -230,25 +230,33 @@ function M.set_keyframes(on_complete)
     })
 end
 
+local recommended = {
+    av1        = { quality = 35, preset = "4" },
+    nv_av1     = { quality = 25, preset = "p7" },
+    amd_av1    = { quality = 25, preset = "quality" },
+    intel_av1  = { quality = 25, preset = "veryslow" },
+    h265       = { quality = 20, preset = "slower" },
+    nv_h265    = { quality = 20, preset = "p7" },
+    amd_h265   = { quality = 20, preset = "quality" },
+    intel_h265 = { quality = 20, preset = "veryslow" },
+    h264       = { quality = 20, preset = "slower" },
+    nv_h264    = { quality = 20, preset = "p7" },
+    amd_h264   = { quality = 20, preset = "quality" },
+    intel_h264 = { quality = 20, preset = "veryslow" }
+}
+
 function M.select_encoder(on_complete)
     local encoders = { "av1", "nv_av1", "amd_av1", "intel_av1", "h265", "nv_h265", "amd_h265", "intel_h265", "h264", "nv_h264", "amd_h264", "intel_h264" }
 
     ui_list.show(lang.t("menu_encoder"), encoders, state.opts.video_encoder, function(new_enc)
         if new_enc ~= state.opts.video_encoder then
             state.opts.video_encoder = new_enc
-
-            if new_enc == "av1" then state.opts.preset = 4
-            elseif new_enc == "h265" then state.opts.preset = "slow"
-            elseif new_enc == "h264" then state.opts.preset = "slow"
-            elseif new_enc:match("^nv_") then state.opts.preset = "p7"
-            elseif new_enc:match("^amd_") then state.opts.preset = "quality"
-            elseif new_enc:match("^intel_") then state.opts.preset = "veryslow" end
-
-            if new_enc:match("^intel_") and (tonumber(state.opts.quality) or 0) < 1 then
-                state.opts.quality = 1
-            end
+            state.opts.quality       = recommended[new_enc].quality
+            state.opts.preset        = recommended[new_enc].preset
+            notify.show(lang.t("encoder_recommended", { encoder = new_enc, quality = state.opts.quality, preset = state.opts.preset }))
+        else
+            notify_set("encoder", new_enc)
         end
-        notify_set("encoder", state.opts.video_encoder)
         if on_complete then on_complete() end
     end, on_complete)
 end

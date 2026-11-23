@@ -51,6 +51,9 @@ return {
     value_current   = "Current: {value}",
     value_set       = "{label}: {value}",
     value_invalid   = "Invalid {label}: {value}",
+
+    encoder_recommended = "Encoder: {encoder}, Quality {quality} and Preset {preset} as recommended",
+
     no_video      = "No video loaded",
     search_none   = "No matches",
 

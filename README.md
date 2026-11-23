@@ -220,7 +220,7 @@ The `simple` menu keeps every item on a single level, switch to it with `s-s` `m
 
 | Keybind | Action       | Description                                                                                                   |
 |---------|--------------|---------------------------------------------------------------------------------------------------------------|
-| e       | Encoder      | Set the video encoder.                                                                                        |
+| e       | Encoder      | Set the video encoder, picking a different one sets its recommended Quality and Preset.                       |
 | q       | Quality      | Set the video encoder quality parameter.                                                                      |
 | f       | FPS          | Set the FPS of the video.                                                                                     |
 | k       | Keyframes    | Set the keyframe interval, e.g. `120` frames or `2s`.<br>Empty matches the source, shown like `2s`.           |

@@ -81,8 +81,12 @@ local function describe(key, encoder)
     if key == "video_encoder" then return lines end
     local out = {}
     for _, line in ipairs(lines) do
-        local word = line:match("^%s*(%S+)")
-        if not word or word == encoder or not is_encoder(word) then out[#out + 1] = line end
+        local indent, word = line:match("^(%s*)(%S+)")
+        if word == encoder then
+            out[#out + 1] = indent .. line:sub(#indent + 1):gsub("%s%s+", "  ")
+        elseif not word or not is_encoder(word) then
+            out[#out + 1] = line
+        end
     end
     return out
 end
@@ -270,7 +274,7 @@ function M.show(name, enabled, pickers, on_close)
             if section then title = string.format("%s %s %s", title, state.opts.menu_path_separator, section) end
             title = title .. (dirty() and " *" or "")
             local hints = search.hints({ { "Up/Down", "navigate" }, { "Enter", "edit" }, { "u", "unset" }, { "U", "unset_all" }, { "l", "load_current" }, { "s", "save" }, { "/", "search" }, { "Esc", "close" } })
-            ov.data = search.title(title) .. "\\N" .. body .. ui.tooltip(hints)
+            ov.data = search.title(title) .. "\\N" .. body .. "\\N" .. ui.tooltip(hints)
             ov:update()
         end
 

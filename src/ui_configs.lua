@@ -115,7 +115,7 @@ function M.show(configs, on_apply, on_close, on_edit)
             if #vis == 0 then body = search.empty() end
 
             local hints = search.hints({ { "Up/Down", "navigate" }, { "Tab", "toggle" }, { "Enter", "edit" }, { "Shift+Up/Down", "move" }, { "n", "new" }, { "r", "rename" }, { "d", "delete" }, { "/", "search" }, { "Esc", "close" } })
-            ov.data = search.title(lang.t("menu_settings_manager")) .. "\\N" .. body .. "\\N" .. ui.dim(lang.t("configs_dir", { dir = common.display_path(common.get_conf_dir()) })) .. ui.tooltip(hints)
+            ov.data = search.title(lang.t("menu_settings_manager")) .. "\\N" .. body .. "\\N" .. ui.dim(lang.t("configs_dir", { dir = common.display_path(common.get_conf_dir()) })) .. "\\N" .. ui.tooltip(hints)
             ov:update()
         end
 
