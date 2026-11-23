@@ -115,6 +115,8 @@ end
 local no_glow       = "{\\bord0}{\\shad0}{\\blur0}{\\be0}"
 local cursor_glyphs = { bar = "▏", underline = "▁", block = "█" }
 
+M.cursor_styles = { "bar", "underline", "block" }
+
 local function layer(head, prompt, before, glyph, glow, color, after)
     return string.format("%s%s%s%s%s%s%s%s%s%s",
         head, theme.a("FF"), prompt, before, theme.a("00"), glow ~= "" and glow or no_glow, color, theme.escape(glyph), theme.a("FF"), after

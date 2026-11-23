@@ -130,6 +130,11 @@ function M.ensure_default_conf(builtin_name, name)
     return conf_path
 end
 
+M.containers = { "mkv", "mp4", "webm", "mov", "m4v", "avi", "ts", "flv", "wmv", "mka", "opus", "ogg", "oga", "m4a", "mp3", "aac", "flac", "wav" }
+
+local known_exts = {}
+for _, ext in ipairs(M.containers) do known_exts[ext] = true end
+
 local function replace_spaces(name, replacement)
     return (name:gsub(" ", (replacement:gsub("%%", "%%%%"))))
 end
@@ -180,14 +185,7 @@ local function resolve_absolute_path_base(custom, opts, input_path, container)
     if target_name == "" then
         target_name = base_name .. opts.suffix .. default_ext
     else
-        local known_exts = {
-            [".mkv"]=true, [".mp4"]= true, [".webm"]=true, [".avi"]=true,
-            [".mov"]=true, [".m4v"]= true, [".ts"]=  true, [".flv"]=true,
-            [".wmv"]=true, [".mp3"]= true, [".ogg"]= true, [".aac"]=true,
-            [".mka"]=true, [".opus"]=true, [".oga"]=true, [".m4a"]=true,
-            [".flac"]=true, [".wav"]=true
-        }
-        local user_ext = target_name:match("(%.[a-zA-Z0-9]+)$")
+        local user_ext = target_name:match("%.([a-zA-Z0-9]+)$")
         if not (user_ext and known_exts[user_ext:lower()]) then
             target_name = target_name .. default_ext
         end

@@ -18,6 +18,7 @@ local ui_tracks     = require 'src.ui_tracks'
 local tracks        = require 'src.tracks'
 local ui_configs    = require 'src.ui_configs'
 local ui_settings   = require 'src.ui_settings'
+local options       = require 'src.options'
 local updater       = require 'src.updater'
 local conf          = require 'src.conf'
 local menus         = require 'src.menus'
@@ -66,25 +67,16 @@ function M.set_mark(place, on_complete)
 end
 
 function M.set_quality(on_complete)
-    local enc     = state.opts.video_encoder:lower()
-    local min_val = 0
-    local max_val = 51
-    local label   = "CRF"
-
-    if enc == "av1" or enc == "nv_av1" then max_val = 63
-    elseif enc == "h265" then max_val = 51
-    elseif enc == "h264" then max_val = 51
-    elseif enc:match("^intel_") then min_val = 1; label = lang.t("quality_global")
-    elseif enc:match("^nv_") or enc:match("^amd_") then label = "CQ" end
+    local enc = options.encoder(state.opts.video_encoder)
 
     ui_input.show({
         title     = lang.t("menu_quality"),
         current   = state.opts.quality,
-        hint      = lang.t("hint_quality", { label = label, min = min_val, max = max_val }),
+        hint      = lang.t("hint_quality", { label = options.quality_label(enc), min = enc.min, max = enc.max, range = options.range_hint(enc), recommended = enc.quality }),
         on_cancel = on_complete,
         on_submit = function(input)
             local num = tonumber(input)
-            if num and num >= min_val and num <= max_val then
+            if num and num >= enc.min and num <= enc.max then
                 state.opts.quality = num
                 notify_set("quality", num)
             elseif input ~= "" then
@@ -96,26 +88,15 @@ function M.set_quality(on_complete)
 end
 
 function M.set_preset(on_complete)
-    local enc     = state.opts.video_encoder:lower()
-    local presets = {}
+    local enc = options.encoder(state.opts.video_encoder)
 
-    if enc == "av1" then presets = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13"}
-    elseif enc == "h265" then presets = {"ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow", "placebo"}
-    elseif enc == "h264" then presets = {"ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow", "placebo"}
-    elseif enc:match("^nv_") then presets = {"p1", "p2", "p3", "p4", "p5", "p6", "p7"}
-    elseif enc:match("^amd_") then presets = {"speed", "balanced", "quality"}
-    elseif enc:match("^intel_") then presets = {"veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow"}
-    else presets = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13"} end
-
-    ui_list.show(string.format("%s (%s)", lang.t("menu_preset"), enc), presets, tostring(state.opts.preset), function(val)
-        if enc == "av1" then
-            state.opts.preset = tonumber(val)
-        else
-            state.opts.preset = val
-        end
-        notify_set("preset", state.opts.preset)
+    ui_list.show(string.format("%s (%s)", lang.t("menu_preset"), enc.name), enc.presets, tostring(state.opts.preset), function(val)
+        state.opts.preset = val
+        notify_set("preset", val)
         if on_complete then on_complete() end
-    end, on_complete)
+    end, on_complete, {
+        detail = function(i) return enc.presets[i] == enc.preset and lang.t("value_recommended") or "" end
+    })
 end
 
 local function get_source_fps()
@@ -230,35 +211,21 @@ function M.set_keyframes(on_complete)
     })
 end
 
-local recommended = {
-    av1        = { quality = 35, preset = "4" },
-    nv_av1     = { quality = 25, preset = "p7" },
-    amd_av1    = { quality = 25, preset = "quality" },
-    intel_av1  = { quality = 25, preset = "veryslow" },
-    h265       = { quality = 20, preset = "slower" },
-    nv_h265    = { quality = 20, preset = "p7" },
-    amd_h265   = { quality = 20, preset = "quality" },
-    intel_h265 = { quality = 20, preset = "veryslow" },
-    h264       = { quality = 20, preset = "slower" },
-    nv_h264    = { quality = 20, preset = "p7" },
-    amd_h264   = { quality = 20, preset = "quality" },
-    intel_h264 = { quality = 20, preset = "veryslow" }
-}
-
 function M.select_encoder(on_complete)
-    local encoders = { "av1", "nv_av1", "amd_av1", "intel_av1", "h265", "nv_h265", "amd_h265", "intel_h265", "h264", "nv_h264", "amd_h264", "intel_h264" }
-
-    ui_list.show(lang.t("menu_encoder"), encoders, state.opts.video_encoder, function(new_enc)
+    ui_list.show(lang.t("menu_encoder"), options.encoder_names(), state.opts.video_encoder, function(new_enc)
         if new_enc ~= state.opts.video_encoder then
+            local enc = options.encoder(new_enc)
             state.opts.video_encoder = new_enc
-            state.opts.quality       = recommended[new_enc].quality
-            state.opts.preset        = recommended[new_enc].preset
-            notify.show(lang.t("encoder_recommended", { encoder = new_enc, quality = state.opts.quality, preset = state.opts.preset }))
+            state.opts.quality       = enc.quality
+            state.opts.preset        = enc.preset
+            notify.show(lang.t("encoder_recommended", { encoder = new_enc, quality = enc.quality, preset = enc.preset }))
         else
             notify_set("encoder", new_enc)
         end
         if on_complete then on_complete() end
-    end, on_complete)
+    end, on_complete, {
+        detail = function(i) return options.encoder_detail(options.encoders[i]) end
+    })
 end
 
 function M.select_audio_encoder(on_complete)
@@ -656,10 +623,7 @@ function M.select_configs(on_reload, on_complete)
 end
 
 function M.select_language(on_complete)
-    local codes = { "auto" }
-    for _, code in ipairs(lang.available()) do codes[#codes + 1] = code end
-
-    ui_list.show(lang.t("menu_language"), codes, state.opts.language, function(code)
+    ui_list.show(lang.t("menu_language"), options.choices("language"), state.opts.language, function(code)
         if code ~= state.opts.language then
             state.opts.language = code
             conf.write_option("language", code)

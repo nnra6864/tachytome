@@ -4,7 +4,7 @@ local conf        = require 'src.conf'
 local effects     = require 'src.effects'
 local resolution  = require 'src.resolution'
 local tracks      = require 'src.tracks'
-local menus       = require 'src.menus'
+local options     = require 'src.options'
 local list_search = require 'src.list_search'
 local state       = require 'src.state'
 local theme       = require 'src.theme'
@@ -71,11 +71,6 @@ local function current()
     return vals
 end
 
-local function is_encoder(word)
-    local base = word:gsub("^nv_", ""):gsub("^amd_", ""):gsub("^intel_", "")
-    return base == "av1" or base == "h265" or base == "h264"
-end
-
 local function describe(key, encoder)
     local lines = conf.describe(key)
     if key == "video_encoder" then return lines end
@@ -84,7 +79,7 @@ local function describe(key, encoder)
         local indent, word = line:match("^(%s*)(%S+)")
         if word == encoder then
             out[#out + 1] = indent .. line:sub(#indent + 1):gsub("%s%s+", "  ")
-        elseif not word or not is_encoder(word) then
+        elseif not word or not options.is_encoder(word) then
             out[#out + 1] = line
         end
     end
@@ -95,15 +90,6 @@ local function shown(val)
     if val == "" then return "\"\"" end
     return val
 end
-
-local choices = {
-    selected_menu = function() return menus.names() end,
-    language      = function()
-        local codes = { "auto" }
-        for _, code in ipairs(lang.available()) do codes[#codes + 1] = code end
-        return codes
-    end
-}
 
 function M.show(name, enabled, pickers, on_close)
     local keys    = conf.keys()
@@ -311,26 +297,32 @@ function M.show(name, enabled, pickers, on_close)
                     open()
                 end)
             end
-            if choices[key] then
-                return ui_list.show(key, choices[key](), cur, function(val)
-                    changed(key, val)
-                    open()
-                end, open)
-            end
-            ui_input.show({
-                title       = key,
-                current     = cur,
-                allow_space = true,
-                on_cancel   = open,
-                on_submit   = function(input)
-                    local conv = conf.parse_value(key, input)
-                    if conv == nil then
-                        notify.show(lang.t("settings_invalid", { key = key, value = input }), true, "warn")
-                    else
-                        changed(key, conf.format(conv))
+            local function type_value()
+                ui_input.show({
+                    title       = key,
+                    current     = cur,
+                    hint        = options.hint(key),
+                    allow_space = true,
+                    on_cancel   = open,
+                    on_submit   = function(input)
+                        local conv = conf.parse_value(key, input)
+                        if conv == nil or not options.valid(key, input) then
+                            notify.show(lang.t("value_invalid", { label = key, value = input }), true, "warn")
+                        else
+                            changed(key, conf.format(conv))
+                        end
+                        open()
                     end
-                    open()
-                end
+                })
+            end
+
+            local list = options.choices(key)
+            if not list then return type_value() end
+            ui_list.show(key, list, cur, function(val)
+                changed(key, val)
+                open()
+            end, open, {
+                keys = options.typed(key) and { { "e", "edit", type_value, any = true } } or nil
             })
         end
 

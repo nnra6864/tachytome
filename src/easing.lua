@@ -101,6 +101,10 @@ local easings = {
     end
 }
 
+M.names = {}
+for name in pairs(easings) do M.names[#M.names + 1] = name end
+table.sort(M.names)
+
 function M.bezier(x1, y1, x2, y2)
     local ax = 1 - 3 * x2 + 3 * x1
     local bx = 3 * x2 - 6 * x1

@@ -220,11 +220,11 @@ The `simple` menu keeps every item on a single level, switch to it with `s-s` `m
 
 | Keybind | Action       | Description                                                                                                   |
 |---------|--------------|---------------------------------------------------------------------------------------------------------------|
-| e       | Encoder      | Set the video encoder, picking a different one sets its recommended Quality and Preset.                       |
-| q       | Quality      | Set the video encoder quality parameter.                                                                      |
+| e       | Encoder      | Set the video encoder, each one says what it's good at.<br>Picking a different one sets its recommended Quality and Preset. |
+| q       | Quality      | Set the video encoder quality parameter, the hint shows the range and the recommended value.                  |
 | f       | FPS          | Set the FPS of the video.                                                                                     |
 | k       | Keyframes    | Set the keyframe interval, e.g. `120` frames or `2s`.<br>Empty matches the source, shown like `2s`.           |
-| p       | Preset       | Set the video encoder preset parameter.                                                                       |
+| p       | Preset       | Set the video encoder preset, listed from most to least effort, the recommended one is marked.                |
 | r       | Resolution   | Set the output resolution.<br>Learn more about the [Resolution List](#resolution-list) and [Resolution](#resolution). |
 | l       | Lossless Cut | Toggle the lossless cut option.                                                                               |
 | a       | Accurate Cut | Toggle accurate cut.<br>Makes cuts millisecond precise, but may cause a slight delay before rendering starts. |
@@ -518,6 +518,9 @@ Color options show their value outlined in that color, with its alpha, in white 
   A config that isn't enabled is previewed as if it were.
 - Yes/no options toggle, options with a picker in the menu, like the encoder, quality, preset, resolution, tracks and effects, open it, the rest take text.<br>
   A picker that changes other options too, like the encoder resetting the preset, sets those as well.
+- Options with a fixed set of values, like the container, modes, scalers, cursor style and easings, open a list.<br>
+  `e` in the list types a value instead where other values work too, like another container, an empty one or a `bezier(...)` easing.
+- Typed numbers are checked against their range, e.g. 0 to 1 for the glow blur, the hint shows it.
 - Saving writes only the options you changed, keeps the file's other lines and comments, and adds the option's description from the builtin config above a new one.<br>
   Unsetting an option removes its line and that description.
 - Saving a config that isn't enabled asks to enable it in `user.conf`, No saves the file and puts the session back.
