@@ -284,7 +284,7 @@ function M.show(on_close)
                 kind     = {
                     ext    = "res",
                     all    = resolution.all,
-                    reload = function() resolution.reload(true) end,
+                    reload = function() resolution.reload() end,
                     detail = function(p) return p.chain end
                 }
             })

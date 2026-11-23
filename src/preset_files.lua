@@ -1,11 +1,27 @@
+local mp         = require 'mp'
 local utils      = require 'mp.utils'
 local common     = require 'src.common'
 local file_lines = require 'src.file_lines'
+local notify     = require 'src.notify'
 local lang       = require 'src.lang'
 
-local M = {}
+local M = {
+    builtin = "default",
+    user    = "user"
+}
+
+local builtin_files = {
+    res = "tachytome-resolutions.conf",
+    trk = "tachytome-tracks.conf",
+    eff = "tachytome-effects.conf"
+}
+
+function M.builtin_path(ext)
+    return utils.join_path(mp.get_script_directory() or "", builtin_files[ext])
+end
 
 function M.path(file, ext)
+    if file == M.builtin then return M.builtin_path(ext) end
     return utils.join_path(common.get_conf_dir(), file .. "." .. ext)
 end
 
@@ -13,14 +29,87 @@ function M.list(ext)
     local files = {}
     for _, name in ipairs(utils.readdir(common.get_conf_dir(), "files") or {}) do
         local file = name:match("^(.+)%." .. ext .. "$")
-        if file then files[#files + 1] = file end
+        if file and file ~= M.builtin then files[#files + 1] = file end
     end
     table.sort(files)
     return files
 end
 
+function M.sources(ext)
+    local out = { { file = M.builtin, path = M.builtin_path(ext) } }
+    for _, file in ipairs(M.list(ext)) do out[#out + 1] = { file = file, path = M.path(file, ext) } end
+    return out
+end
+
 function M.valid_file(name)
-    return name:match("^[^%s/\\=#\"]+$") ~= nil
+    return name:match("^[^%s/\\=#\"]+$") ~= nil and name:lower() ~= M.builtin
+end
+
+function M.state(content, file)
+    if file == M.builtin then return nil end
+    local name, val = content:match("^" .. M.builtin .. "/([^%s=/]+)%s*=%s*(%a+)$")
+    if not name or (val ~= "on" and val ~= "off") then return nil end
+    return name:lower(), val == "on"
+end
+
+function M.apply_states(presets, states)
+    local builtin = {}
+    for _, p in ipairs(presets) do
+        if p.file == M.builtin then
+            p.builtin_disabled = p.disabled
+            p.states           = {}
+            builtin[p.name]    = p
+        end
+    end
+    for _, s in ipairs(states) do
+        local p = builtin[s.name]
+        if p then
+            p.disabled              = not s.on
+            p.states[#p.states + 1] = s
+        else
+            notify.show(lang.t("warn_not_builtin", { name = M.builtin .. "/" .. s.name, where = s.where }), false, "warn")
+        end
+    end
+end
+
+function M.set_state(p, ext, on)
+    local by_file = {}
+    for _, s in ipairs(p.states or {}) do
+        by_file[s.file] = by_file[s.file] or {}
+        table.insert(by_file[s.file], s.line)
+    end
+    if on == p.builtin_disabled then by_file[M.user] = by_file[M.user] or {} end
+    for file, rows in pairs(by_file) do
+        local path       = M.path(file, ext)
+        local lines, eol = file_lines.read(path)
+        lines            = lines or {}
+        table.sort(rows, function(a, b) return a > b end)
+        for _, n in ipairs(rows) do
+            if M.state(M.strip(lines[n] or "")) == p.name then table.remove(lines, n) end
+        end
+        if file == M.user and on == p.builtin_disabled then
+            lines[#lines + 1] = string.format("%s/%s = %s", M.builtin, p.name, on and "on" or "off")
+        end
+        while #lines > 0 and file_lines.blank(lines[#lines]) do lines[#lines] = nil end
+        if #lines == 0 then
+            os.remove(path)
+        else
+            common.ensure_dir(common.get_conf_dir())
+            if not file_lines.write(path, lines, eol) then return false, file .. "." .. ext end
+        end
+    end
+    return true
+end
+
+function M.find(presets, word, disabled)
+    for _, p in ipairs(presets) do
+        if p.id:lower() == word and not p.disabled == not disabled then return p end
+    end
+    for i = #presets, 1, -1 do
+        local p = presets[i]
+        if p.name == word and not p.disabled == not disabled then return p end
+    end
+    return nil
 end
 
 function M.strip(line)

@@ -148,7 +148,9 @@ Updates that cross a major version, e.g. `2.4.1 -> 3.0.0`, are pointed out befor
 - `combined_audio_name` moves into the mix, `Combined` when it wasn't set, so the track keeps its old title, e.g. `mix "Voice"`, and Combined Only becomes `keep @mixes`.
 - Interrupted render queues are converted too, Skip leaves the old options in place, where they're ignored with a warning.
 - The `configs` menu action is renamed to `config_manager` in your menus.
-- A `default.eff` you never changed is replaced with the new one, its commented out examples become [disabled](#effects) effects, a changed one is left as it is.
+- `default.eff` is deleted, the effects that come with Tachytome are read from it instead, see [Preset Manager](#preset-manager).<br>
+  Effects you added or changed move to `user.eff`, ones you turned on or off become `default/name = on` or `off` lines there.<br>
+  Skip keeps `default.eff` as `.bak`.
 - `user.conf` replaces `tachytome.conf` and `default.conf`, the defaults come from Tachytome itself, see [Config](#config).
 - The lines of `tachytome.conf` and every line you uncommented in `default.conf` move to `user.conf`, then both files are deleted.
 - `default` is dropped from `configs=`, the lines from `default.conf` go above that line when `default` was the first enabled config, below it otherwise.<br>
@@ -459,7 +461,13 @@ It's numbered and searchable like the other lists, searched as `file/name`.<br>
 Every change is written to the file right away, so there's no Enter to apply, Esc just goes back.<br>
 - Toggling adds or removes [`disabled`](#resolution-presets) in front of the preset's line, the rest of the file stays as it is.
 - Deleting removes the preset's lines, an effect's whole block, and its comment above when the comment and the preset stand alone between blank lines, so a comment over a group of presets stays.
-- A file left with no presets, enabled or disabled, is deleted, `default.res`, `default.trk` or `default.eff` gets generated again on the next start when a kind has no files left.
+- A file left with no presets, enabled or disabled, is deleted.
+
+The presets and effects that come with Tachytome are listed under `default`, read from Tachytome's own files, so updates bring their changes to you.<br>
+- They can't be deleted, toggling one writes `default/name = on` or `off` to `user.res`, `user.trk` or `user.eff`, toggling it back removes the line.
+- You can write those lines yourself in any of your files of that kind, outside an effect's block.
+- Your own preset with the same name replaces it for bare names, `default/name` still picks the one that comes with Tachytome.
+- `default` is reserved, a `default.res`, `default.trk` or `default.eff` of yours isn't read.
 - Undo puts the file back as it was, the deleted file too, unless it changed since, and works until the manager closes or 5 seconds pass.
 - A file changed outside Tachytome while the manager is open is read again instead of written, the change is skipped with a warning.
 - An effect that gets disabled or deleted is deselected, a chain using a disabled or deleted preset says so when it's used.
@@ -826,7 +834,7 @@ Use `1024p` instead to keep it looking the way it did on screen.<br>
 
 #### Resolution Presets
 
-Presets are named chains in `.res` files in `mpv/script-opts/tachytome/`, `default.res` gets generated when there are none.<br>
+Presets are named chains in `.res` files in `mpv/script-opts/tachytome/`, read after the [ones that come with Tachytome](#preset-manager).<br>
 Every `.res` file is read in alphabetical order, one preset per line as `name = chain`, `#` starts a comment:
 ```
 fhd      = 1080p
@@ -837,13 +845,13 @@ disabled 4k = 2160p
 - A preset name works anywhere in a chain, e.g. `fhd`, `cs 0.5x` or `vertical`, and can use other presets.
 - A mode or scaler right after a preset applies to all of its layers, e.g. `vertical fit` or `4k neighbor`.
 - Names ignore case and can't hold spaces, `=` or `/`, or be a size, mode or scaler.
-- The same name in two files is fine, `file/name` picks a specific one, e.g. `mine/vertical`, a bare name picks the first file.
+- The same name in two files is fine, `file/name` picks a specific one, e.g. `mine/vertical`, a bare name picks the last file, so yours win over the ones that come with Tachytome.
 - The Resolution List opens them with `p` or the Presets row, 0-9/Enter uses one, `a` adds it to the chain, `n` there or in the Resolution List saves the chain as one.
 - `disabled` before a preset turns it off, e.g. `disabled vertical = 1080x1920 cover`, removing it turns the preset back on.<br>
-  A disabled preset isn't listed, a bare name skips it for the next file that defines it, and using it says it's disabled.
+  A disabled preset isn't listed, a bare name skips it for the previous file that defines it, and using it says it's disabled.
 - The `#` lines right above a preset are its [description](#preset-descriptions).
 
-`default.res` holds `autocrop` and `halfres`, with disabled examples to turn on: `hd` to `8k` on the short side, `vertical` and `cs`.
+Tachytome comes with `autocrop` and `halfres`, and disabled examples to turn on in the [Preset Manager](#preset-manager): `hd` to `8k` on the short side, `vertical` and `cs`.
 
 ### Tracks
 
@@ -891,7 +899,7 @@ Change it on the fly in the [Tracks List](#tracks-list) and with Combine Audio a
 
 #### Track Presets
 
-Presets are named chains in `.trk` files in `mpv/script-opts/tachytome/`, `default.trk` gets generated when there are none.<br>
+Presets are named chains in `.trk` files in `mpv/script-opts/tachytome/`, read after the [ones that come with Tachytome](#preset-manager).<br>
 Every `.trk` file is read in alphabetical order, one preset per line as `name = chain`, `#` starts a comment:
 ```
 combined      = mix "Combined" at 1
@@ -904,21 +912,21 @@ disabled audio_only = video none
 - Track numbers in a preset are positions in what the layers before it left, like anywhere else in the chain.
 - Names ignore case and can't hold spaces, `=`, `/`, `"`, `,` or `#`, be an op word, `all`, `none`, `at` or a number, or start with `-` or `@`.
 - A track or mix named like a preset needs quotes in lists, e.g. `keep "combined"`.
-- The same name in two files is fine, `file/name` picks a specific one, e.g. `mine/combined`, a bare name picks the first file.
+- The same name in two files is fine, `file/name` picks a specific one, e.g. `mine/combined`, a bare name picks the last file, so yours win over the ones that come with Tachytome.
 - The Tracks List opens them with `p` or the Presets row, 0-9/Enter uses one, `a` adds it to the chain, `n` there or in the Tracks List saves the chain as one.
 - `disabled` before a preset turns it off, e.g. `disabled audio_only = video none`, removing it turns the preset back on.<br>
-  A disabled preset isn't listed, a bare name skips it for the next file that defines it, using it says it's disabled, and tracks named like it don't need quotes.
+  A disabled preset isn't listed, a bare name skips it for the previous file that defines it, using it says it's disabled, and tracks named like it don't need quotes.
 - The `#` lines right above a preset are its [description](#preset-descriptions).
 
-`default.trk` holds `combined` and `combined_only`, like Combine Audio and Combine Audio with Combined Only with the mix named `Combined`, with disabled examples to turn on: `voice_mix` and `audio_only`.
+Tachytome comes with `combined` and `combined_only`, like Combine Audio and Combine Audio with Combined Only with the mix named `Combined`, and disabled examples to turn on in the [Preset Manager](#preset-manager): `voice_mix` and `audio_only`.
 
 ### Effects
 
 Tachytome offers a powerful effects and presets engine.<br>
 These are extremely useful for adding transitions such as video/audio fade and blur.
 
-Effects are defined in `.eff` files in `mpv/script-opts/tachytome/`, `default.eff` gets generated when there are none.<br>
-You can find an example config with every option explained [here](./tachytome-effects.conf).
+Effects are defined in `.eff` files in `mpv/script-opts/tachytome/`, read after the [ones that come with Tachytome](#preset-manager).<br>
+You can find those with every option explained [here](./tachytome-effects.conf).
 
 - Every `.eff` file in the dir is read in alphabetical order and shown as its own section in the Effects list:
   ```
@@ -929,10 +937,10 @@ You can find an example config with every option explained [here](./tachytome-ef
     dissolve
   ```
 - Names only need to be unique within a file, different files can each have their own `fade`.
-- `effects_presets` picks a preset from a specific file with `file/name`, e.g. `nnra6864/dissolve`, a bare name picks the first file that defines it.
+- `effects_presets` picks a preset from a specific file with `file/name`, e.g. `nnra6864/dissolve`, a bare name picks the last file that defines it, so yours win over the ones that come with Tachytome.
 - `disabled` before `effect` turns an effect off, e.g. `disabled effect grain`, removing it turns the effect back on.<br>
-  A disabled effect isn't listed, a bare name skips it for the next file that defines it, and `effects_presets` warns that it's disabled.<br>
-  `default.eff` holds `fade` and `blur_fade`, with disabled examples to turn on: `drop_in`, `color_in`, `grain` and `duck_out`.
+  A disabled effect isn't listed, a bare name skips it for the previous file that defines it, and `effects_presets` warns that it's disabled.<br>
+  Tachytome comes with `fade` and `blur_fade`, and disabled examples to turn on in the [Preset Manager](#preset-manager): `drop_in`, `color_in`, `grain` and `duck_out`.
 - The `#` lines right above `effect` are its [description](#preset-descriptions).
 
 ```

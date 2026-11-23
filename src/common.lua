@@ -105,31 +105,6 @@ function M.file_exists(path)
     return true
 end
 
-function M.ensure_default_conf(builtin_name, name)
-    local conf_dir  = M.get_conf_dir()
-    local conf_path = utils.join_path(conf_dir, name)
-
-    if M.file_exists(conf_path) then return conf_path end
-
-    local script_dir = mp.get_script_directory()
-    if not script_dir then return conf_path end
-
-    local rf = io.open(utils.join_path(script_dir, builtin_name), "r")
-    if not rf then return conf_path end
-
-    local conf_content = rf:read("*all")
-    rf:close()
-
-    M.ensure_dir(conf_dir)
-    local wf = io.open(conf_path, "w")
-    if wf then
-        wf:write(conf_content)
-        wf:close()
-        mp.msg.info("Generated default config at: " .. conf_path)
-    end
-    return conf_path
-end
-
 M.containers = { "mkv", "mp4", "webm", "mov", "m4v", "avi", "ts", "flv", "wmv", "mka", "opus", "ogg", "oga", "m4a", "mp3", "aac", "flac", "wav" }
 
 local known_exts = {}

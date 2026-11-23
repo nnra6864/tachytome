@@ -559,7 +559,7 @@ function M.show(on_close)
                 kind     = {
                     ext    = "trk",
                     all    = tracks.all,
-                    reload = function() tracks.reload(true) end,
+                    reload = function() tracks.reload() end,
                     detail = function(p) return p.chain end
                 }
             })

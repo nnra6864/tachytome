@@ -155,6 +155,7 @@ return {
     presets_changed      = "{file} je izmenjen van Tachytome-a, ponovo učitan",
     presets_undo_changed = "{file} je izmenjen u međuvremenu, poništavanje nije moguće",
     presets_write_failed = "Upis u {file} nije uspeo",
+    presets_builtin      = "{name} dolazi uz Tachytome i ne može se obrisati, Tab ga isključuje",
     presets_new          = "Novi",
     presets_name         = "Ime",
     presets_file         = "Datoteka",
@@ -168,7 +169,7 @@ return {
     presets_file_exists  = "{file} već postoji",
     presets_replace      = "Zameniti {name}?",
     presets_replaces     = "zamenjuje {chain}",
-    presets_hint_file    = "Čuva se kao <ime>.{ext}, bez razmaka, /, \\, =, # i navodnika",
+    presets_hint_file    = "Čuva se kao <ime>.{ext}, bez razmaka, /, \\, =, # i navodnika, i nije default",
     presets_hint_desc    = "Opciono, upisuje se kao komentar iznad preseta",
     presets_hint_keep    = "Opciono, prazno zadržava postojeći komentar",
 
@@ -524,6 +525,12 @@ return {
     migrate_actions_done    = "Akcije menija su preimenovane",
     migrate_actions_skipped = "Akcije menija su ostavljene kakve jesu, stara imena ne rade ništa",
 
+    migrate_presets_intro   = "Preseti i efekti koji dolaze uz Tachytome se sada čitaju iz njega, brišu se {list}",
+    migrate_presets_moved   = "Vaši ili izmenjeni, premešteni: {list}",
+    migrate_presets_states  = "Uključeni ili isključeni kao kod vas: {list}",
+    migrate_presets_nothing = "Isti su kao oni koji dolaze uz Tachytome, nema šta da se zadrži",
+    migrate_presets_done    = "Vaši preseti i efekti su premešteni u user datoteke",
+
     migrate_user_intro     = "Vaše izmene sada idu u user.conf, podrazumevane vrednosti dolaze iz samog Tachytome-a",
     migrate_user_moved     = "Premešteno u user.conf: {list}",
     migrate_user_nothing   = "Nema ničega za premeštanje, user.conf počinje prazan",
@@ -543,6 +550,7 @@ return {
     warn_invalid_line    = "Neispravna linija u {where}: {line}",
     warn_unclosed        = "'{name}' u {where} nikad nije zatvoren",
     warn_redefined       = "'{name}' ponovo definisan u {where}, važi poslednji",
+    warn_not_builtin     = "{where}: {name} nije preset koji dolazi uz Tachytome",
     warn_empty           = "'{name}' u {where} je prazan, preskače se",
     warn_unknown_easing  = "{where}: nepoznato ublažavanje '{value}', koristi se linearno",
     warn_unknown_action  = "Nepoznata akcija menija '{action}' za taster '{keys}'",

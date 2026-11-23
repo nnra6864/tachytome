@@ -68,6 +68,7 @@ function M.show(opts)
     local function file_error(input)
         local f = trim(input)
         if f == "" then return nil end
+        if f:lower() == preset_files.builtin then return lang.t("configs_reserved", { name = f }) end
         if not preset_files.valid_file(f) then return lang.t("presets_bad_file", { name = f }) end
         if file_lines.read(preset_files.path(f, kind.ext)) then return lang.t("presets_file_exists", { file = f .. "." .. kind.ext }) end
         return nil
@@ -161,13 +162,17 @@ function M.show(opts)
     end
 
     ask_file = function()
-        local files = {}
-        if last[kind.ext] then
-            for _, f in ipairs(preset_files.list(kind.ext)) do
-                if f == last[kind.ext] then files[1] = f end
-            end
+        local existing = preset_files.list(kind.ext)
+        local has_user = false
+        for _, f in ipairs(existing) do
+            if f == preset_files.user then has_user = true end
         end
-        for _, f in ipairs(preset_files.list(kind.ext)) do
+        if not has_user then table.insert(existing, 1, preset_files.user) end
+        local files = {}
+        for _, f in ipairs(existing) do
+            if f == last[kind.ext] then files[1] = f end
+        end
+        for _, f in ipairs(existing) do
             if f ~= files[1] then files[#files + 1] = f end
         end
         local count = #files

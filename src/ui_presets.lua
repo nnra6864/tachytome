@@ -114,11 +114,12 @@ function M.show(opts)
             return string.format("%s%s%s\\h\\h%s%s", ui.number_prefix(ui.position(nav, vis[k])), theme.escape(name), pad, value, detail)
         end)
         if #vis == 0 then body = search.filtering() and search.empty() or ui.dim(lang.t("presets_none")) end
-        local hints = { { "Up/Down", "navigate" }, { "Tab/0-9", "toggle" }, { "d", "delete" } }
+        local row   = #nav > 0 and rows[cursor]
+        local hints = { { "Up/Down", "navigate" }, { "Tab/0-9", "toggle" } }
+        if not (row and row.kind == "preset" and row.preset.file == preset_files.builtin) then hints[#hints + 1] = { "d", "delete" } end
         if undo then hints[#hints + 1] = { "u", "undo" } end
         hints[#hints + 1] = { "/", "search" }
         hints[#hints + 1] = { "Esc", "back" }
-        local row = #nav > 0 and rows[cursor]
         if row and row.kind == "preset" then body = body .. ui.dim_lines(descs[row.preset]) end
         ov.data = search.title(opts.title) .. "\\N" .. body .. "\\N" .. ui.tooltip(search.hints(hints))
         ov:update()
@@ -150,6 +151,12 @@ function M.show(opts)
     end
 
     local function toggle_preset(p)
+        if p.file == preset_files.builtin then
+            local ok, failed = preset_files.set_state(p, kind.ext, p.disabled)
+            if not ok then return notify.show(lang.t("presets_write_failed", { file = failed }), true, "error") end
+            notify.show(lang.t(p.disabled and "presets_enabled" or "presets_disabled", { name = full_name(p) }))
+            return reload()
+        end
         local path, lines, eol = read_preset(p)
         if not path then return end
         if p.disabled then
@@ -176,6 +183,10 @@ function M.show(opts)
     end
 
     local function delete_preset(p)
+        if p.file == preset_files.builtin then
+            notify.show(lang.t("presets_builtin", { name = full_name(p) }), true, "warn")
+            return draw()
+        end
         local path, lines, eol = read_preset(p)
         if not path then return end
         local before = {}

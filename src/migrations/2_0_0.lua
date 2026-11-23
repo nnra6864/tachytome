@@ -298,7 +298,6 @@ function M.apply(plan)
     end
     write_lines(conf.main_path(), lines)
 
-    common.ensure_default_conf("tachytome-effects.conf", "default.eff")
     if #plan.effect_lines > 0 then write_lines(utils.join_path(dir, "custom.eff"), plan.effect_lines) end
 end
 

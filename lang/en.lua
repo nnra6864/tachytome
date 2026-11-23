@@ -155,6 +155,7 @@ return {
     presets_changed      = "{file} changed outside Tachytome, reloaded it",
     presets_undo_changed = "{file} changed since, can't undo",
     presets_write_failed = "Couldn't write {file}",
+    presets_builtin      = "{name} comes with Tachytome and can't be deleted, Tab turns it off",
     presets_new          = "New",
     presets_name         = "Name",
     presets_file         = "File",
@@ -168,7 +169,7 @@ return {
     presets_file_exists  = "{file} already exists",
     presets_replace      = "Replace {name}?",
     presets_replaces     = "replaces {chain}",
-    presets_hint_file    = "Saved as <name>.{ext}, no spaces, /, \\, =, # or quotes",
+    presets_hint_file    = "Saved as <name>.{ext}, no spaces, /, \\, =, # or quotes, and not default",
     presets_hint_desc    = "Optional, written as a comment above the preset",
     presets_hint_keep    = "Optional, empty keeps the comment it has",
 
@@ -524,6 +525,12 @@ return {
     migrate_actions_done    = "Menu actions renamed",
     migrate_actions_skipped = "Menu actions left as they are, the old names do nothing",
 
+    migrate_presets_intro   = "Presets and effects that come with Tachytome are read from it now, removing {list}",
+    migrate_presets_moved   = "Your own or changed ones, moved: {list}",
+    migrate_presets_states  = "Turned on or off as you had them: {list}",
+    migrate_presets_nothing = "They match the ones that come with Tachytome, nothing to keep",
+    migrate_presets_done    = "Your presets and effects moved to user files",
+
     migrate_user_intro     = "Your changes now go in user.conf, the defaults come from Tachytome itself",
     migrate_user_moved     = "Moved to user.conf: {list}",
     migrate_user_nothing   = "Nothing to move, user.conf starts empty",
@@ -543,6 +550,7 @@ return {
     warn_invalid_line    = "Invalid line at {where}: {line}",
     warn_unclosed        = "'{name}' at {where} is never closed",
     warn_redefined       = "'{name}' redefined at {where}, the last one wins",
+    warn_not_builtin     = "{where}: {name} isn't a preset that comes with Tachytome",
     warn_empty           = "'{name}' at {where} is empty, skipping",
     warn_unknown_easing  = "{where}: unknown easing '{value}', using linear",
     warn_unknown_action  = "Unknown menu action '{action}' for key '{keys}'",

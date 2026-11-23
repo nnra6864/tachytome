@@ -1,9 +1,8 @@
-local utils  = require 'mp.utils'
-local notify = require 'src.notify'
-local state  = require 'src.state'
-local common = require 'src.common'
-local easing = require 'src.easing'
-local lang   = require 'src.lang'
+local notify       = require 'src.notify'
+local state        = require 'src.state'
+local easing       = require 'src.easing'
+local preset_files = require 'src.preset_files'
+local lang         = require 'src.lang'
 
 local M = {}
 
@@ -27,15 +26,6 @@ local timed_atoms = {
     aanimate = true
 }
 
-local function preset_index(id, disabled)
-    for i, p in ipairs(presets) do
-        if p.id == id and not p.disabled == not disabled then return i end
-    end
-    for i, p in ipairs(presets) do
-        if p.name == id and not p.disabled == not disabled then return i end
-    end
-    return nil
-end
 
 local function upsert(preset)
     preset.id = preset.file .. "/" .. preset.name
@@ -237,9 +227,7 @@ local function fill(template, vars)
 end
 
 function M.preset(id)
-    local idx = preset_index(id)
-    if idx then return presets[idx] end
-    return nil
+    return preset_files.find(presets, id:lower())
 end
 
 function M.all()
@@ -353,7 +341,7 @@ local function finish_effect(current)
     upsert(current)
 end
 
-local function parse_effects_file(path, file)
+local function parse_effects_file(path, file, states)
     local f = io.open(path, "r")
     if not f then return end
 
@@ -366,7 +354,11 @@ local function parse_effects_file(path, file)
         local hash = content:find("#", 1, true)
         if hash then content = content:sub(1, hash - 1) end
         content = content:match("^%s*(.-)%s*$")
-        if content ~= "" then
+        local state_name, on = nil, nil
+        if not current then state_name, on = preset_files.state(content, file) end
+        if state_name then
+            states[#states + 1] = { name = state_name, on = on, file = file, line = n, where = where }
+        elseif content ~= "" then
             local words = {}
             for w in content:gmatch("%S+") do words[#words + 1] = w end
             local head = words[1]
@@ -407,7 +399,7 @@ local function parse_effects_file(path, file)
             elseif (head == "effect" and #words == 2) or (head == "disabled" and words[2] == "effect" and #words == 3) then
                 local name = words[#words]
                 current = {
-                    name     = name,
+                    name     = name:lower(),
                     label    = name,
                     anchor   = "start",
                     file     = file,
@@ -445,7 +437,7 @@ local function seed_from_opts()
                 state.effects[#state.effects + 1] = { name = p.id, params = {} }
             end
         else
-            local key = preset_index(name, true) and "effects_disabled" or "effects_unknown"
+            local key = preset_files.find(presets, name:lower(), true) and "effects_disabled" or "effects_unknown"
             notify.show(lang.t(key, { name = name }), false, "warn")
         end
     end
@@ -457,23 +449,10 @@ function M.seed()
     seed_from_opts()
 end
 
-local function effect_files(dir)
-    local files = {}
-    for _, file in ipairs(utils.readdir(dir, "files") or {}) do
-        if file:match("%.eff$") then files[#files + 1] = file end
-    end
-    table.sort(files)
-    return files
-end
-
-local function load_presets(keep_missing)
-    local dir   = common.get_conf_dir()
-    local files = effect_files(dir)
-    if #files == 0 and not keep_missing then
-        common.ensure_default_conf("tachytome-effects.conf", "default.eff")
-        files = effect_files(dir)
-    end
-    for _, file in ipairs(files) do parse_effects_file(utils.join_path(dir, file), (file:gsub("%.eff$", ""))) end
+local function load_presets()
+    local states = {}
+    for _, src in ipairs(preset_files.sources("eff")) do parse_effects_file(src.path, src.file, states) end
+    preset_files.apply_states(presets, states)
 end
 
 load_presets()
@@ -487,7 +466,7 @@ end
 
 function M.reload_presets()
     presets = {}
-    load_presets(true)
+    load_presets()
     local kept = {}
     for _, inst in ipairs(state.effects) do
         if M.preset(inst.name) then kept[#kept + 1] = inst end

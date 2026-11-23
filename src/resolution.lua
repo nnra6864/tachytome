@@ -1,10 +1,11 @@
-local mp       = require 'mp'
-local utils    = require 'mp.utils'
-local common   = require 'src.common'
-local state    = require 'src.state'
-local notify   = require 'src.notify'
-local autocrop = require 'src.autocrop'
-local lang     = require 'src.lang'
+local mp           = require 'mp'
+local utils        = require 'mp.utils'
+local common       = require 'src.common'
+local state        = require 'src.state'
+local notify       = require 'src.notify'
+local autocrop     = require 'src.autocrop'
+local preset_files = require 'src.preset_files'
+local lang         = require 'src.lang'
 
 local M = {}
 
@@ -74,13 +75,7 @@ end
 local presets = {}
 
 local function find_preset(word, disabled)
-    for _, p in ipairs(presets) do
-        if p.id:lower() == word and not p.disabled == not disabled then return p end
-    end
-    for _, p in ipairs(presets) do
-        if p.name == word and not p.disabled == not disabled then return p end
-    end
-    return nil
+    return preset_files.find(presets, word, disabled)
 end
 
 local function parse(text, depth)
@@ -122,15 +117,6 @@ function M.unknown(token)
     return lang.t(key, { token = token })
 end
 
-local function preset_files(dir)
-    local files = {}
-    for _, file in ipairs(utils.readdir(dir, "files") or {}) do
-        if file:match("%.res$") then files[#files + 1] = file end
-    end
-    table.sort(files)
-    return files
-end
-
 local function upsert(preset)
     preset.id = preset.file .. "/" .. preset.name
     for i, p in ipairs(presets) do
@@ -143,7 +129,7 @@ local function upsert(preset)
     presets[#presets + 1] = preset
 end
 
-local function parse_presets_file(path, file)
+local function parse_presets_file(path, file, states)
     local f = io.open(path, "r")
     if not f then return end
     local n = 0
@@ -154,7 +140,10 @@ local function parse_presets_file(path, file)
         local hash    = content:find("#", 1, true)
         if hash then content = content:sub(1, hash - 1) end
         content = content:match("^%s*(.-)%s*$")
-        if content ~= "" then
+        local state_name, on = preset_files.state(content, file)
+        if state_name then
+            states[#states + 1] = { name = state_name, on = on, file = file, line = n, where = where }
+        elseif content ~= "" then
             local rest        = content:match("^disabled%s+([^=%s].*)$")
             local name, chain = (rest or content):match("^([^%s=/]+)%s*=%s*(.+)$")
             local word        = name and name:lower()
@@ -168,15 +157,11 @@ local function parse_presets_file(path, file)
     f:close()
 end
 
-function M.reload(keep_missing)
-    presets     = {}
-    local dir   = common.get_conf_dir()
-    local files = preset_files(dir)
-    if #files == 0 and not keep_missing then
-        common.ensure_default_conf("tachytome-resolutions.conf", "default.res")
-        files = preset_files(dir)
-    end
-    for _, file in ipairs(files) do parse_presets_file(utils.join_path(dir, file), (file:gsub("%.res$", ""))) end
+function M.reload()
+    presets      = {}
+    local states = {}
+    for _, src in ipairs(preset_files.sources("res")) do parse_presets_file(src.path, src.file, states) end
+    preset_files.apply_states(presets, states)
 end
 
 function M.all()

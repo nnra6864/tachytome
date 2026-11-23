@@ -1,7 +1,8 @@
-local mp     = require 'mp'
-local utils  = require 'mp.utils'
-local common = require 'src.common'
-local conf   = require 'src.conf'
+local mp           = require 'mp'
+local utils        = require 'mp.utils'
+local common       = require 'src.common'
+local conf         = require 'src.conf'
+local preset_files = require 'src.preset_files'
 
 local M = {
     version = "2.1.0"
@@ -11,6 +12,7 @@ local old_keys    = { combine_audio = true, combined_audio_only = true, combined
 local old_actions = { configs = "config_manager" }
 local stock_eff   = utils.join_path(mp.get_script_directory() or "", "src/migrations/2.0.0/tachytome-effects.conf")
 local old_main    = utils.join_path(common.get_conf_dir(), "tachytome.conf")
+local preset_exts = { "res", "trk", "eff" }
 
 local function read_lines(path)
     local lines = {}
@@ -159,12 +161,88 @@ local function fix_queue(path)
     common.write_json_file(path, data)
 end
 
-local function renew_default_eff()
-    local path  = utils.join_path(common.get_conf_dir(), "default.eff")
-    local stock = read_lines(stock_eff)
-    if #stock == 0 or table.concat(read_lines(path), "\n") ~= table.concat(stock, "\n") then return end
-    os.remove(path)
-    common.ensure_default_conf("tachytome-effects.conf", "default.eff")
+local function old_presets_path(ext)
+    return utils.join_path(common.get_conf_dir(), preset_files.builtin .. "." .. ext)
+end
+
+local function units(lines, block)
+    local out = {}
+    local i   = 1
+    while i <= #lines do
+        local name, off = preset_files.definition(lines[i], block)
+        if name then
+            local last = i
+            if block then
+                while last < #lines and preset_files.strip(lines[last]) ~= "end" do last = last + 1 end
+            end
+            local norm = {}
+            for k = i, last do
+                local text = preset_files.strip(lines[k]):gsub("%s+", " ")
+                if k == i then text = block and "effect " .. name or name .. " = " .. text:match("=%s*(.-)$") end
+                if text ~= "" then norm[#norm + 1] = text end
+            end
+            out[#out + 1] = { name = name, disabled = off, body = table.concat(norm, "\n"), first = i, last = last }
+            i = last + 1
+        else
+            i = i + 1
+        end
+    end
+    return out
+end
+
+local function by_name(list)
+    local out = {}
+    for _, u in ipairs(list) do out[u.name] = u end
+    return out
+end
+
+local function plan_presets(ext)
+    local path = old_presets_path(ext)
+    if not common.file_exists(path) then return nil end
+    local block   = ext == "eff"
+    local lines   = read_lines(path)
+    local builtin = by_name(units(read_lines(preset_files.builtin_path(ext)), block))
+    local stock   = block and by_name(units(read_lines(stock_eff), block)) or {}
+    local entry   = { ext = ext, path = path, moved = {}, states = {}, names = {}, toggled = {} }
+    for _, u in ipairs(units(lines, block)) do
+        local own  = builtin[u.name]
+        local same = own and (own.body == u.body or (stock[u.name] and stock[u.name].body == u.body))
+        if same and own.disabled ~= u.disabled then
+            entry.states[#entry.states + 1]   = string.format("%s/%s = %s", preset_files.builtin, u.name, u.disabled and "off" or "on")
+            entry.toggled[#entry.toggled + 1] = string.format("%s/%s %s", preset_files.builtin, u.name, u.disabled and "off" or "on")
+        elseif not same then
+            local top = preset_files.comment_above(lines, u.first, u.last) or u.first
+            if #entry.moved > 0 then entry.moved[#entry.moved + 1] = "" end
+            for k = top, u.last do entry.moved[#entry.moved + 1] = lines[k] end
+            entry.names[#entry.names + 1] = u.name
+        end
+    end
+    return entry
+end
+
+local function preset_plans()
+    local out = {}
+    for _, ext in ipairs(preset_exts) do
+        local entry = plan_presets(ext)
+        if entry then out[#out + 1] = entry end
+    end
+    return out
+end
+
+local function apply_presets(entry)
+    local add = {}
+    for _, line in ipairs(entry.moved) do add[#add + 1] = line end
+    if #entry.states > 0 and #add > 0 then add[#add + 1] = "" end
+    for _, line in ipairs(entry.states) do add[#add + 1] = line end
+    if #add > 0 then
+        local path  = preset_files.path(preset_files.user, entry.ext)
+        local lines = read_lines(path)
+        if #lines > 0 then lines[#lines + 1] = "" end
+        for _, line in ipairs(add) do lines[#lines + 1] = line end
+        common.ensure_dir(common.get_conf_dir())
+        if not write_lines(path, lines) then return end
+    end
+    os.remove(entry.path)
 end
 
 local function split_configs(val)
@@ -274,7 +352,7 @@ local function user_lines(plan)
 end
 
 function M.detect()
-    return #scan() > 0 or common.file_exists(old_main)
+    return #scan() > 0 or common.file_exists(old_main) or #preset_plans() > 0
 end
 
 function M.prepare()
@@ -282,15 +360,30 @@ function M.prepare()
     for _, name in ipairs(utils.readdir(dir, "files") or {}) do
         if name:match("^queue%-%d+%.json$") then fix_queue(utils.join_path(dir, name)) end
     end
-    renew_default_eff()
+end
+
+local function preset_lines(plan)
+    local files   = {}
+    local moved   = {}
+    local toggled = {}
+    for _, entry in ipairs(plan.presets) do
+        files[#files + 1] = preset_files.builtin .. "." .. entry.ext
+        for _, name in ipairs(entry.names) do moved[#moved + 1] = string.format("%s.%s: %s", preset_files.user, entry.ext, name) end
+        for _, text in ipairs(entry.toggled) do toggled[#toggled + 1] = string.format("%s.%s: %s", preset_files.user, entry.ext, text) end
+    end
+    plan.lines[#plan.lines + 1] = { key = "migrate_presets_intro", list = files }
+    if #moved > 0 then plan.lines[#plan.lines + 1] = { key = "migrate_presets_moved", list = moved } end
+    if #toggled > 0 then plan.lines[#plan.lines + 1] = { key = "migrate_presets_states", list = toggled } end
+    if #moved == 0 and #toggled == 0 then plan.lines[#plan.lines + 1] = { key = "migrate_presets_nothing" } end
 end
 
 function M.plan()
-    local found = scan()
-    local user  = common.file_exists(old_main)
-    if #found == 0 and not user then return nil end
+    local found   = scan()
+    local user    = common.file_exists(old_main)
+    local presets = preset_plans()
+    if #found == 0 and not user and #presets == 0 then return nil end
 
-    local plan    = { files = found, user = user, lines = {} }
+    local plan    = { files = found, user = user, presets = presets, lines = {} }
     local tracks  = {}
     local renamed = {}
     for _, f in ipairs(found) do
@@ -303,8 +396,20 @@ function M.plan()
     end
     if #renamed > 0 then plan.lines[#plan.lines + 1] = { key = "migrate_actions", list = renamed } end
     if user then user_lines(plan) end
-    plan.done    = user and "migrate_user_done" or #tracks > 0 and "migrate_tracks_done" or "migrate_actions_done"
-    plan.skipped = user and "migrate_skipped" or #tracks > 0 and "migrate_tracks_skipped" or "migrate_actions_skipped"
+    if #presets > 0 then preset_lines(plan) end
+    if user then
+        plan.done    = "migrate_user_done"
+        plan.skipped = "migrate_skipped"
+    elseif #tracks > 0 then
+        plan.done    = "migrate_tracks_done"
+        plan.skipped = "migrate_tracks_skipped"
+    elseif #presets > 0 then
+        plan.done    = "migrate_presets_done"
+        plan.skipped = "migrate_skipped"
+    else
+        plan.done    = "migrate_actions_done"
+        plan.skipped = "migrate_actions_skipped"
+    end
     return plan
 end
 
@@ -322,6 +427,8 @@ function M.apply(plan)
         write_lines(f.path, lines)
     end
 
+    for _, entry in ipairs(plan.presets) do apply_presets(entry) end
+
     if not plan.user or not common.file_exists(old_main) then return end
     common.ensure_dir(common.get_conf_dir())
     if write_lines(conf.main_path(), (build_user())) then
@@ -331,6 +438,7 @@ function M.apply(plan)
 end
 
 function M.skip(plan)
+    for _, entry in ipairs(plan.presets) do backup(entry.path) end
     if not plan.user then return end
     backup(old_main)
     backup(conf.default_path())
