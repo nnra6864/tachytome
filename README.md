@@ -961,7 +961,8 @@ end
 ### Path
 
 Tachytome offers powerful path resolution.<br>
-Config includes the `output_dir` option which you can set to the path you most commonly use, by default `~/Videos/tachytome`.
+Config includes the `output_dir` option which you can set to the path you most commonly use, by default `~/Videos/tachytome`.<br>
+The default name is the source's name, with `suffix`, ` Remuxed` by default, added only when it goes in the source's own directory, so it never overwrites the source.
 
 #### Prefixes
 

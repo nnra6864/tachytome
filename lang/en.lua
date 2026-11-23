@@ -256,10 +256,7 @@ return {
         "Empty uses the source's dir, a path starting with ./ does too",
         "See Path in the README for every prefix"
     },
-    opt_suffix            = {
-        "Added to the default output name so it doesn't overwrite the source",
-        "Can be empty when renders go to another dir"
-    },
+    opt_suffix            = { "Added to the default output name next to the source, so it doesn't overwrite it" },
     opt_space_replacement = { "Replaces spaces in output names, a space keeps them, empty removes them" },
     opt_container         = {
         "Output container, mkv supports the most, empty uses the source's",

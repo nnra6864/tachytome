@@ -256,10 +256,7 @@ return {
         "Prazno koristi direktorijum izvora, kao i putanja koja počinje sa ./",
         "Sve prefikse pogledajte u delu Path u README-u"
     },
-    opt_suffix            = {
-        "Dodaje se na podrazumevano ime izlaza da ne bi prepisao izvor",
-        "Može biti prazno kada renderi idu u drugi direktorijum"
-    },
+    opt_suffix            = { "Dodaje se na podrazumevano ime izlaza pored izvora, da ga ne bi prepisao" },
     opt_space_replacement = { "Zamenjuje razmake u imenima izlaza, razmak ih zadržava, prazno ih uklanja" },
     opt_container         = {
         "Kontejner izlaza, mkv podržava najviše, prazno koristi kontejner izvora",

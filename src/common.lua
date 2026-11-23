@@ -139,6 +139,11 @@ local function replace_spaces(name, replacement)
     return (name:gsub(" ", (replacement:gsub("%%", "%%%%"))))
 end
 
+local function dir_key(dir)
+    if not dir:match("^[/\\]") and not dir:match("^%a:[/\\]") then dir = utils.join_path(utils.getcwd() or "", dir) end
+    return (dir:gsub("[/\\]+", "/"):gsub("/%./", "/"):gsub("/%.$", ""):gsub("/$", ""))
+end
+
 local function resolve_absolute_path_base(custom, opts, input_path, container)
     if not input_path or input_path == "" then return "" end
 
@@ -151,8 +156,12 @@ local function resolve_absolute_path_base(custom, opts, input_path, container)
     local base_output_dir = (opts.output_dir == "") and input_dir or M.expand_path(opts.output_dir)
     if not base_output_dir:match("[/\\]$") then base_output_dir = base_output_dir .. "/" end
 
+    local function suffix(dir)
+        return dir_key(dir) == dir_key(input_dir) and opts.suffix or ""
+    end
+
     if not custom or custom == "" then
-        return utils.join_path(base_output_dir, replace_spaces(base_name .. opts.suffix, opts.space_replacement) .. default_ext)
+        return utils.join_path(base_output_dir, replace_spaces(base_name .. suffix(base_output_dir), opts.space_replacement) .. default_ext)
     end
 
     local custom_mod = custom
@@ -183,7 +192,7 @@ local function resolve_absolute_path_base(custom, opts, input_path, container)
     if not target_dir:match("[/\\]$") then target_dir = target_dir .. "/" end
 
     if target_name == "" then
-        target_name = base_name .. opts.suffix .. default_ext
+        target_name = base_name .. suffix(target_dir) .. default_ext
     else
         local user_ext = target_name:match("%.([a-zA-Z0-9]+)$")
         if not (user_ext and known_exts[user_ext:lower()]) then
