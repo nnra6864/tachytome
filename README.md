@@ -505,6 +505,8 @@ vertical = 1080x1920 cover
   vertical = 1080x1920 cover
   ```
   The code is a language file's name, e.g. `sr`, an `[sr]` also matches `sr-RS`, without any lines above the first one `[en]` is used, or the first block.
+- An effect's name works the same way, a `label [code]` line next to its `label`, e.g. `label [sr] Pretapanje`.
+- The presets and effects that come with Tachytome carry these for every language Tachytome has.
 
 #### Config Manager
 

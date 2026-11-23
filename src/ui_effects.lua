@@ -80,7 +80,7 @@ function M.show(on_close)
 
     local function labels()
         local out = {}
-        for i, row in ipairs(rows) do out[i] = row.kind == "preset" and row.preset.file .. "/" .. row.preset.label or "" end
+        for i, row in ipairs(rows) do out[i] = row.kind == "preset" and row.preset.file .. "/" .. effects.title(row.preset) or "" end
         return out
     end
 
@@ -126,7 +126,7 @@ function M.show(on_close)
                 return string.format("%s%s", theme.c("dim_text_color"), theme.escape(row.file))
             end
             local marker = effects.instance(row.preset.id) and string.format(" %s%s", theme.c("on_color"), state.opts.on_text) or ""
-            return string.format("\\h%s%s", theme.escape(row.preset.label), marker)
+            return string.format("\\h%s%s", theme.escape(effects.title(row.preset)), marker)
         end)
         if #vis == 0 then body = search.empty() end
         local hints = search.hints({ { "Up/Down", "navigate" }, { "Tab", "toggle" }, { "d", "edit" }, { "m", "manage" }, { "/", "search" }, { "Enter", "apply" }, { "Esc", "cancel" } })
@@ -182,7 +182,7 @@ function M.show(on_close)
 
         local pr = prompts[idx]
         ui_input.show({
-            title     = string.format("%s %s %s", p.label, state.opts.menu_path_separator, pr.label),
+            title     = string.format("%s %s %s", effects.title(p), state.opts.menu_path_separator, pr.label),
             current   = pr.default,
             hint      = pr.hint,
             on_cancel = open_ui,
@@ -215,7 +215,7 @@ function M.show(on_close)
         for i, inst in ipairs(state.effects) do
             if inst.name == p.id then
                 table.remove(state.effects, i)
-                notify.show(lang.t("effects_removed", { name = p.label }))
+                notify.show(lang.t("effects_removed", { name = effects.title(p) }))
                 draw()
                 return
             end
@@ -286,7 +286,7 @@ function M.show(on_close)
                     block  = true,
                     all    = effects.all,
                     reload = effects.reload_presets,
-                    label  = function(p) return p.label end
+                    label  = effects.title
                 }
             })
         end)

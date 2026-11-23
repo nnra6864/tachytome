@@ -369,7 +369,8 @@ local function parse_effects_file(path, file, states)
                     finish_effect(current)
                     current = nil
                 elseif head == "label" and #words > 1 then
-                    current.label = content:match("^%s*label%s+(.+)$")
+                    local tag, text = lang.tag(content:match("^%s*label%s+(.+)$"))
+                    current.labels[tag or ""] = text
                 elseif head == "anchor" and (words[2] == "start" or words[2] == "end") then
                     current.anchor = words[2]
                 elseif head == "duration" and tonumber(words[2]) and tonumber(words[2]) > 0 then
@@ -400,7 +401,7 @@ local function parse_effects_file(path, file, states)
                 local name = words[#words]
                 current = {
                     name     = name:lower(),
-                    label    = name,
+                    labels   = { [""] = name },
                     anchor   = "start",
                     file     = file,
                     where    = where,
@@ -474,9 +475,13 @@ function M.reload_presets()
     state.effects = kept
 end
 
+function M.title(p)
+    return lang.choose(p.labels)
+end
+
 function M.label(name)
     local p = M.preset(name)
-    return p and p.label or name
+    return p and M.title(p) or name
 end
 
 return M

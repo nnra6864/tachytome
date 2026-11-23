@@ -125,6 +125,21 @@ local function current(tag)
     return tag == code or code:sub(1, #tag + 1) == tag .. "-"
 end
 
+function M.tag(text)
+    local tag, rest = text:match("^%[(%l%l%l?)%]%s+(.+)$")
+    if not tag then tag, rest = text:match("^%[(%l%l%l?[_-]%w+)%]%s+(.+)$") end
+    if not tag then return nil, text end
+    return normalize(tag), rest
+end
+
+function M.choose(by_tag)
+    for tag, val in pairs(by_tag) do
+        if tag ~= "" and current(tag) then return val end
+    end
+    if by_tag[""] ~= nil then return by_tag[""] end
+    return by_tag.en or select(2, next(by_tag))
+end
+
 function M.pick(lines)
     local blocks = { [""] = {} }
     local order  = {}
