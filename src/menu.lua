@@ -276,8 +276,8 @@ local items = {
         keep_open = false
     },
     {
-        name      = "settings_manager",
-        label_key = "menu_settings_manager",
+        name      = "config_manager",
+        label_key = "menu_config_manager",
         get_val   = function() return v(theme.escape(actions.get_configs_display())) end,
         action    = function() actions.select_configs(reload, M.open) end,
         keep_open = false

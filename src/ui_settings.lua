@@ -240,7 +240,7 @@ function M.show(name, enabled, pickers, on_close)
                 body = body .. ui.dim_lines(options.describe(keys[cursor], effective.video_encoder))
             end
 
-            local title   = lang.t("settings_editor", { name = name .. ".conf" })
+            local title   = lang.t("config_editor", { name = name .. ".conf" })
             local section = #vis > 0 and options.section(keys[cursor])
             if section then title = string.format("%s %s %s", title, state.opts.menu_path_separator, section) end
             title = title .. (dirty() and " *" or "")

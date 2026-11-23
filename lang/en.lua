@@ -28,7 +28,7 @@ return {
     menu_trash_source_now    = "Trash Source Now",
     menu_stats               = "Stats",
     menu_menu_preset         = "Menu",
-    menu_settings_manager    = "Settings Manager",
+    menu_config_manager      = "Config Manager",
     menu_language            = "Language",
     menu_version             = "Version",
     menu_update              = "Update",
@@ -227,7 +227,7 @@ return {
     configs_write_failed = "Failed to change {name}",
     configs_applied      = "Configs: {list}",
 
-    settings_editor      = "Settings Editor: {name}",
+    config_editor        = "Config Editor: {name}",
     settings_overridden  = "overridden to {value}",
     settings_loaded      = "Loaded the current settings, {count} changed",
     settings_saved       = "Saved {name}",

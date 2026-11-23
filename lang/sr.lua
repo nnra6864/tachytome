@@ -28,7 +28,7 @@ return {
     menu_trash_source_now    = "Odmah u smeće",
     menu_stats               = "Statistike",
     menu_menu_preset         = "Meni",
-    menu_settings_manager    = "Upravljanje podešavanjima",
+    menu_config_manager      = "Upravljanje konfiguracijama",
     menu_language            = "Jezik",
     menu_version             = "Verzija",
     menu_update              = "Ažuriraj",
@@ -227,7 +227,7 @@ return {
     configs_write_failed = "Promena {name} nije uspela",
     configs_applied      = "Konfiguracije: {list}",
 
-    settings_editor      = "Uređivanje podešavanja: {name}",
+    config_editor        = "Uređivanje konfiguracije: {name}",
     settings_overridden  = "pregaženo na {value}",
     settings_loaded      = "Učitana trenutna podešavanja, promenjeno {count}",
     settings_saved       = "Sačuvano {name}",

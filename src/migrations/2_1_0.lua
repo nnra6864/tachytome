@@ -8,7 +8,7 @@ local M = {
 }
 
 local old_keys    = { combine_audio = true, combined_audio_only = true, combined_audio_name = true, audio_tracks = true, video_tracks = true }
-local old_actions = { configs = "settings_manager" }
+local old_actions = { configs = "config_manager" }
 local stock_eff   = utils.join_path(mp.get_script_directory() or "", "src/migrations/2.0.0/tachytome-effects.conf")
 local old_main    = utils.join_path(common.get_conf_dir(), "tachytome.conf")
 

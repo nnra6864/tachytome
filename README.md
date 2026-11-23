@@ -147,7 +147,7 @@ Updates that cross a major version, e.g. `2.4.1 -> 3.0.0`, are pointed out befor
 - `combine_audio`, `combined_audio_only`, `combined_audio_name`, `audio_tracks` and `video_tracks` become one [`tracks`](#tracks) chain in the same config file, e.g. `audio_tracks=1,3` with `combine_audio=yes` becomes `tracks=keep 1,3 mix "Combined" at 1`, first like the old combined track.
 - `combined_audio_name` moves into the mix, `Combined` when it wasn't set, so the track keeps its old title, e.g. `mix "Voice"`, and Combined Only becomes `keep @mixes`.
 - Interrupted render queues are converted too, Skip leaves the old options in place, where they're ignored with a warning.
-- The `configs` menu action is renamed to `settings_manager` in your menus.
+- The `configs` menu action is renamed to `config_manager` in your menus.
 - A `default.eff` you never changed is replaced with the new one, its commented out examples become [disabled](#effects) effects, a changed one is left as it is.
 - `user.conf` replaces `tachytome.conf` and `default.conf`, the defaults come from Tachytome itself, see [Config](#config).
 - The lines of `tachytome.conf` and every line you uncommented in `default.conf` move to `user.conf`, then both files are deleted.
@@ -257,7 +257,7 @@ Pick which audio tracks are exported in the [Tracks](#tracks-list) list.
 |---------|------------------|---------------------------------------------------------------------------------------------------------------------|
 | s       | Stats            | Toggle the Tachytome stats overlay.                                                                                 |
 | m       | Menu             | Switch the menu, saved to `user.conf`.<br>Learn more about [Custom Menus](#custom-menus).                           |
-| c       | Settings Manager | Create, rename, delete, enable, reorder and edit configs.<br>Learn more about [Configs](#configs).                  |
+| c       | Config Manager   | Create, rename, delete, enable, reorder and edit configs.<br>Learn more about [Configs](#configs).                  |
 | l       | Language         | Switch the UI language, saved to `user.conf`.<br>Learn more about [Translations](#translations).                    |
 | v       | Version          | Pick the version Update installs, saved to `user.conf` as `version`.                                                |
 | U       | Update           | Update Tachytome to the picked version using git, falls back to the GitHub archive.<br>Restart mpv after updating.  |
@@ -309,7 +309,7 @@ Esc closes any prompt or dialog without changing anything.
 Words end at whitespace and separators like `-`, `_`, `/`, `\`, `.`, `,`, `:`, `;` and brackets, e.g. ctrl+Backspace on `~/Videos/my_clip` leaves `~/Videos/my_`.<br>
 The cursor is a bar by default, set `cursor_style` to `bar`, `underline` or `block` to change it.<br>
 It's drawn above the text, the block also redraws the character under it on top, in the inverse of the cursor color by default.<br>
-See the Input Cursor options in the [Settings Editor](#settings-editor) for its colors and glow.
+See the Input Cursor options in the [Config Editor](#config-editor) for its colors and glow.
 
 #### Path
 
@@ -498,7 +498,7 @@ vertical = 1080x1920 cover
   ```
   The code is a language file's name, e.g. `sr`, an `[sr]` also matches `sr-RS`, without any lines above the first one `[en]` is used, or the first block.
 
-#### Settings Manager
+#### Config Manager
 
 Lists `user` pinned on top, then every config in `configs=` order, then the `.conf` files that aren't listed, disabled.<br>
 Creating, renaming and deleting change the file right away, the list itself is saved when it closes.
@@ -506,7 +506,7 @@ Creating, renaming and deleting change the file right away, the list itself is s
 | Keybind      | Action    | Description                                                                     |
 |--------------|-----------|---------------------------------------------------------------------------------|
 | Tab          | Toggle    | Enable or disable the config, `user` is always loaded.                          |
-| Enter        | Edit      | Save the list, then open the config in the [Settings Editor](#settings-editor). |
+| Enter        | Edit      | Save the list, then open the config in the [Config Editor](#config-editor).     |
 | Shift+Up/K   | Move Up   | Move the config up, before the one above.                                       |
 | Shift+Down/J | Move Down | Move the config down, after the one below.                                      |
 | n            | New       | Create an empty config, enabled at the end of the list.                         |
@@ -514,7 +514,7 @@ Creating, renaming and deleting change the file right away, the list itself is s
 | d            | Delete    | Delete the config's file, asks first.                                           |
 | Esc          | Close     | Save the list to `user.conf` and reload when it changed.                        |
 
-#### Settings Editor
+#### Config Editor
 
 Lists every option of one config file in the builtin config's order, the hovered one's description shows under the list and its group in the title.<br>
 Descriptions follow the UI language, Quality and Preset show the range, values and recommended one of the current encoder.<br>
@@ -542,14 +542,14 @@ Color options show their value outlined in that color, with its alpha, in white 
 | l       | Load Current | Set every option whose current value differs from what the file inherits, e.g. menu changes. |
 | s       | Save         | Write the changes to the file.                                                              |
 | /       | Search       | Filter the options by name.                                                                 |
-| Esc     | Close        | Back to the Settings Manager, asks first with unsaved changes.                              |
+| Esc     | Close        | Back to the Config Manager, asks first with unsaved changes.                                |
 
 ### Config
 
 You can configure Tachytome with the `mpv/script-opts/tachytome/user.conf` file, generated empty on the first launch.<br>
 Put only what you want to change in it, everything else comes from the defaults in the [builtin config](./tachytome.conf), loaded first.
 
-The easiest way to change settings is the [Settings Editor](#settings-editor), `c` in Settings, then Enter on a config.<br>
+The easiest way to change settings is the [Config Editor](#config-editor), `c` in Settings, then Enter on a config.<br>
 It describes every option in your language and shows the change right away, the builtin config only lists the options and their defaults, grouped under `## ` headers like Video, Audio and Colors.<br>
 The chains for `resolution` and `tracks` are only summed up in their description, their full syntax is in [Resolution](#resolution) and [Tracks](#tracks).
 
@@ -577,7 +577,7 @@ configs=work,stream,!old
 - Configs can set options and define [menus](#custom-menus), `configs` itself only works in `user.conf`.
 - `user.conf` is always loaded and can't be listed, `default` is reserved too.
 - `.conf` files in the dir that aren't listed show up as disabled.
-- Manage them from the menu with the [Settings Manager](#settings-manager), `c` in Settings, which writes the `configs=` line, at the top of `user.conf` when there's none yet, and reloads options and menus.<br>
+- Manage them from the menu with the [Config Manager](#config-manager), `c` in Settings, which writes the `configs=` line, at the top of `user.conf` when there's none yet, and reloads options and menus.<br>
   Options changed from the menu during the session are reset to the config values on reload.
 - Switching the menu, language or version from the menu saves it to `user.conf`, below the `configs=` line so it wins over every config.
 
@@ -708,7 +708,7 @@ return {
 - Submenus are labeled by `submenu_<id>`, e.g. `submenu_video`, or their capitalized id when there's no such key, e.g. `my_stuff` shows as `My stuff`.
 - Menu item labels, `menu_<action>`, are reused as the titles of the screens they open and in their notifications, e.g. `Quality: 30`.
 - Key tooltips are built from `key_hint`, e.g. `{keys} to {action}`, and one `key_<action>` per action, e.g. `key_navigate`.
-- Option descriptions in the Settings Editor are `opt_<option>`, a list of lines, e.g. `opt_font_size = { "Font size" }`, and their groups `section_<group>`, e.g. `section_input_cursor`.
+- Option descriptions in the Config Editor are `opt_<option>`, a list of lines, e.g. `opt_font_size = { "Font size" }`, and their groups `section_<group>`, e.g. `section_input_cursor`.
 - Presets and effects you share can carry their own translations, see [Preset Descriptions](#preset-descriptions).
 - Chain words and names chains can refer to aren't translated, e.g. `mix`, `all` and the default mix names `Mix` and `Combined`, so a chain works the same in every language.
 - To add a language, copy `lang/en.lua` to `lang/<code>.lua` and translate the text.
