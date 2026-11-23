@@ -101,9 +101,10 @@ local easings = {
     end
 }
 
-M.names = {}
-for name in pairs(easings) do M.names[#M.names + 1] = name end
-table.sort(M.names)
+M.names = { "linear" }
+for _, curve in ipairs({ "sine", "quad", "cubic", "quart", "quint", "expo", "circ", "back", "elastic", "bounce" }) do
+    for _, dir in ipairs({ "in", "out", "in_out" }) do M.names[#M.names + 1] = "ease_" .. dir .. "_" .. curve end
+end
 
 function M.bezier(x1, y1, x2, y2)
     local ax = 1 - 3 * x2 + 3 * x1
