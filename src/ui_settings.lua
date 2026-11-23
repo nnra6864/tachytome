@@ -218,11 +218,11 @@ function M.show(name, enabled, pickers, on_close)
             return string.format("%s%s", theme.c("value_color"), theme.escape(shown(val)))
         end
 
-        local function row_text(key)
+        local function row_text(key, hovered)
             local val = value(key)
             local eff = conf.format(effective[key])
             if not val then
-                return string.format("%s%s %s", theme.c("dim_text_color"), theme.escape(key), value_text(key, eff))
+                return string.format("%s%s %s", hovered and "" or theme.c("dim_text_color"), theme.escape(key), value_text(key, eff))
             end
             local mark = values[key] ~= nil and "*" or ""
             local over = eff ~= val and string.format(" %s%s", theme.c("warning_color"), theme.escape(lang.t("settings_overridden", { value = shown(eff) }))) or ""
@@ -233,7 +233,7 @@ function M.show(name, enabled, pickers, on_close)
             if not active then return end
             local vis = visible()
             if #vis > 0 and ui.position(vis, cursor) == 0 then cursor = vis[1] end
-            local body = ui.list(#vis, ui.position(vis, cursor), function(k) return row_text(keys[vis[k]]) end)
+            local body = ui.list(#vis, ui.position(vis, cursor), function(k) return row_text(keys[vis[k]], vis[k] == cursor) end)
             if #vis == 0 then
                 body = search.empty()
             else

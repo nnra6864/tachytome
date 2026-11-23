@@ -518,7 +518,7 @@ Creating, renaming and deleting change the file right away, the list itself is s
 
 Lists every option of one config file in the builtin config's order, the hovered one's description shows under the list and its group in the title.<br>
 Descriptions follow the UI language, Quality and Preset show the range, values and recommended one of the current encoder.<br>
-An option set in the file shows its name bright, marked `*` until saved, one it doesn't set shows its name dim with the value it gets from the defaults and the other configs.<br>
+An option set in the file shows its name bright, marked `*` until saved, one it doesn't set shows its name dim, highlighted like the rest when hovered, with the value it gets from the defaults and the other configs.<br>
 A set option that a later config or `user.conf` overrides says what it's overridden to.<br>
 Color options show their value outlined in that color, with its alpha, in white on a dark color and black on a light one.
 
