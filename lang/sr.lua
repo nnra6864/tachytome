@@ -65,6 +65,7 @@ return {
     keys_title       = "Tasteri",
     key_hint         = "{keys} {action}",
     key_navigate     = "kretanje",
+    key_scroll       = "pomeranje",
     key_select       = "izaberi",
     key_toggle       = "uključi",
     key_edit         = "izmeni",
@@ -117,7 +118,6 @@ return {
     choice_later     = "Kasnije",
     choice_save      = "Sačuvaj",
     choice_more      = "{list} i još {count}",
-    choice_more_n    = "i još {count}",
 
     hint_quality       = "{label}, {range}, preporučeno {recommended}",
     hint_range         = "od {min} do {max}",
@@ -165,8 +165,8 @@ return {
     presets_reset_done   = "Obrisano {list}, u za poništavanje",
     presets_reset_undone = "Resetovanje poništeno",
     presets_reset_none   = "Nema šta da se resetuje, tu je samo ono što dolazi uz Tachytome",
-    presets_reset_on     = "Ponovo uključeni: {list}",
-    presets_reset_off    = "Ponovo isključeni: {list}",
+    presets_reset_on     = "Ponovo uključeni:",
+    presets_reset_off    = "Ponovo isključeni:",
     presets_new          = "Novi",
     presets_name         = "Ime",
     presets_file         = "Datoteka",
@@ -241,7 +241,7 @@ return {
     configs_reset_all    = "Obriši sve konfiguracije i isprazni user.conf",
     configs_reset_done   = "Podrazumevane vrednosti važe kad se ovo zatvori, u za poništavanje",
     configs_reset_none   = "Nema šta da se resetuje, sve je podrazumevano",
-    configs_reset_list   = "Konfiguracije: {list}",
+    configs_reset_list   = "Konfiguracije:",
     configs_sets_none    = "Ne postavlja nijednu opciju",
 
     config_editor        = "Uređivanje konfiguracije: {name}",
@@ -252,6 +252,8 @@ return {
     settings_enable      = "{name} nije uključeno, uključiti u user.conf?",
     settings_unsaved     = "{name} ima nesačuvane izmene",
     settings_unset       = "nije postavljeno",
+    settings_save        = "Sačuvati {name}?",
+    settings_unset_all   = "Ukloniti sve opcije iz {name}?",
 
     preset_list = "{encoder}, od najvećeg do najmanjeg truda: {list}, preporučeno {recommended}",
 

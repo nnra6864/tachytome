@@ -65,6 +65,7 @@ return {
     keys_title       = "Keys",
     key_hint         = "{keys} {action}",
     key_navigate     = "navigate",
+    key_scroll       = "scroll",
     key_select       = "select",
     key_toggle       = "toggle",
     key_edit         = "edit",
@@ -117,7 +118,6 @@ return {
     choice_later     = "Later",
     choice_save      = "Save",
     choice_more      = "{list} and {count} more",
-    choice_more_n    = "and {count} more",
 
     hint_quality       = "{label}, {range}, recommended {recommended}",
     hint_range         = "{min} to {max}",
@@ -165,8 +165,8 @@ return {
     presets_reset_done   = "Deleted {list}, u to undo",
     presets_reset_undone = "Reset undone",
     presets_reset_none   = "Nothing to reset, only what comes with Tachytome is there",
-    presets_reset_on     = "Turned back on: {list}",
-    presets_reset_off    = "Turned back off: {list}",
+    presets_reset_on     = "Turned back on:",
+    presets_reset_off    = "Turned back off:",
     presets_new          = "New",
     presets_name         = "Name",
     presets_file         = "File",
@@ -241,7 +241,7 @@ return {
     configs_reset_all    = "Delete every config and empty user.conf",
     configs_reset_done   = "Back to the defaults once this closes, u to undo",
     configs_reset_none   = "Nothing to reset, everything is at its default",
-    configs_reset_list   = "Configs: {list}",
+    configs_reset_list   = "Configs:",
     configs_sets_none    = "Sets no options",
 
     config_editor        = "Config Editor: {name}",
@@ -252,6 +252,8 @@ return {
     settings_enable      = "{name} isn't enabled, enable it in user.conf?",
     settings_unsaved     = "{name} has unsaved changes",
     settings_unset       = "unset",
+    settings_save        = "Save {name}?",
+    settings_unset_all   = "Unset every option in {name}?",
 
     preset_list = "{encoder}, most to least effort: {list}, recommended {recommended}",
 

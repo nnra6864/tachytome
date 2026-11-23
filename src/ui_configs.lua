@@ -223,13 +223,10 @@ function M.show(configs, on_apply, on_close, on_edit)
         local function delete()
             local row = rows[cursor]
             if not row or #visible() == 0 or pinned_warn(row) then return end
-            local body = common.display_path(conf.config_path(row.name))
-            if row.exists then
-                local set = options_of(row.name)
-                body      = body .. "\n" .. (#set > 0 and ui_choice.lines(set) or lang.t("configs_sets_none"))
-            end
+            local lines = row.exists and options_of(row.name) or {}
+            if row.exists and #lines == 0 then lines[1] = lang.t("configs_sets_none") end
             teardown()
-            ui_confirm.show(lang.t("configs_delete", { name = row.name }), body, function()
+            ui_confirm.show(lang.t("configs_delete", { name = row.name }), common.display_path(conf.config_path(row.name)), function()
                 if row.exists and not conf.delete_config(row.name) then
                     notify.show(lang.t("configs_write_failed", { name = row.name }), true, "error")
                     return open(cursor)
@@ -238,7 +235,7 @@ function M.show(configs, on_apply, on_close, on_edit)
                 changed = true
                 notify.show(lang.t("configs_deleted", { name = row.name }))
                 open(math.min(cursor, #rows))
-            end, function() open(cursor) end)
+            end, function() open(cursor) end, lines)
         end
 
         local function reset_to(keep_list)
@@ -295,17 +292,18 @@ function M.show(configs, on_apply, on_close, on_edit)
             if #choices == 0 then return notify.show(lang.t("configs_reset_none"), true) end
             choices[#choices + 1] = { label = lang.t("choice_cancel") }
             for i, choice in ipairs(choices) do choice.key = tostring(i) end
+            choices[1].alt = "ENTER"
             local lines = {}
             local set   = options_of("user")
-            if #set > 0 then lines[#lines + 1] = "user.conf: " .. ui_choice.join(set) end
-            local names = {}
-            for i = 2, #rows do names[#names + 1] = rows[i].name .. ".conf" end
-            if #names > 0 then lines[#lines + 1] = lang.t("configs_reset_list", { list = ui_choice.join(names) }) end
+            if #set > 0 then lines[1] = "user.conf:" end
+            for _, line in ipairs(set) do lines[#lines + 1] = "  " .. line end
+            if #rows > 1 then lines[#lines + 1] = lang.t("configs_reset_list") end
+            for i = 2, #rows do lines[#lines + 1] = "  " .. rows[i].name .. ".conf" end
             teardown()
-            ui_choice.show(lang.t("presets_reset"), table.concat(lines, "\n"), choices, #choices, function(idx)
+            ui_choice.show(lang.t("presets_reset"), "", choices, #choices, function(idx)
                 if actions[idx] then return actions[idx]() end
                 open(cursor)
-            end)
+            end, lines)
         end
 
         local function undo_reset()

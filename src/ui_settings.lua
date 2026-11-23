@@ -14,6 +14,7 @@ local ui          = require 'src.ui'
 local ui_input    = require 'src.ui_input'
 local ui_list     = require 'src.ui_list'
 local ui_choice   = require 'src.ui_choice'
+local ui_confirm  = require 'src.ui_confirm'
 
 local M = {}
 
@@ -317,12 +318,24 @@ function M.show(name, enabled, pickers, on_close)
             draw()
         end
 
+        local function change_line(key, from, to)
+            return string.format("%s %s -> %s", key, from and shown(from) or lang.t("settings_unset"), to and shown(to) or lang.t("settings_unset"))
+        end
+
         local function unset_all()
+            local lines = {}
             for _, key in ipairs(keys) do
-                if value(key) then set(key, false) end
+                if value(key) then lines[#lines + 1] = change_line(key, value(key), nil) end
             end
-            apply_live()
-            draw()
+            if #lines == 0 then return end
+            teardown()
+            ui_confirm.show(lang.t("settings_unset_all", { name = name .. ".conf" }), "", function()
+                for _, key in ipairs(keys) do
+                    if value(key) then set(key, false) end
+                end
+                apply_live()
+                open()
+            end, open, lines)
         end
 
         local function load_current()
@@ -345,20 +358,16 @@ function M.show(name, enabled, pickers, on_close)
         local function changes()
             local out = {}
             for _, key in ipairs(keys) do
-                if values[key] ~= nil then
-                    local from    = own[key] and shown(own[key]) or lang.t("settings_unset")
-                    local to      = values[key] and shown(values[key]) or lang.t("settings_unset")
-                    out[#out + 1] =string.format("%s %s -> %s", key, from, to)
-                end
+                if values[key] ~= nil then out[#out + 1] = change_line(key, own[key], values[key] or nil) end
             end
-            return ui_choice.lines(out)
+            return out
         end
 
         local function close()
             if search.filtering() then return search.clear() end
             teardown()
             if not dirty() then return finish() end
-            ui_choice.show(lang.t("settings_unsaved", { name = name .. ".conf" }), changes(), {
+            ui_choice.show(lang.t("settings_unsaved", { name = name .. ".conf" }), "", {
                 { key = "1", alt = "ENTER", label = lang.t("choice_save") },
                 { key = "2", label = lang.t("choice_discard") },
                 { key = "3", label = lang.t("choice_cancel") }
@@ -372,7 +381,7 @@ function M.show(name, enabled, pickers, on_close)
                 else
                     open()
                 end
-            end)
+            end, changes())
         end
 
         search = list_search.new({
@@ -397,7 +406,7 @@ function M.show(name, enabled, pickers, on_close)
         mp.add_forced_key_binding("s", "set-save", function()
             if not dirty() then return end
             teardown()
-            save(open)
+            ui_confirm.show(lang.t("settings_save", { name = name .. ".conf" }), "", function() save(open) end, open, changes())
         end)
         mp.add_forced_key_binding("/", "set-search", search.start)
         mp.add_forced_key_binding("ESC", "set-esc", close)

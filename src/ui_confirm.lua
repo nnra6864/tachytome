@@ -3,7 +3,7 @@ local ui_choice = require 'src.ui_choice'
 
 local M = {}
 
-function M.show(title, body, on_yes, on_no)
+function M.show(title, body, on_yes, on_no, lines)
     ui_choice.show(title, body, {
         { key = "y", alt = "ENTER", label = lang.t("choice_yes") },
         { key = "n", label = lang.t("choice_no") }
@@ -13,7 +13,7 @@ function M.show(title, body, on_yes, on_no)
         elseif on_no then
             on_no()
         end
-    end)
+    end, lines)
 end
 
 return M

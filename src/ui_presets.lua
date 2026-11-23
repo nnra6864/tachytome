@@ -282,21 +282,22 @@ function M.show(opts)
         local lines = {}
         local back  = { on = {}, off = {} }
         for _, file in ipairs(files) do
-            local names = {}
+            lines[#lines + 1] = file_name(file) .. ":"
             for _, p in ipairs(kind.all()) do
-                if p.file == file then names[#names + 1] = label(p) end
+                if p.file == file then lines[#lines + 1] = "  " .. label(p) end
             end
-            lines[#lines + 1] = #names > 0 and string.format("%s: %s", file_name(file), ui_choice.join(names)) or file_name(file)
         end
         for _, p in ipairs(kind.all()) do
             if p.file == preset_files.builtin and not p.disabled ~= not p.builtin_disabled then
                 local list = p.builtin_disabled and back.off or back.on
-                list[#list + 1] = full_name(p)
+                list[#list + 1] = "  " .. full_name(p)
             end
         end
-        if #back.on > 0 then lines[#lines + 1] = lang.t("presets_reset_on", { list = ui_choice.join(back.on) }) end
-        if #back.off > 0 then lines[#lines + 1] = lang.t("presets_reset_off", { list = ui_choice.join(back.off) }) end
-        return table.concat(lines, "\n")
+        for _, side in ipairs({ "on", "off" }) do
+            if #back[side] > 0 then lines[#lines + 1] = lang.t("presets_reset_" .. side) end
+            for _, line in ipairs(back[side]) do lines[#lines + 1] = line end
+        end
+        return lines
     end
 
     local function reset()
@@ -321,12 +322,13 @@ function M.show(opts)
         end
         choices[#choices + 1] = { label = lang.t("choice_cancel") }
         for i, choice in ipairs(choices) do choice.key = tostring(i) end
-        local body = reset_lines(files)
+        choices[1].alt = "ENTER"
+        local lines = reset_lines(files)
         teardown()
-        ui_choice.show(lang.t("presets_reset"), body, choices, #choices, function(idx)
+        ui_choice.show(lang.t("presets_reset"), "", choices, #choices, function(idx)
             if actions[idx] then return actions[idx]() end
             resume()
-        end)
+        end, lines)
     end
 
     local function move(delta)
