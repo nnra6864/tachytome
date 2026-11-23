@@ -116,6 +116,8 @@ return {
     choice_skip      = "Preskoči, kreni ispočetka",
     choice_later     = "Kasnije",
     choice_save      = "Sačuvaj",
+    choice_more      = "{list} i još {count}",
+    choice_more_n    = "i još {count}",
 
     hint_quality       = "{label}, {range}, preporučeno {recommended}",
     hint_range         = "od {min} do {max}",
@@ -163,6 +165,8 @@ return {
     presets_reset_done   = "Obrisano {list}, u za poništavanje",
     presets_reset_undone = "Resetovanje poništeno",
     presets_reset_none   = "Nema šta da se resetuje, tu je samo ono što dolazi uz Tachytome",
+    presets_reset_on     = "Ponovo uključeni: {list}",
+    presets_reset_off    = "Ponovo isključeni: {list}",
     presets_new          = "Novi",
     presets_name         = "Ime",
     presets_file         = "Datoteka",
@@ -237,6 +241,8 @@ return {
     configs_reset_all    = "Obriši sve konfiguracije i isprazni user.conf",
     configs_reset_done   = "Podrazumevane vrednosti važe kad se ovo zatvori, u za poništavanje",
     configs_reset_none   = "Nema šta da se resetuje, sve je podrazumevano",
+    configs_reset_list   = "Konfiguracije: {list}",
+    configs_sets_none    = "Ne postavlja nijednu opciju",
 
     config_editor        = "Uređivanje konfiguracije: {name}",
     settings_overridden  = "pregaženo na {value}",
@@ -245,6 +251,7 @@ return {
     settings_save_failed = "Čuvanje {name} nije uspelo",
     settings_enable      = "{name} nije uključeno, uključiti u user.conf?",
     settings_unsaved     = "{name} ima nesačuvane izmene",
+    settings_unset       = "nije postavljeno",
 
     preset_list = "{encoder}, od najvećeg do najmanjeg truda: {list}, preporučeno {recommended}",
 
@@ -521,7 +528,6 @@ return {
     migrate_menu       = "Meni: novi podrazumevani meni, promenite ga sa Meni u Podešavanjima",
     migrate_effects    = "Efekti zadržani u custom.eff: {list}",
     migrate_backup     = "Stare datoteke su sačuvane sa .bak ekstenzijom: {list}",
-    migrate_more       = "{list} i još {count}",
     migrate_done       = "Konfiguracija je preneta, stare datoteke su sačuvane kao .bak",
     migrate_skipped    = "Krenuto ispočetka, stare datoteke su sačuvane kao .bak",
     migrate_later      = "Prenos je odložen, koriste se podrazumevane vrednosti dok se ne završi",

@@ -306,7 +306,8 @@ Updating through git switches the checkout to the branch, or detaches it at the 
 Shift+Enter only works in inputs that take several lines, the description when [saving a preset](#saving-presets) for now, the rest stay on one line.<br>
 Inputs show the current value and a hint on the accepted format below the prompt.<br>
 Submitting an empty input resets to the default where there is one, e.g. the source FPS for FPS or the default path for Path, otherwise it keeps the current value.<br>
-Esc closes any prompt or dialog without changing anything.
+Esc closes any prompt or dialog without changing anything.<br>
+A dialog whose choice changes things you can't see from it lists them dim under the question, a long list ends in `and N more`.
 
 Words end at whitespace and separators like `-`, `_`, `/`, `\`, `.`, `,`, `:`, `;` and brackets, e.g. ctrl+Backspace on `~/Videos/my_clip` leaves `~/Videos/my_`.<br>
 The cursor is a bar by default, set `cursor_style` to `bar`, `underline` or `block` to change it.<br>
@@ -464,6 +465,7 @@ Every change is written to the file right away, so there's no Enter to apply, Es
 - Deleting removes the preset's lines, an effect's whole block, and its comment above when the comment and the preset stand alone between blank lines, so a comment over a group of presets stays.
 - A file left with no presets, enabled or disabled, is deleted.
 - Reset offers to empty `user.res`, `user.trk` or `user.eff`, your presets there and the ones you turned on or off, or to delete every file of that kind.<br>
+  It lists the presets in each of your files and the ones that come with Tachytome that go back on or off.<br>
   Selected effects from a deleted file are deselected, a chain using a preset that's gone says so when it's used.
 
 The presets and effects that come with Tachytome are listed under `default`, read from Tachytome's own files, so updates bring their changes to you.<br>
@@ -530,6 +532,7 @@ Creating, renaming and deleting change the file right away, the list itself is s
 | Esc          | Close     | Save the list to `user.conf` and reload when it changed.                        |
 
 Reset offers to empty `user.conf`, keeping the `configs=` line so your other configs stay, or to delete every config and empty `user.conf` too.<br>
+It lists the options set in `user.conf` and the configs there are, deleting one lists the options it sets.<br>
 The defaults apply when the manager closes.
 
 #### Config Editor
@@ -550,7 +553,8 @@ Color options show their value outlined in that color, with its alpha, in white 
 - Saving writes only the options you changed and keeps the file's other lines and comments, a new option goes at the end.<br>
   Unsetting an option removes its line.
 - Saving a config that isn't enabled asks to enable it in `user.conf`, No saves the file and puts the session back.
-- Closing with unsaved changes asks to Save, Discard or Cancel, Discard also puts the session back.
+- Closing with unsaved changes asks to Save, Discard or Cancel, Discard also puts the session back.<br>
+  It lists each change, e.g. `quality 35 -> 40`, or `quality 40 -> unset` for an unset one.
 
 | Keybind | Action       | Description                                                                                 |
 |---------|--------------|---------------------------------------------------------------------------------------------|

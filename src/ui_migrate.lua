@@ -6,19 +6,10 @@ local lang      = require 'src.lang'
 
 local M = {}
 
-local list_max = 6
-
-local function join(list)
-    if #list <= list_max then return table.concat(list, ", ") end
-    local shown = {}
-    for i = 1, list_max do shown[i] = list[i] end
-    return lang.t("migrate_more", { list = table.concat(shown, ", "), count = #list - list_max })
-end
-
 local function describe(plan)
     local lines = {}
     for _, line in ipairs(plan.lines) do
-        lines[#lines + 1] = lang.t(line.key, { list = line.list and join(line.list) or "", count = line.count or 0 })
+        lines[#lines + 1] = lang.t(line.key, { list = line.list and ui_choice.join(line.list) or "", count = line.count or 0 })
     end
     return table.concat(lines, "\n")
 end

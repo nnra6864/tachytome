@@ -342,11 +342,23 @@ function M.show(name, enabled, pickers, on_close)
             draw()
         end
 
+        local function changes()
+            local out = {}
+            for _, key in ipairs(keys) do
+                if values[key] ~= nil then
+                    local from    = own[key] and shown(own[key]) or lang.t("settings_unset")
+                    local to      = values[key] and shown(values[key]) or lang.t("settings_unset")
+                    out[#out + 1] =string.format("%s %s -> %s", key, from, to)
+                end
+            end
+            return ui_choice.lines(out)
+        end
+
         local function close()
             if search.filtering() then return search.clear() end
             teardown()
             if not dirty() then return finish() end
-            ui_choice.show(lang.t("settings_unsaved", { name = name .. ".conf" }), "", {
+            ui_choice.show(lang.t("settings_unsaved", { name = name .. ".conf" }), changes(), {
                 { key = "1", alt = "ENTER", label = lang.t("choice_save") },
                 { key = "2", label = lang.t("choice_discard") },
                 { key = "3", label = lang.t("choice_cancel") }

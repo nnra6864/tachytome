@@ -6,6 +6,23 @@ local ui    = require 'src.ui'
 
 local M = {}
 
+local list_max = 6
+
+function M.join(list)
+    if #list <= list_max then return table.concat(list, ", ") end
+    local shown = {}
+    for i = 1, list_max do shown[i] = list[i] end
+    return lang.t("choice_more", { list = table.concat(shown, ", "), count = #list - list_max })
+end
+
+function M.lines(list)
+    if #list <= list_max then return table.concat(list, "\n") end
+    local shown = {}
+    for i = 1, list_max - 1 do shown[i] = list[i] end
+    shown[list_max] = lang.t("choice_more_n", { count = #list - list_max + 1 })
+    return table.concat(shown, "\n")
+end
+
 function M.show(title, body, choices, esc_index, on_pick)
     ui.clear_osd()
     state.ui_owner = "dialog"

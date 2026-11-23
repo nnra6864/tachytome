@@ -116,6 +116,8 @@ return {
     choice_skip      = "Skip, start fresh",
     choice_later     = "Later",
     choice_save      = "Save",
+    choice_more      = "{list} and {count} more",
+    choice_more_n    = "and {count} more",
 
     hint_quality       = "{label}, {range}, recommended {recommended}",
     hint_range         = "{min} to {max}",
@@ -163,6 +165,8 @@ return {
     presets_reset_done   = "Deleted {list}, u to undo",
     presets_reset_undone = "Reset undone",
     presets_reset_none   = "Nothing to reset, only what comes with Tachytome is there",
+    presets_reset_on     = "Turned back on: {list}",
+    presets_reset_off    = "Turned back off: {list}",
     presets_new          = "New",
     presets_name         = "Name",
     presets_file         = "File",
@@ -237,6 +241,8 @@ return {
     configs_reset_all    = "Delete every config and empty user.conf",
     configs_reset_done   = "Back to the defaults once this closes, u to undo",
     configs_reset_none   = "Nothing to reset, everything is at its default",
+    configs_reset_list   = "Configs: {list}",
+    configs_sets_none    = "Sets no options",
 
     config_editor        = "Config Editor: {name}",
     settings_overridden  = "overridden to {value}",
@@ -245,6 +251,7 @@ return {
     settings_save_failed = "Failed to save {name}",
     settings_enable      = "{name} isn't enabled, enable it in user.conf?",
     settings_unsaved     = "{name} has unsaved changes",
+    settings_unset       = "unset",
 
     preset_list = "{encoder}, most to least effort: {list}, recommended {recommended}",
 
@@ -521,7 +528,6 @@ return {
     migrate_menu       = "Menu: the new default menu, switch it with Menu in Settings",
     migrate_effects    = "Effects kept in custom.eff: {list}",
     migrate_backup     = "Old files are kept with a .bak extension: {list}",
-    migrate_more       = "{list} and {count} more",
     migrate_done       = "Config migrated, the old files are kept as .bak",
     migrate_skipped    = "Started fresh, the old files are kept as .bak",
     migrate_later      = "Migration postponed, using the defaults until it's done",
