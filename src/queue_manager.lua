@@ -193,7 +193,7 @@ function M.show(on_close)
 
         local function resolve(input)
             local ext = ext_of(current_output)
-            return common.typed_path(input, q_job.input_file, ext ~= "" and ext or nil)
+            return common.resolve_absolute_path_for(input, state.opts, q_job.input_file, ext ~= "" and ext or nil)
         end
 
         local function change_to(input, new_output)

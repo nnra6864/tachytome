@@ -284,7 +284,7 @@ Only Tachytome's own git repo is updated through git, a script dir inside anothe
 | Keybind | Action        | Description                                                                                |
 |---------|---------------|--------------------------------------------------------------------------------------------|
 | Space   | Pause/Resume  | Pauses or resumes the current render and render queue.<br>Only the queue on Windows.      |
-| p       | Change Path   | Change output path, a failed render keeps it for its retry.<br>It starts with the current path to edit, a path without a folder is next to the source and one without an extension keeps the render's.<br>Another container [asks first](#containers) if it loses anything, the active render keeps its own. |
+| p       | Change Path   | Change output path, a failed render keeps it for its retry.<br>Another container [asks first](#containers) if it loses anything, the active render keeps its own. |
 | d       | Delete        | Deletes the item, asks first if it cancels a render or trashes the source.                |
 | r       | Retry         | Retry the failed render with the same settings.                                           |
 | l       | Log           | Shows the failed render's ffmpeg command and its whole error.                             |
