@@ -6,7 +6,6 @@ local lang   = require 'src.lang'
 
 local M = {}
 
-local visible_rows   = 15
 local file_listeners = {}
 
 function M.on_file(name, fn)
@@ -125,9 +124,15 @@ function M.step(vis, index, delta)
     return vis[M.wrap(at, delta, #vis)]
 end
 
+local function row_count()
+    local free = 720 - 4 * state.opts.font_size - 10 * state.opts.small_font_size
+    return math.max(5, math.floor(free / state.opts.font_size))
+end
+
 function M.list(count, cursor, line)
-    local start_idx = math.max(1, cursor - math.floor(visible_rows / 2))
-    local end_idx   = math.min(count, start_idx + visible_rows - 1)
+    local visible_rows = row_count()
+    local start_idx    = math.max(1, cursor - math.floor(visible_rows / 2))
+    local end_idx      = math.min(count, start_idx + visible_rows - 1)
     if end_idx - start_idx < visible_rows - 1 then start_idx = math.max(1, end_idx - visible_rows + 1) end
 
     local text = start_idx > 1 and "\\N\\h\\h..." or ""
