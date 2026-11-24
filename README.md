@@ -274,7 +274,9 @@ Version lists `latest`, the branches and every release with its partial versions
 A git clone reads them from the remote of the current branch, or `origin` when it's detached at a release, and asks that remote's host which release is Latest.<br>
 GitHub and Forgejo/Gitea hosts are supported, other hosts fall back to the highest version tag.<br>
 Without git, everything comes from the GitHub repo.<br>
-Updating through git switches the checkout to the branch, or detaches it at the release.
+Updating through git switches the checkout to the branch, or detaches it at the release.<br>
+If that throws away uncommitted changes or commits that are only on your computer, the update lists them and asks first.<br>
+Only Tachytome's own git repo is updated through git, a script dir inside another repo, like your dotfiles, is updated from GitHub instead.
 
 #### Render Queue
 

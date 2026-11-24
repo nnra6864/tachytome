@@ -4,13 +4,15 @@ local queue      = require 'src.queue'
 local state      = require 'src.state'
 local notify     = require 'src.notify'
 local ui_confirm = require 'src.ui_confirm'
+local ui_choice  = require 'src.ui_choice'
 local lang       = require 'src.lang'
 local ver        = require 'src.version'
 
 local M = {}
 
-local repo = "nnra6864/tachytome"
-local busy = false
+local repo        = "nnra6864/tachytome"
+local root_commit = "a1974fed6de20eb71163f9a423866a764e135054"
+local busy        = false
 
 local function version()
     if state.opts.version == "" then return "latest" end
@@ -75,12 +77,58 @@ local function git(dir, args, callback)
     run(full, callback)
 end
 
+local function own_repo(dir, callback)
+    git(dir, {"rev-list", "--max-parents=0", "HEAD"}, function(ok, roots)
+        if ok and roots:find(root_commit, 1, true) then return callback(true) end
+        git(dir, {"rev-parse", "--is-shallow-repository"}, function(ok_shallow, shallow)
+            if not ok_shallow or shallow ~= "true" then return callback(false) end
+            git(dir, {"remote", "-v"}, function(ok_remote, remotes)
+                callback(ok_remote and remotes:lower():find("tachytome", 1, true) ~= nil)
+            end)
+        end)
+    end)
+end
+
 local function in_repo(dir, callback)
     git(dir, {"rev-parse", "--show-prefix"}, function(ok, prefix, _, result)
-        if ok and prefix == "" then return callback(true) end
+        if ok and prefix == "" then
+            return own_repo(dir, function(own)
+                if own then return callback(true) end
+                callback(false, lang.t("update_other_repo"))
+            end)
+        end
         local reason = lang.t("update_no_repo")
         if result and result.error_string == "init" then reason = lang.t("update_no_git") end
         callback(false, reason)
+    end)
+end
+
+local function lines_of(out)
+    local list = {}
+    for line in out:gmatch("[^\n]+") do list[#list + 1] = line end
+    return list
+end
+
+local function local_losses(dir, t, callback)
+    git(dir, {"status", "--porcelain", "--untracked-files=no"}, function(ok, status, err)
+        if not ok then return callback(nil, nil, err) end
+        local files = {}
+        for _, line in ipairs(lines_of(status)) do files[#files + 1] = line:sub(4) end
+
+        local function commits(branch)
+            local args = {"rev-list", "--oneline", "HEAD"}
+            if branch then args[#args + 1] = "refs/heads/" .. t.name end
+            for _, arg in ipairs({"--not", "FETCH_HEAD", "--remotes", "--tags"}) do args[#args + 1] = arg end
+            if branch then args[#args + 1] = "--exclude=" .. t.name end
+            args[#args + 1] = "--branches"
+            git(dir, args, function(ok_rev, out, err_rev)
+                if not ok_rev then return callback(nil, nil, err_rev) end
+                callback(files, lines_of(out))
+            end)
+        end
+
+        if t.tag then return commits(false) end
+        git(dir, {"rev-parse", "--verify", "--quiet", "refs/heads/" .. t.name}, commits)
     end)
 end
 
@@ -224,10 +272,28 @@ local function confirm_git(dir, t, on_complete)
                 if not same then
                     body = lang.t("update_method_git_switch", { from = current, to = t.name, old = old, new = new })
                 end
-                ui_confirm.show(lang.t("update_title"), with_major(body, t), function()
-                    apply_git(dir, t, old, new, on_complete)
-                end, function()
-                    done(on_complete)
+                body = with_major(body, t)
+                local_losses(dir, t, function(files, commits, err_losses)
+                    if not files then return fail(failed("git status"), err_losses, on_complete) end
+                    if #files == 0 and #commits == 0 then
+                        return ui_confirm.show(lang.t("update_title"), body, function()
+                            apply_git(dir, t, old, new, on_complete)
+                        end, function()
+                            done(on_complete)
+                        end)
+                    end
+                    local lines = {}
+                    if #files > 0 then lines[#lines + 1] = lang.t("update_lose_changes") end
+                    for _, file in ipairs(files) do lines[#lines + 1] = "  " .. file end
+                    if #commits > 0 then lines[#lines + 1] = lang.t("update_lose_commits") end
+                    for _, commit in ipairs(commits) do lines[#lines + 1] = "  " .. commit end
+                    ui_choice.show(lang.t("update_title_lose"), body, {
+                        { key = "1", alt = "ENTER", label = lang.t("choice_update") },
+                        { key = "2", label = lang.t("choice_cancel") }
+                    }, 2, function(idx)
+                        if idx == 1 then return apply_git(dir, t, old, new, on_complete) end
+                        done(on_complete)
+                    end, lines)
                 end)
             end)
         end)
