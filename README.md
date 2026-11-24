@@ -282,7 +282,7 @@ Only Tachytome's own git repo is updated through git, a script dir inside anothe
 
 | Keybind | Action        | Description                                                                                |
 |---------|---------------|--------------------------------------------------------------------------------------------|
-| Space   | Pause Render  | Pauses the current render and render queue.<br>Can only pause the render queue on Windows. |
+| Space   | Pause/Resume  | Pauses or resumes the current render and render queue.<br>Only the queue on Windows.      |
 | p       | Change Path   | Change output path, a failed render keeps it for its retry.                               |
 | d       | Delete        | Deletes the item, asks first if it cancels a render or trashes the source.                |
 | r       | Retry         | Retry the failed render with the same settings.                                           |
@@ -322,7 +322,8 @@ The log is also saved in the `logs` folder of the [state dir](#recovery), the la
 | ctrl+Backspace, ctrl+w  | Delete Word | Delete the word before the cursor.       |
 | ctrl+Delete             | Delete Word | Delete the word after the cursor.        |
 | ctrl+u                  | Delete All  | Delete everything before the cursor.     |
-| ctrl+v, shift+Insert    | Paste       | Paste the clipboard at the cursor.       |
+| ctrl+v, ctrl+shift+v    | Paste       | Paste the clipboard at the cursor.       |
+| shift+Insert            | Paste       | Paste the clipboard at the cursor.       |
 | Shift+Enter             | New Line    | Start a new line, where it's allowed.    |
 
 Any character your keyboard types works, letters with diacritics and Cyrillic included, and so does the numpad, its Enter too.<br>

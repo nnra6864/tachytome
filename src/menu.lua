@@ -26,7 +26,6 @@ local esc_back      = false
 local flashes       = {}
 local flash_timer   = nil
 local pending_row   = nil
-local flash_frame   = 1 / 60
 local values        = {}
 local load_menu
 local reload
@@ -545,7 +544,8 @@ local function start_flash(row, delay, spec)
     if spec.total <= 0 then return end
     flashes[row] = { at = mp.get_time() + (delay or 0), spec = spec }
     if not flash_timer then
-        flash_timer = mp.add_periodic_timer(flash_frame, flash_tick)
+        local fps   = mp.get_property_number("display-fps") or 0
+        flash_timer = mp.add_periodic_timer(1 / (fps > 0 and fps or 60), flash_tick)
     end
 end
 

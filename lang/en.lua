@@ -72,6 +72,7 @@ return {
     key_move         = "move",
     key_delete       = "delete",
     key_pause        = "pause",
+    key_resume       = "resume",
     key_path         = "path",
     key_history      = "history",
     key_confirm      = "confirm",

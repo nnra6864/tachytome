@@ -99,7 +99,7 @@ function M.show(on_close)
         end)
         if #vis == 0 then body = search.empty() end
         local row   = #vis > 0 and jobs[cursor] or nil
-        local hints = { { "Up/Down", "navigate" }, { "Space", "pause" }, { "p", "path" } }
+        local hints = { { "Up/Down", "navigate" }, { "Space", render.is_paused() and "resume" or "pause" }, { "p", "path" } }
         if row and row.is_failed then
             hints[#hints + 1] = { "r", "retry" }
             hints[#hints + 1] = { "l", "log" }

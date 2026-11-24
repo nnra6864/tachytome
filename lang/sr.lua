@@ -72,6 +72,7 @@ return {
     key_move         = "pomeri",
     key_delete       = "obriši",
     key_pause        = "pauza",
+    key_resume       = "nastavi",
     key_path         = "putanja",
     key_history      = "istorija",
     key_confirm      = "potvrdi",

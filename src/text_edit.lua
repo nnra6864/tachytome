@@ -101,7 +101,7 @@ local bindings = {
     { key = "ctrl+DEL",   name = "word-del",   fn = M.delete_word_right }
 }
 
-local paste_keys = { "ctrl+v", "shift+INS" }
+local paste_keys = { "ctrl+v", "ctrl+V", "shift+INS" }
 
 M.keypad = { KP0 = "0", KP1 = "1", KP2 = "2", KP3 = "3", KP4 = "4", KP5 = "5", KP6 = "6", KP7 = "7", KP8 = "8", KP9 = "9", KP_DEC = ".", KP_ADD = "+", KP_SUBTRACT = "-", KP_MULTIPLY = "*", KP_DIVIDE = "/" }
 
