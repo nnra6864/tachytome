@@ -229,7 +229,7 @@ The `simple` menu keeps every item on a single level, switch to it with `s-s` `m
 | p       | Preset       | Set the video encoder preset, listed from most to least effort, the recommended one is marked.                |
 | r       | Resolution   | Set the output resolution.<br>Learn more about the [Resolution List](#resolution-list) and [Resolution](#resolution). |
 | l       | Lossless Cut | Toggle the lossless cut option.                                                                               |
-| a       | Accurate Cut | Toggle accurate cut.<br>Makes cuts millisecond precise, but may cause a slight delay before rendering starts. |
+| a       | Accurate Cut | Toggle accurate cut.<br>Makes cuts millisecond precise, however far into the video they are.                 |
 
 ##### Audio
 

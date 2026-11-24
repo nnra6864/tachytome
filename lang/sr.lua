@@ -311,7 +311,6 @@ return {
     },
     opt_accurate_cut      = {
         "Seče na tačan frejm umesto na najbliži ključni frejm, ostavite uključeno",
-        "Renderi kasnije počinju kada je početak daleko u dugom videu",
         "Isključuje Rez bez gubitaka"
     },
 

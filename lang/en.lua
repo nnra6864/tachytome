@@ -311,7 +311,6 @@ return {
     },
     opt_accurate_cut      = {
         "Cuts at the exact frame instead of the nearest keyframe, keep it on",
-        "Renders take longer to start when the mark in is far into a long video",
         "Turns off Lossless Cut"
     },
 
