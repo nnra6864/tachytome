@@ -59,6 +59,7 @@ local function from_v1(parsed)
     local data = fresh()
     add(data.renders, old)
     add(data.trashed.after_render, old)
+    data.legacy = parsed
     return data
 end
 
@@ -68,6 +69,7 @@ local function normalize(parsed)
     local trashed             = type(parsed.trashed) == "table" and parsed.trashed or {}
     data.trashed.after_render = totals(trashed.after_render)
     data.trashed.trash_now    = totals(trashed.trash_now)
+    if type(parsed.legacy) == "table" then data.legacy = parsed.legacy end
     if type(parsed.kept) == "table" then
         for path, entry in pairs(parsed.kept) do
             if type(path) == "string" then data.kept[path] = totals(entry) end
