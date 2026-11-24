@@ -384,13 +384,27 @@ function M.confirm_losses(job, on_yes, on_no)
     ui_confirm.show(lang.t("render_losses_title"), job.final_name, on_yes, on_no, lines)
 end
 
+function M.show_exists(input_file, output_file, on_rename, on_overwrite, on_cancel, own_job)
+    local _, name = utils.split_path(output_file)
+    local readers = trash.users(output_file)
+    if own_job and common.same_path(own_job.input_file, output_file) then readers = readers - 1 end
+    local title   = nil
+    local lines   = {}
+    if common.same_path(input_file, output_file) then
+        title    = lang.t("render_exists_source")
+        lines[1] = lang.t("render_overwrite_source")
+    end
+    if readers > 0 then lines[#lines + 1] = lang.t("render_overwrite_readers") end
+    ui_choice.show_exists(name, on_rename, on_overwrite, on_cancel, title, lines)
+end
+
 local function verify_and_queue(job, file_path, on_complete)
     if not queue.is_path_in_use(file_path) then
         queue_job(job, on_complete)
         return
     end
 
-    ui_choice.show_exists(job.final_name, function()
+    M.show_exists(job.input_file, file_path, function()
         if job.rename_callback then
             job.rename_callback(function()
                 local new_output = common.resolve_absolute_path(state.custom_output_name, state.opts, tracks.container())

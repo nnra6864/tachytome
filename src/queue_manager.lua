@@ -7,7 +7,6 @@ local state       = require 'src.state'
 local notify      = require 'src.notify'
 local theme       = require 'src.theme'
 local ui_input    = require 'src.ui_input'
-local ui_choice   = require 'src.ui_choice'
 local ui_confirm  = require 'src.ui_confirm'
 local ui_log      = require 'src.ui_log'
 local trash       = require 'src.trash'
@@ -244,9 +243,9 @@ function M.show(on_close)
                     if not queue.is_path_in_use(new_output) then return change_to(input, new_output) end
 
                     local _, new_name = utils.split_path(new_output)
-                    ui_choice.show_exists(new_name, prompt_change_path, function()
+                    render.show_exists(q_job.input_file, new_output, prompt_change_path, function()
                         change_to(input, new_output)
-                    end, open_ui)
+                    end, open_ui, q_job)
                 end
             })
         end

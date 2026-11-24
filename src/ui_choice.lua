@@ -86,8 +86,8 @@ function M.show(title, body, choices, esc_index, on_pick, lines)
     draw()
 end
 
-function M.show_exists(display_name, on_rename, on_overwrite, on_cancel)
-    M.show(lang.t("render_exists"), display_name, {
+function M.show_exists(display_name, on_rename, on_overwrite, on_cancel, title, lines)
+    M.show(title or lang.t("render_exists"), display_name, {
         { key = "1", label = lang.t("choice_rename") },
         { key = "2", label = lang.t("choice_overwrite") },
         { key = "3", label = lang.t("choice_cancel") }
@@ -99,7 +99,7 @@ function M.show_exists(display_name, on_rename, on_overwrite, on_cancel)
         elseif on_cancel then
             on_cancel()
         end
-    end)
+    end, lines)
 end
 
 return M
