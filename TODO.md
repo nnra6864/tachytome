@@ -5,6 +5,11 @@ question that needs an answer before that item starts.
 
 New strings go in every language file, `lang/en.lua` and `lang/sr.lua`.
 
+## Before bumping the version
+- `stats.json` went to `"version": 2`, with the old totals kept in a
+  `legacy` block and in `stats.v1.json`. Check that naming still fits the
+  release it ships in.
+
 ## 1. Edit renders in the Render Queue
 - A key in the Render Queue, e.g. `e`, opens the whole Tachytome menu for
   the selected queued or failed render: marks, quality, encoder, effects,
