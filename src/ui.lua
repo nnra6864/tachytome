@@ -18,7 +18,6 @@ function M.file_loaded()
 end
 
 function M.clear_osd()
-    mp.set_osd_ass(0, 0, "")
     mp.osd_message("", 0)
 end
 

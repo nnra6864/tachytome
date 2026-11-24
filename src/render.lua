@@ -82,7 +82,6 @@ local function write_log(name, lines)
 end
 
 function M.cancel_render()
-    mp.set_osd_ass(0, 0, "")
     mp.osd_message("", 0)
 
     if queue.is_rendering and queue.active and current_req then

@@ -103,12 +103,6 @@ end)
 
 check_orphans()
 
-mp.add_key_binding("ESC", "clear_osd", function()
-    mp.set_osd_ass(0, 0, "")
-    mp.osd_message("", 0)
-    mp.commandv("set", "fullscreen", "no")
-end)
-
 mp.add_key_binding("t", "menu", menu.open)
 mp.add_key_binding(nil, "goto", function() menu.run(actions.goto_prompt) end)
 mp.add_key_binding(nil, "trash", function() menu.run(actions.trash_source) end)
