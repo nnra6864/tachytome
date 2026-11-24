@@ -456,7 +456,9 @@ function M.get_resolved_mark_in()
 end
 
 function M.get_mark_in_display()
-    return common.format_time(M.get_resolved_mark_in())
+    local mark, pending = common.peek_mark_in(state.mark_in, state.opts.lossless_cut, mp.get_property("path"))
+    if pending then return lang.t("value_detecting") end
+    return common.format_time(mark)
 end
 
 function M.get_mark_out_display()

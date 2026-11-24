@@ -3,11 +3,14 @@ local utils = require 'mp.utils'
 
 local M = {}
 
-local keyframe_cache   = {}
-local interval_cache   = {}
-local interval_pending = {}
-local interval_query   = {"-select_streams", "v:0", "-read_intervals", "%+60", "-show_entries", "packet=pts_time,flags", "-of", "csv=p=0"}
-local cached_platform  = nil
+local keyframe_cache     = {}
+local keyframe_pending   = {}
+local keyframe_listeners = {}
+local keyframe_window    = 60
+local interval_cache     = {}
+local interval_pending   = {}
+local interval_query     = {"-select_streams", "v:0", "-read_intervals", "%+60", "-show_entries", "packet=pts_time,flags", "-of", "csv=p=0"}
+local cached_platform    = nil
 
 function M.get_platform()
     if cached_platform then return cached_platform end
@@ -306,30 +309,30 @@ function M.get_creation_time(file)
     return creation_time
 end
 
-function M.get_keyframes(file)
+local function keyframe_query(t, window)
+    local from = string.format("%.3f%%%.3f", math.max(0, t - window), t + 0.1)
+    return {"-select_streams", "v:0", "-read_intervals", from, "-show_entries", "packet=pts_time,flags", "-of", "csv=p=0"}
+end
+
+local function last_keyframe(raw, t)
+    local best = nil
+    for line in (raw or ""):gmatch("[^\r\n]+") do
+        local pts, flags = line:match("^(.-),(.*)$")
+        local k          = tonumber(pts)
+        if k and flags:find("K", 1, true) and k <= t + 0.0005 and (not best or k > best) then best = k end
+    end
+    return best
+end
+
+local function keyframe_marks(file)
     local info = utils.file_info(file)
     if not info then return nil end
-
     local cached = keyframe_cache[file]
-    if cached and cached.mtime == info.mtime and cached.size == info.size then
-        return cached.list
+    if not cached or cached.mtime ~= info.mtime or cached.size ~= info.size then
+        cached               = { mtime = info.mtime, size = info.size, marks = {} }
+        keyframe_cache[file] = cached
     end
-
-    local raw = M.ffprobe_get(file, {"-select_streams", "v:0", "-show_entries", "packet=pts_time,flags", "-of", "csv=p=0"})
-    if not raw then return nil end
-
-    local list = {}
-    for line in raw:gmatch("[^\r\n]+") do
-        local pts, flags = line:match("^(.-),(.*)$")
-        if pts and flags:find("K", 1, true) then
-            local t = tonumber(pts)
-            if t then table.insert(list, t) end
-        end
-    end
-    table.sort(list)
-
-    keyframe_cache[file] = { list = list, mtime = info.mtime, size = info.size }
-    return list
+    return cached.marks
 end
 
 local function parse_interval(raw)
@@ -392,21 +395,66 @@ function M.probe_keyframe_interval(file, on_done)
 end
 
 function M.nearest_keyframe_at_or_before(file, t)
-    local list = M.get_keyframes(file)
-    if not list or #list == 0 or t < list[1] then return nil end
+    local marks = keyframe_marks(file)
+    if not marks then return nil end
+    local key = string.format("%.3f", t)
+    if marks[key] ~= nil then return marks[key] or nil end
 
-    local lo, hi = 1, #list
-    while lo < hi do
-        local mid = math.floor((lo + hi + 1) / 2)
-        if list[mid] <= t then lo = mid else hi = mid - 1 end
+    local window = keyframe_window
+    local found  = last_keyframe(M.ffprobe_get(file, keyframe_query(t, window)), t)
+    while not found and t - window > 0 do
+        window = window * 4
+        found  = last_keyframe(M.ffprobe_get(file, keyframe_query(t, window)), t)
     end
-    return list[lo]
+    marks[key] = found or false
+    return found
+end
+
+function M.listen_keyframes(name, fn)
+    keyframe_listeners[name] = fn
+end
+
+function M.probe_keyframe_before(file, t)
+    local marks = keyframe_marks(file)
+    if not marks then return nil, false end
+    local key = string.format("%.3f", t)
+    if marks[key] ~= nil then return marks[key] or nil, false end
+
+    local pending = file .. "|" .. key
+    if keyframe_pending[pending] then return nil, true end
+    keyframe_pending[pending] = true
+
+    local function attempt(window)
+        local cmd = {"ffprobe", "-v", "error"}
+        for _, v in ipairs(keyframe_query(t, window)) do table.insert(cmd, v) end
+        table.insert(cmd, file)
+        mp.command_native_async({
+            name           = "subprocess",
+            args           = cmd,
+            playback_only  = false,
+            capture_stdout = true
+        }, function(_, result)
+            local found = last_keyframe(result and result.status == 0 and result.stdout or nil, t)
+            if not found and t - window > 0 then return attempt(window * 4) end
+            keyframe_pending[pending] = nil
+            marks[key]                = found or false
+            for _, fn in pairs(keyframe_listeners) do fn() end
+        end)
+    end
+    attempt(keyframe_window)
+    return nil, true
 end
 
 function M.resolve_mark_in(mark, lossless, file)
     if not lossless then return mark end
     if not file then return mark end
     return M.nearest_keyframe_at_or_before(file, mark) or mark
+end
+
+function M.peek_mark_in(mark, lossless, file)
+    if not lossless or not file then return mark, false end
+    local found, pending = M.probe_keyframe_before(file, mark)
+    return found or mark, pending
 end
 
 function M.trash_file(file_path, trash_path, callback)

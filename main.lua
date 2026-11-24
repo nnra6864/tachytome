@@ -74,6 +74,7 @@ end
 
 lang.on_change(menu.refresh)
 autocrop.listen("menu", menu.refresh)
+common.listen_keyframes("menu", menu.refresh)
 
 ui_migrate.run(reload, check_dependencies)
 
