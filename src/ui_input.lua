@@ -63,7 +63,10 @@ local function cancel()
     state.ui_owner = nil
     remove_overlays()
     cleanup_bindings()
-    if current_cancel_callback then pcall(current_cancel_callback) end
+    if current_cancel_callback then
+        local ok, err = pcall(current_cancel_callback)
+        if not ok then mp.msg.error(err) end
+    end
 end
 
 local function confirm()
@@ -73,7 +76,10 @@ local function confirm()
     state.ui_owner = nil
     remove_overlays()
     cleanup_bindings()
-    if current_callback then pcall(current_callback, res) end
+    if current_callback then
+        local ok, err = pcall(current_callback, res)
+        if not ok then mp.msg.error(err) end
+    end
 end
 
 local function apply_edit(fn)

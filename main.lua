@@ -38,7 +38,7 @@ local function check_dependencies()
         notify.show(lang.t("ffmpeg_installing"), true)
         local args = {}
         if platform == "windows" then
-            args = {"cmd", "/c", "winget install ffmpeg --accept-package-agreements --accept-source-agreements"}
+            args = {"cmd", "/c", "winget install -e --id Gyan.FFmpeg --accept-package-agreements --accept-source-agreements"}
         elseif platform == "macos" then
             args = {"sh", "-c", "brew install ffmpeg"}
         end

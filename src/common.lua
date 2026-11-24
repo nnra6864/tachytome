@@ -248,9 +248,10 @@ function M.format_bytes(bytes)
 end
 
 function M.format_time(seconds)
-    local h = math.floor(seconds / 3600)
-    local m = math.floor((seconds % 3600) / 60)
-    local s = seconds % 60
+    local ms = math.floor(seconds * 1000 + 0.5)
+    local h  = math.floor(ms / 3600000)
+    local m  = math.floor((ms % 3600000) / 60000)
+    local s  = (ms % 60000) / 1000
     return string.format("%02d:%02d:%06.3f", h, m, s)
 end
 

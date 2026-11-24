@@ -20,7 +20,8 @@ local current_req = nil
 local platform    = common.get_platform()
 local can_suspend = platform ~= "windows"
 
-local stats_ov = mp.create_osd_overlay("ass-events")
+local stats_ov    = mp.create_osd_overlay("ass-events")
+local stats_timer = nil
 
 local log_dir   = utils.join_path(common.get_state_dir(), "logs")
 local log_keep  = 20
@@ -179,8 +180,8 @@ function M.process_queue()
 
     local active_job = queue.active
 
-    local temp_dir      = os.getenv("TEMP") or os.getenv("TMP") or "/tmp"
-    local file_id       = tostring(math.floor(mp.get_time() * 1000))
+    local temp_dir      = os.getenv("TMPDIR") or os.getenv("TEMP") or os.getenv("TMP") or "/tmp"
+    local file_id       = tostring(queue.own_pid) .. "_" .. tostring(queue.current_job_num)
     local progress_file = utils.join_path(temp_dir, "tachytome_prog_" .. file_id .. ".log")
     local pid_file      = utils.join_path(temp_dir, "tachytome_pid_" .. file_id .. ".log")
     active_job.pid_file = pid_file
@@ -297,7 +298,7 @@ function M.process_queue()
             })
 
             local msg_title = active_job.final_name
-            local pad_len   = math.max(0, msg_width - #msg_title)
+            local pad_len   = math.max(0, msg_width - common.text_len(msg_title))
             local pad       = string.rep("\\h", pad_len)
             local full_osd  = string.format("%s%s%s%s%s%s%s\\N\\N%s", theme.c("text_color"), theme.align(1), theme.f(false), theme.b(true), theme.escape(msg_title), pad, theme.b(false), msg_osd_body)
 
@@ -307,7 +308,8 @@ function M.process_queue()
             if active_job.show_stats_screen then
                 stats_ov.data = full_osd
                 stats_ov:update()
-                mp.add_timeout(active_job.stats_osd_time, function() stats_ov:remove() end)
+                if stats_timer then stats_timer:kill() end
+                stats_timer = mp.add_timeout(active_job.stats_osd_time, function() stats_ov:remove() end)
             end
 
             reset_and_advance()

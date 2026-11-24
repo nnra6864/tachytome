@@ -49,7 +49,10 @@ local function cleanup()
     for key, _ in pairs(key_mappings) do mp.remove_key_binding("goto-char-" .. key) end
     for key, _ in pairs(edit.keypad) do mp.remove_key_binding("goto-char-" .. key) end
     for _, opt in ipairs(current_options) do mp.remove_key_binding("goto-opt-" .. opt.key) end
-    if current_callback then pcall(current_callback) end
+    if current_callback then
+        local ok, err = pcall(current_callback)
+        if not ok then mp.msg.error(err) end
+    end
 end
 
 local function seek_to(seconds, relative, exact)
@@ -101,7 +104,6 @@ local function parse_duration(str)
 end
 
 local function parse_input(str)
-    -- TODO: document the [ and ] mark prefixes in README Go To > Prefix
     local base  = nil
     local first = str:sub(1, 1)
     if first == "[" then

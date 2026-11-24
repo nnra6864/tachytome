@@ -779,7 +779,9 @@ On top of many input types, it also supports relative jumps.
 
 #### Prefix
 
-You can prefix `+` or `-` to make go to relative to the current time.
+You can prefix `+` or `-` to make go to relative to the current time.<br>
+Prefix `[` or `]` to make it relative to Mark In or Mark Out instead, a sign after it goes before or after the mark, e.g. `[-5` is 5 seconds before Mark In.<br>
+A lone `[` or `]` goes to the mark itself.
 
 #### HH:MM:SS.MS
 
@@ -816,6 +818,8 @@ Their current values are listed right below the input.
 | `50ms` | 50 milliseconds     |
 | `-60f` | 60 frames back      |
 | `5%`   | 5%                  |
+| `[+2s` | 2 seconds after In  |
+| `]-1m` | 1 minute before Out |
 
 ### Resolution
 

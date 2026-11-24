@@ -36,7 +36,7 @@ function M.update_stats(input_bytes, output_bytes, input_duration, output_clip_d
     return stats
 end
 
-function M.get_formatted_stats(stats_data, align)
+function M.get_formatted_stats(stats_data)
     stats_data = stats_data or M.read_stats()
 
     local s_processed = stats_data.source_space or 0
@@ -84,23 +84,9 @@ function M.get_formatted_stats(stats_data, align)
             osd_str     = osd_str     .. dynamic_separator .. "\\N"
         else
             local pad_len = (max_label_len - common.text_len(item.label)) + (max_val_len - #item.value) + 1
-            local console_pad = string.rep(" ", pad_len)
 
-            local osd_pad_len_l = 0
-            local osd_pad_len_v = 0
-            local osd_pad_l     = ""
-            local osd_pad_v     = ""
-
-            if align ~= 3 and align ~= 6 and align ~= 9 then
-                osd_pad_len_l = (max_label_len - common.text_len(item.label)) + (max_val_len - #item.value) + 1
-                osd_pad_l     = string.rep("\\h", osd_pad_len_l)
-            elseif align ~= 1 and align ~= 4 and align ~= 7 then
-                osd_pad_len_v = (max_label_len - common.text_len(item.label)) + (max_val_len - #item.value) + 1
-                osd_pad_v     = string.rep("\\h", osd_pad_len_v)
-            end
-
-            console_str = console_str .. string.format("%s:%s%s\n", item.label, console_pad, item.value)
-            osd_str     = osd_str .. string.format("%s:%s%s%s\\N", l(item.label), osd_pad_l, osd_pad_v, v(item.value))
+            console_str = console_str .. string.format("%s:%s%s\n", item.label, string.rep(" ", pad_len), item.value)
+            osd_str     = osd_str .. string.format("%s:%s%s\\N", l(item.label), string.rep("\\h", pad_len), v(item.value))
         end
     end
 
