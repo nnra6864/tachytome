@@ -287,14 +287,16 @@ function M.process_queue()
             local output_info = utils.file_info(active_job.output_file)
             local output_size = output_info and output_info.size or 0
 
-            stats.update_stats(active_job.input_size, output_size, active_job.input_duration, active_job.duration, render_wall_time)
-            local msg_body, msg_osd_body, msg_width = stats.get_formatted_stats({
-                source_space    = active_job.input_size,
-                output_space    = output_size,
-                source_duration = active_job.input_duration,
+            local rendered = {
+                input_file      = active_job.input_file,
+                input_size      = active_job.input_size,
+                input_duration  = active_job.input_duration,
+                output_size     = output_size,
                 output_duration = active_job.duration,
                 render_time     = render_wall_time
-            })
+            }
+            stats.record_render(rendered)
+            local msg_body, msg_osd_body, msg_width = stats.get_formatted_stats(rendered)
 
             local msg_title = active_job.final_name
             local pad_len   = math.max(0, msg_width - common.text_len(msg_title))
@@ -326,7 +328,7 @@ function M.process_queue()
 
             finish_job()
             if active_job.trash_source and not common.same_path(active_job.input_file, active_job.output_file) then
-                trash.request(active_job.input_file, active_job.trash_path)
+                trash.request(active_job.input_file, active_job.trash_path, "after_render")
             end
         else
             queue.delete_temp_file(active_job.temp_file)

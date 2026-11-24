@@ -1,3 +1,4 @@
+local mp     = require 'mp'
 local utils  = require 'mp.utils'
 local common = require 'src.common'
 local theme  = require 'src.theme'
@@ -5,60 +6,168 @@ local lang   = require 'src.lang'
 
 local M = {}
 
-local function get_stats_path()
-    return utils.join_path(common.get_state_dir(), "stats.json")
-end
+local fields = { "input_size", "input_duration", "output_size", "output_duration", "render_time" }
 
-function M.read_stats()
-    local stats = { source_space = 0, output_space = 0, source_duration = 0, output_duration = 0, render_time = 0 }
-    local parsed = common.read_json_file(get_stats_path())
-    if parsed then
-        for k, v in pairs(parsed) do stats[k] = v end
+local stats_path  = utils.join_path(common.get_state_dir(), "stats.json")
+local backup_path = utils.join_path(common.get_state_dir(), "stats.v1.json")
+local broken      = false
+
+local function totals(from)
+    local out = {}
+    for _, key in ipairs(fields) do
+        out[key] = (type(from) == "table" and tonumber(from[key])) or 0
     end
-    return stats
+    return out
 end
 
-function M.write_stats(stats)
-    common.write_json_file(get_stats_path(), stats)
+local function add(into, from)
+    for _, key in ipairs(fields) do into[key] = into[key] + (from[key] or 0) end
+end
+
+local function fresh()
+    return { version = 2, renders = totals(), trashed = { after_render = totals(), trash_now = totals() }, kept = {} }
+end
+
+local function read_raw(path)
+    local f = io.open(path, "r")
+    if not f then return nil end
+    local content = f:read("*all")
+    f:close()
+    return content
+end
+
+local function write(data)
+    if broken then return false end
+    local tmp = stats_path .. ".tmp"
+    if not common.write_json_file(tmp, data) then
+        mp.msg.warn("Could not write stats file: " .. tmp)
+        return false
+    end
+    local ok, err = common.replace_file(tmp, stats_path)
+    if not ok then mp.msg.warn("Could not replace stats file: " .. tostring(err)) end
+    return ok
+end
+
+local function from_v1(parsed)
+    local old = totals({
+        input_size      = parsed.source_space,
+        input_duration  = parsed.source_duration,
+        output_size     = parsed.output_space,
+        output_duration = parsed.output_duration,
+        render_time     = parsed.render_time
+    })
+    local data = fresh()
+    add(data.renders, old)
+    add(data.trashed.after_render, old)
+    return data
+end
+
+local function normalize(parsed)
+    local data = fresh()
+    data.renders              = totals(parsed.renders)
+    local trashed             = type(parsed.trashed) == "table" and parsed.trashed or {}
+    data.trashed.after_render = totals(trashed.after_render)
+    data.trashed.trash_now    = totals(trashed.trash_now)
+    if type(parsed.kept) == "table" then
+        for path, entry in pairs(parsed.kept) do
+            if type(path) == "string" then data.kept[path] = totals(entry) end
+        end
+    end
+    return data
+end
+
+local function load()
+    broken        = false
+    local content = read_raw(stats_path)
+    if not content or content:match("^%s*$") then return fresh() end
+
+    local parsed = utils.parse_json(content)
+    if type(parsed) ~= "table" then
+        broken = true
+        mp.msg.error("Could not parse " .. stats_path .. ", stats won't be saved until it's fixed or removed")
+        return fresh()
+    end
+    if parsed.version then return normalize(parsed) end
+
+    if not utils.file_info(backup_path) then
+        local f = io.open(backup_path, "w")
+        if not f then
+            broken = true
+            mp.msg.error("Could not back up " .. stats_path .. " to " .. backup_path .. ", stats won't be saved")
+            return from_v1(parsed)
+        end
+        f:write(content)
+        f:close()
+    end
+    local data = from_v1(parsed)
+    write(data)
+    return data
+end
+
+local function find_kept(data, path)
+    if data.kept[path] then return path end
+    for key in pairs(data.kept) do
+        if common.same_path(key, path) then return key end
+    end
+end
+
+local function changed(data)
+    write(data)
+    if M.on_update then M.on_update() end
 end
 
 M.on_update = nil
 
-function M.update_stats(input_bytes, output_bytes, input_duration, output_clip_duration, render_wall_time)
-    local stats = M.read_stats()
-    stats.source_space    = (stats.source_space or 0) + (input_bytes or 0)
-    stats.output_space    = (stats.output_space or 0) + (output_bytes or 0)
-    stats.source_duration = (stats.source_duration or 0) + (input_duration or 0)
-    stats.output_duration = (stats.output_duration or 0) + (output_clip_duration or 0)
-    stats.render_time     = (stats.render_time or 0) + (render_wall_time or 0)
-    M.write_stats(stats)
-    if M.on_update then M.on_update() end
-    return stats
+function M.record_render(r)
+    local data = load()
+    add(data.renders, totals(r))
+
+    for key in pairs(data.kept) do
+        if not common.same_path(key, r.input_file) and not utils.file_info(key) then data.kept[key] = nil end
+    end
+    if r.input_file then
+        local key   = find_kept(data, r.input_file) or r.input_file
+        local entry = data.kept[key] or totals({ input_size = r.input_size, input_duration = r.input_duration })
+        add(entry, totals({ output_size = r.output_size, output_duration = r.output_duration, render_time = r.render_time }))
+        data.kept[key] = entry
+    end
+    changed(data)
 end
 
-function M.get_formatted_stats(stats_data)
-    stats_data = stats_data or M.read_stats()
+function M.record_trash(path, how)
+    local data = load()
+    local key  = find_kept(data, path)
+    if not key then return end
+    add(data.trashed[how] or data.trashed.after_render, data.kept[key])
+    data.kept[key] = nil
+    changed(data)
+end
 
-    local s_processed = stats_data.source_space or 0
-    local s_output    = stats_data.output_space or 0
-    local s_in_dur    = stats_data.source_duration or 0
-    local s_out_dur   = stats_data.output_duration or 0
-    local s_render    = stats_data.render_time or 0
+function M.totals(scope)
+    local data = load()
+    if scope == "all" then return data.renders end
+    local out = totals()
+    add(out, data.trashed.after_render)
+    add(out, data.trashed.trash_now)
+    out.render_time = data.renders.render_time
+    return out
+end
 
-    local delta_bytes  = s_processed - s_output
-    local cut_duration = s_in_dur - s_out_dur
-    if cut_duration < 0 then cut_duration = 0 end
+function M.get_formatted_stats(t)
+    t = totals(t)
+    local saved_size = t.input_size - t.output_size
+    local saved_time = math.max(0, t.input_duration - t.output_duration)
 
     local lines = {
-        { label = lang.t("stats_source_space"), value = common.format_bytes(s_processed) },
-        { label = lang.t("stats_output_space"), value = common.format_bytes(s_output) },
-        { label = lang.t("stats_saved_space"),  value = common.format_bytes(delta_bytes) },
+        { label = lang.t("stats_input_size"),  value = common.format_bytes(t.input_size) },
+        { label = lang.t("stats_output_size"), value = common.format_bytes(t.output_size) },
+        { label = lang.t("stats_saved_size"),  value = common.format_bytes(saved_size) },
         { separator = true },
-        { label = lang.t("stats_source_time"),  value = common.format_duration(s_in_dur) },
-        { label = lang.t("stats_output_time"),  value = common.format_duration(s_out_dur) },
-        { label = lang.t("stats_saved_time"),   value = common.format_duration(cut_duration) },
+        { label = lang.t("stats_input_time"),  value = common.format_duration(t.input_duration) },
+        { label = lang.t("stats_output_time"), value = common.format_duration(t.output_duration) },
+        { label = lang.t("stats_saved_time"),  value = common.format_duration(saved_time) },
         { separator = true },
-        { label = lang.t("stats_render_time"),  value = common.format_duration(s_render) }
+        { label = lang.t("stats_render_time"), value = common.format_duration(t.render_time) }
     }
 
     local max_label_len = 0

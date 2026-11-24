@@ -63,6 +63,7 @@ local choices = {
     container        = common.containers,
     cursor_style     = text_edit.cursor_styles,
     tracks_type      = { "audio", "video" },
+    stats_scope      = { "trashed", "all" },
     resolution_mode  = resolution.modes,
     scaler_down      = resolution.scalers,
     scaler_up        = resolution.scalers,

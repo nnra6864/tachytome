@@ -384,6 +384,11 @@ return {
     opt_show_stats_screen   = { "Shows the stats screen after a render" },
     opt_show_stats_terminal = { "Prints the stats to the terminal after a render" },
     opt_stats_osd_time      = { "Seconds the stats screen stays up" },
+    opt_stats_scope         = {
+        "Which renders the stats overlay counts, Render Time always counts every render",
+        "  trashed  only sources Tachytome trashed, each counted once with its renders",
+        "  all      every render, a source cut 3 times counts 3 times"
+    },
 
     opt_font            = {
         "Font for all text, keep it monospace for the menu columns and the input cursor",
@@ -450,14 +455,14 @@ return {
         "A git clone uses its remote, otherwise the GitHub repo"
     },
 
-    stats_title        = "Tachytome Stats",
-    stats_source_space = "Source Space",
-    stats_output_space = "Output Space",
-    stats_saved_space  = "Saved Space",
-    stats_source_time  = "Source Time",
-    stats_output_time  = "Output Time",
-    stats_saved_time   = "Saved Time",
-    stats_render_time  = "Render Time",
+    stats_title       = "Tachytome Stats",
+    stats_input_size  = "Input Size",
+    stats_output_size = "Output Size",
+    stats_saved_size  = "Saved Size",
+    stats_input_time  = "Input Time",
+    stats_output_time = "Output Time",
+    stats_saved_time  = "Saved Time",
+    stats_render_time = "Render Time",
 
     queue_empty            = "Render queue is empty",
     queue_paused_job       = "{name} (Paused)",

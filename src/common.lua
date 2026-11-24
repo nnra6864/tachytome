@@ -241,6 +241,7 @@ end
 
 function M.format_bytes(bytes)
     if not bytes or bytes == 0 then return "0B" end
+    if bytes < 0 then return "-" .. M.format_bytes(-bytes) end
     if bytes < 1024 then return bytes .. "B" end
     if bytes < 1048576 then return string.format("%.2fKB", bytes / 1024) end
     if bytes < 1073741824 then return string.format("%.2fMB", bytes / 1048576) end

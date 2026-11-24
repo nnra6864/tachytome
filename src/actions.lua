@@ -286,7 +286,7 @@ function M.refresh_stats()
     if not M.stats_visible then return end
 
     local msg_title = lang.t("stats_title")
-    local msg_body, msg_osd_body, msg_width = stats.get_formatted_stats()
+    local msg_body, msg_osd_body, msg_width = stats.get_formatted_stats(stats.totals(state.opts.stats_scope))
     local pad_len = math.max(0, msg_width - common.text_len(msg_title))
     local pad = string.rep("\\h", pad_len)
 
@@ -329,9 +329,9 @@ function M.trash_source(on_complete)
     local title  = queued > 0 and lang.t("trash_confirm_queued", { count = queued }) or lang.t("trash_confirm")
     ui_confirm.show(title, current_file, function()
         if queued > 0 then
-            trash.request(current_file, state.trash_path)
+            trash.request(current_file, state.trash_path, "trash_now")
         else
-            trash.now(current_file, state.trash_path)
+            trash.now(current_file, state.trash_path, "trash_now")
         end
         if on_complete then on_complete() end
     end, on_complete)

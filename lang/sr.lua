@@ -384,6 +384,11 @@ return {
     opt_show_stats_screen   = { "Prikazuje ekran sa statistikama posle renderovanja" },
     opt_show_stats_terminal = { "Ispisuje statistike u terminal posle renderovanja" },
     opt_stats_osd_time      = { "Koliko sekundi ekran sa statistikama ostaje" },
+    opt_stats_scope         = {
+        "Koja renderovanja statistike broje, vreme renderovanja uvek broji sva",
+        "  trashed  samo izvori koje je Tachytome premestio u smeće, svaki jednom sa svojim renderovanjima",
+        "  all      sva renderovanja, izvor isečen 3 puta se broji 3 puta"
+    },
 
     opt_font            = {
         "Font za sav tekst, neka bude monospace zbog kolona menija i kursora unosa",
@@ -450,14 +455,14 @@ return {
         "Git klon koristi svoj remote, inače GitHub repo"
     },
 
-    stats_title        = "Tachytome statistike",
-    stats_source_space = "Veličina izvora",
-    stats_output_space = "Veličina izlaza",
-    stats_saved_space  = "Ušteđena veličina",
-    stats_source_time  = "Trajanje izvora",
-    stats_output_time  = "Trajanje izlaza",
-    stats_saved_time   = "Ušteđeno vreme",
-    stats_render_time  = "Vreme renderovanja",
+    stats_title       = "Tachytome statistike",
+    stats_input_size  = "Veličina ulaza",
+    stats_output_size = "Veličina izlaza",
+    stats_saved_size  = "Ušteđena veličina",
+    stats_input_time  = "Trajanje ulaza",
+    stats_output_time = "Trajanje izlaza",
+    stats_saved_time  = "Ušteđeno vreme",
+    stats_render_time = "Vreme renderovanja",
 
     queue_empty            = "Red renderovanja je prazan",
     queue_paused_job       = "{name} (pauzirano)",

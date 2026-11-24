@@ -4,6 +4,7 @@ local common = require 'src.common'
 local queue  = require 'src.queue'
 local notify = require 'src.notify'
 local lang   = require 'src.lang'
+local stats  = require 'src.stats'
 
 local M = {}
 
@@ -55,10 +56,11 @@ local function unload(path, on_done)
     mp.commandv("playlist-remove", "current")
 end
 
-function M.now(path, trash_path, on_done)
+function M.now(path, trash_path, how, on_done)
     unload(path, function()
         common.trash_file(path, trash_path, function(success)
             if success then
+                stats.record_trash(path, how)
                 notify.show(lang.t("trash_done"), true)
             else
                 notify.show(lang.t("trash_failed"), true, "error")
@@ -75,17 +77,19 @@ function M.cancel(path)
 end
 
 function M.settle(path)
-    for p, trash_path in pairs(pending) do
+    for p, req in pairs(pending) do
         if common.same_path(p, path) and not M.in_use(p) then
             pending[p] = nil
-            if utils.file_info(p) then M.now(p, trash_path) end
+            if utils.file_info(p) then M.now(p, req.trash_path, req.how) end
         end
     end
 end
 
-function M.request(path, trash_path)
+function M.request(path, trash_path, how)
     if not path or not trash_path then return end
-    pending[path] = trash_path
+    local prev = pending[path]
+    if prev and prev.how == "trash_now" then how = prev.how end
+    pending[path] = { trash_path = trash_path, how = how }
     if M.in_use(path) then
         local _, name = utils.split_path(path)
         notify.show(lang.t("trash_waiting", { name = name }), true)

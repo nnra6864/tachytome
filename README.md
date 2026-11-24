@@ -256,14 +256,14 @@ Pick which audio tracks are exported in the [Tracks](#tracks-list) list.
 
 ##### Settings
 
-| Keybind | Action           | Description                                                                                                         |
-|---------|------------------|---------------------------------------------------------------------------------------------------------------------|
-| s       | Stats            | Toggle the Tachytome stats overlay.                                                                                 |
-| m       | Menu             | Switch the menu, saved to `user.conf`.<br>Learn more about [Custom Menus](#custom-menus).                           |
-| c       | Config Manager   | Create, rename, delete, enable, reorder and edit configs.<br>Learn more about [Configs](#configs).                  |
-| l       | Language         | Switch the UI language, saved to `user.conf`.<br>Learn more about [Translations](#translations).                    |
-| v       | Version          | Pick the version Update installs, saved to `user.conf` as `version`.                                                |
-| U       | Update           | Update Tachytome to the picked version using git, falls back to the GitHub archive.<br>Restart mpv after updating.  |
+| Keybind | Action           | Description                                                                                                                                    |
+|---------|------------------|------------------------------------------------------------------------------------------------------------------------------------------------|
+| s       | Stats            | Toggle the Tachytome stats overlay, it counts the sources Tachytome trashed and their renders.<br>Set `stats_scope=all` to count every render. |
+| m       | Menu             | Switch the menu, saved to `user.conf`.<br>Learn more about [Custom Menus](#custom-menus).                                                      |
+| c       | Config Manager   | Create, rename, delete, enable, reorder and edit configs.<br>Learn more about [Configs](#configs).                                             |
+| l       | Language         | Switch the UI language, saved to `user.conf`.<br>Learn more about [Translations](#translations).                                               |
+| v       | Version          | Pick the version Update installs, saved to `user.conf` as `version`.                                                                           |
+| U       | Update           | Update Tachytome to the picked version using git, falls back to the GitHub archive.<br>Restart mpv after updating.                             |
 
 The `version` option takes:
 - `latest`, the default, the release marked Latest, or the highest version tag when there's no release.
