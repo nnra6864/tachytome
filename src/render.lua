@@ -365,8 +365,20 @@ function M.dismiss(rec)
 end
 
 function M.confirm_losses(job, on_yes, on_no)
-    if #job.losses == 0 then return on_yes() end
-    ui_confirm.show(lang.t("render_losses_title"), job.final_name, on_yes, on_no, job.losses)
+    local report = job.losses
+    if #report.losses == 0 then return on_yes() end
+    local lines = { lang.t("loss_unsupported", { container = report.container }) }
+    for _, loss in ipairs(report.losses) do
+        local name = lang.t(loss.key)
+        if #loss.details > 0 then name = name .. " (" .. table.concat(loss.details, ", ") .. ")" end
+        lines[#lines + 1] = name
+    end
+    if #report.supported > 0 then
+        lines[#lines + 1] = ""
+        lines[#lines + 1] = lang.t("loss_supported")
+        for _, ext in ipairs(report.supported) do lines[#lines + 1] = ext end
+    end
+    ui_confirm.show(lang.t("render_losses_title"), job.final_name, on_yes, on_no, lines)
 end
 
 local function verify_and_queue(job, file_path, on_complete)

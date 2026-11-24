@@ -151,6 +151,9 @@ local audio_formats = {
     wav  = { encoder = "pcm",    codecs = wav_codecs,      single = true }
 }
 
+local video_order = { "mkv", "mp4", "mov", "webm", "m4v", "ts", "avi", "flv", "wmv" }
+local audio_order = { "mka", "m4a", "ogg", "oga", "opus", "flac", "mp3", "aac", "wav" }
+
 local function first_mix(out)
     for _, e in ipairs(out) do
         if e.kind == "mix" then return e end
@@ -167,16 +170,26 @@ local function needs_graph(out)
     return false
 end
 
-local function add_loss(media_info, key, count, vars)
-    if count == 0 then return end
-    vars           = vars or {}
-    vars.count     = count
-    vars.container = media_info.ext
-    media_info.losses[#media_info.losses + 1] = lang.t(key, vars)
-    if not media_info.loss_keys[key] then
-        media_info.loss_keys[key]                         = true
-        media_info.loss_order[#media_info.loss_order + 1] = key
+local function add_loss(media_info, key, detail)
+    local loss = media_info.loss_keys[key]
+    if not loss then
+        loss                                      = { key = key, details = {} }
+        media_info.loss_keys[key]                 = loss
+        media_info.losses[#media_info.losses + 1] = loss
     end
+    if detail and detail ~= "" then
+        for _, d in ipairs(loss.details) do
+            if d == detail then return end
+        end
+        loss.details[#loss.details + 1] = detail
+    end
+end
+
+local function deep_copy(t)
+    if type(t) ~= "table" then return t end
+    local out = {}
+    for k, v in pairs(t) do out[k] = deep_copy(v) end
+    return out
 end
 
 local function select_streams(info, opts, output_file)
@@ -186,13 +199,12 @@ local function select_streams(info, opts, output_file)
     info.ext        = ext
     info.losses     = {}
     info.loss_keys  = {}
-    info.loss_order = {}
     info.format     = audio_formats[ext] or video_formats[ext]
     info.audio_only = audio_formats[ext] ~= nil
     info.single     = info.audio_only and info.format.single == true
     info.audio_out  = result.audio
     if info.single and #info.audio_out > 1 then
-        add_loss(info, "loss_audio_tracks", #info.audio_out - 1)
+        add_loss(info, "loss_audio_tracks")
         info.audio_out = { first_mix(info.audio_out) }
     end
     info.a_titles   = {}
@@ -264,41 +276,31 @@ local function deselect(args, kind, count, keep)
 end
 
 local function map_subs(args, media_info)
-    local kept    = 0
-    local dropped = 0
-    local styled  = 0
-    local format  = nil
+    local kept = 0
     for i, codec in ipairs(media_info.subs) do
         local out = sub_codec(media_info.format, codec)
         if out then
             if out ~= "copy" then
                 table.insert(args, "-c:s:" .. kept) table.insert(args, out)
-                if styled_subs[codec] then
-                    styled = styled + 1
-                    format = out
-                end
+                if styled_subs[codec] then add_loss(media_info, "loss_sub_styles", codec) end
             end
             kept = kept + 1
         else
             table.insert(args, "-map") table.insert(args, string.format("-0:s:%d", i - 1))
-            dropped = dropped + 1
+            add_loss(media_info, "loss_subs", codec)
         end
     end
-    add_loss(media_info, "loss_subs", dropped)
-    add_loss(media_info, "loss_sub_styles", styled, { format = format })
 end
 
 local function map_data(args, media_info)
-    local fmt     = media_info.format or {}
-    local dropped = 0
+    local fmt = media_info.format or {}
     for i, tag in ipairs(media_info.data) do
         if not (fmt.data and fmt.data[tag]) then
             table.insert(args, "-map") table.insert(args, string.format("-0:d:%d", i - 1))
-            if tag ~= "tmcd" then dropped = dropped + 1 end
+            if tag ~= "tmcd" then add_loss(media_info, "loss_data", tag) end
         end
     end
-    add_loss(media_info, "loss_data", dropped)
-    if media_info.timecode and not fmt.timecode then add_loss(media_info, "loss_timecode", 1) end
+    if media_info.timecode and not fmt.timecode then add_loss(media_info, "loss_timecode") end
 end
 
 local function map_source(args, media_info, audio)
@@ -309,7 +311,7 @@ local function map_source(args, media_info, audio)
     map_data(args, media_info)
     if not (media_info.format and media_info.format.attachments) then
         table.insert(args, "-map") table.insert(args, "-0:t")
-        add_loss(media_info, "loss_attachments", media_info.attachments)
+        if media_info.attachments > 0 then add_loss(media_info, "loss_attachments") end
     end
     map_subs(args, media_info)
 end
@@ -331,7 +333,7 @@ local function check_video(media_info, codec_of)
         end
     end
     media_info.video_pick = pick
-    add_loss(media_info, "loss_covers", covers)
+    if covers > 0 then add_loss(media_info, "loss_covers") end
     return true
 end
 
@@ -364,7 +366,7 @@ end
 local function audio_codec_args(args, media_info, index, meta, force)
     local encoder  = track_encoder(media_info, meta)
     if encoder and not force and not media_info.a_choice then
-        add_loss(media_info, "loss_audio", 1, { track = index + 1, codec = meta.codec, encoder = media_info.format.encoder })
+        add_loss(media_info, "loss_audio", meta.codec)
     end
     local lossless = meta.codec == "flac" or meta.codec == "alac" or meta.codec:match("^pcm_")
     if not encoder and not force and (not media_info.a_bitrate or lossless) then return end
@@ -506,7 +508,8 @@ local function append_audio_effects(args, media_info, af_effects)
 end
 
 function M.build_args(opts, input_file, output_file, creation_time)
-    local media_info, tracks_err = select_streams(get_media_info(input_file), opts, output_file)
+    local probed                 = opts.probed or get_media_info(input_file)
+    local media_info, tracks_err = select_streams(deep_copy(probed), opts, output_file)
     if not media_info then return nil, tracks_err end
     local args     = { "ffmpeg", "-y", "-hide_banner" }
     local duration = opts.mark_out - opts.mark_in
@@ -681,25 +684,22 @@ function M.build_args(opts, input_file, output_file, creation_time)
         end
     end
 
-    if #media_info.losses > 0 and not opts.no_suggest then
-        local alt = media_info.audio_only and "mka" or "mkv"
-        if media_info.ext ~= alt then
-            local alt_opts = { no_suggest = true }
-            for k, v in pairs(opts) do alt_opts[k] = v end
-            local alt_out                  = output_file:gsub("%.[^%./\\]+$", "") .. "." .. alt
-            local alt_args, _, _, alt_keys = M.build_args(alt_opts, input_file, alt_out, creation_time)
-            local kept                     = {}
-            for _, key in ipairs(alt_args and media_info.loss_order or {}) do
-                if not alt_keys[key] then kept[#kept + 1] = lang.t(key .. "_kept") end
-            end
-            if #kept > 0 then
-                media_info.losses[#media_info.losses + 1] = lang.t("loss_suggest", { container = alt, what = table.concat(kept, ", ") })
+    if #media_info.losses > 0 and not opts.probed then
+        media_info.supported = {}
+        local alt_opts       = {}
+        for k, v in pairs(opts) do alt_opts[k] = v end
+        alt_opts.probed = probed
+        for _, ext in ipairs(media_info.audio_only and audio_order or video_order) do
+            if ext ~= media_info.ext then
+                local alt_out                = output_file:gsub("%.[^%./\\]+$", "") .. "." .. ext
+                local alt_args, _, alt_lossy = M.build_args(alt_opts, input_file, alt_out, creation_time)
+                if alt_args and #alt_lossy.losses == 0 then media_info.supported[#media_info.supported + 1] = ext end
             end
         end
     end
 
     table.insert(args, output_file)
-    return args, out_fps, media_info.losses, media_info.loss_keys
+    return args, out_fps, { losses = media_info.losses, supported = media_info.supported or {}, container = media_info.ext }
 end
 
 return M

@@ -178,7 +178,7 @@ function M.build_job(spec)
         show_stats_terminal = spec.show_stats_terminal,
         stats_osd_time      = spec.stats_osd_time,
         input_size          = (in_info and in_info.size) or spec.input_size or 0,
-        losses              = losses or {},
+        losses              = losses or { losses = {}, supported = {} },
         rename_callback     = spec.rename_callback
     }
 end
