@@ -135,10 +135,12 @@ return {
     goto_no_duration  = "Skok po procentima nije moguć, trajanje je nepoznato",
     goto_no_fps       = "Skok po frejmovima nije moguć, FPS je nepoznat",
 
-    trash_no_tool = "Alatka za smeće nije pronađena",
-    trash_confirm = "Premestiti trenutnu datoteku u smeće?",
-    trash_done    = "Izvorni video je premešten u smeće",
-    trash_failed  = "Premeštanje izvornog videa u smeće nije uspelo, možda je u upotrebi",
+    trash_no_tool        = "Alatka za smeće nije pronađena",
+    trash_confirm        = "Premestiti trenutnu datoteku u smeće?",
+    trash_confirm_queued = "Red renderovanja još koristi trenutnu datoteku, premestiti je u smeće kad se njena renderovanja završe?",
+    trash_waiting        = "{name} ide u smeće kad se njena renderovanja završe",
+    trash_done           = "Izvorni video je premešten u smeće",
+    trash_failed         = "Premeštanje izvornog videa u smeće nije uspelo, možda je u upotrebi",
 
     effects_duration  = "Trajanje (s)",
     effects_added     = "Efekat dodat: {name}",
@@ -285,7 +287,10 @@ return {
         "opus, mp3, aac, flac i wav drže jednu traku, prvi miks ili zadržanu traku",
         "Bez zadržanog videa podrazumevano ime koristi format same trake, ili mka za više njih"
     },
-    opt_trash_source      = { "Premešta izvor u smeće posle renderovanja" },
+    opt_trash_source      = {
+        "Premešta izvor u smeće posle renderovanja",
+        "Čeka ostala renderovanja izvora u redu, zatim reprodukcija prelazi na sledeću datoteku"
+    },
 
     opt_video_encoder     = {
         "Video enkoder, nv_, amd_ i intel_ rade na grafičkoj",
@@ -447,14 +452,17 @@ return {
     stats_saved_time   = "Ušteđeno vreme",
     stats_render_time  = "Vreme renderovanja",
 
-    queue_empty        = "Red renderovanja je prazan",
-    queue_paused_job   = "{name} (pauzirano)",
-    queue_paused       = "Red renderovanja je pauziran",
-    queue_pausing      = "Red renderovanja se pauzira, trenutno renderovanje se prvo završava",
-    queue_resumed      = "Red renderovanja je nastavljen",
-    queue_added        = "Dodato u red: {name}",
-    queue_added_paused = "Dodato u red, red je pauziran: {name}",
-    queue_removed      = "Uklonjeno iz reda: {name}",
+    queue_empty          = "Red renderovanja je prazan",
+    queue_paused_job     = "{name} (pauzirano)",
+    queue_paused         = "Red renderovanja je pauziran",
+    queue_pausing        = "Red renderovanja se pauzira, trenutno renderovanje se prvo završava",
+    queue_resumed        = "Red renderovanja je nastavljen",
+    queue_added          = "Dodato u red: {name}",
+    queue_added_paused   = "Dodato u red, red je pauziran: {name}",
+    queue_removed        = "Uklonjeno iz reda: {name}",
+    queue_cancel_confirm = "Otkazati renderovanje?",
+    queue_remove_confirm = "Ukloniti iz reda?",
+    queue_trashes        = "Premešta u smeće {path}",
 
     render_progress      = "Renderovanje {name}: {percent}%",
     render_started       = "Renderovanje počelo: {name}",

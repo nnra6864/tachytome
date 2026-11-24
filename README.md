@@ -208,12 +208,12 @@ The `simple` menu keeps every item on a single level, switch to it with `s-s` `m
 | <hr>    | <hr>              | <hr>                                                                                         |
 | p       | Path              | Set Output path.<br>Learn more about [Path](#path).                                          |
 | _       | Space Replacement | Set the character to replace spaces with.                                                    |
-| t       | Trash Source      | Toggle trashing of the source file on render completion.                                     |
+| t       | Trash Source      | Trash the source once its last queued render finishes, playback moves on.                   |
 | <hr>    | <hr>              | <hr>                                                                                         |
 | Enter   | Render            | Start the render of the output file.                                                         |
 | r-q     | Render Queue      | Open the render queue menu.                                                                  |
 | r-p     | Pause Render      | Pause the current render and render queue.<br>Can only pause the render queue on Windows.    |
-| d       | Trash Source Now  | Trash the source file.                                                                       |
+| d       | Trash Source Now  | Trash the source and move on, or once its queued renders finish.                            |
 | <hr>    | <hr>              | <hr>                                                                                         |
 | s-s     | Settings          | Open the [Settings](#settings) submenu.                                                      |
 | Esc     | Close             | Close the currently active menu.                                                             |
@@ -282,7 +282,7 @@ Updating through git switches the checkout to the branch, or detaches it at the 
 |---------|---------------|--------------------------------------------------------------------------------------------|
 | Enter   | Pause Render  | Pauses the current render and render queue.<br>Can only pause the render queue on Windows. |
 | p       | Change Path   | Change output path.                                                                        |
-| d       | Delete        | Deletes the item from the render queue.                                                    |
+| d       | Delete        | Deletes the item, asks first if it cancels a render or trashes the source.                |
 
 #### Go To Prompt
 

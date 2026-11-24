@@ -135,10 +135,12 @@ return {
     goto_no_duration  = "Cannot jump by percent, duration unknown",
     goto_no_fps       = "Cannot jump by frames, FPS unknown",
 
-    trash_no_tool = "Trash utility not found",
-    trash_confirm = "Move the current file to the trash?",
-    trash_done    = "Trashed the source video",
-    trash_failed  = "Failed to trash the source video, it may be in use",
+    trash_no_tool        = "Trash utility not found",
+    trash_confirm        = "Move the current file to the trash?",
+    trash_confirm_queued = "The render queue still uses the current file, trash it once its renders finish?",
+    trash_waiting        = "{name} goes to the trash once its renders finish",
+    trash_done           = "Trashed the source video",
+    trash_failed         = "Failed to trash the source video, it may be in use",
 
     effects_duration  = "Duration (s)",
     effects_added     = "Effect added: {name}",
@@ -285,7 +287,10 @@ return {
         "opus, mp3, aac, flac and wav hold one track, the first mix or kept track",
         "With no video kept, the default name uses the track's own format, or mka for several"
     },
-    opt_trash_source      = { "Moves the source to the trash after a render" },
+    opt_trash_source      = {
+        "Moves the source to the trash after a render",
+        "It waits for the source's other queued renders, then playback moves on to the next file"
+    },
 
     opt_video_encoder     = {
         "Video encoder, the nv_, amd_ and intel_ ones run on the GPU",
@@ -447,14 +452,17 @@ return {
     stats_saved_time   = "Saved Time",
     stats_render_time  = "Render Time",
 
-    queue_empty        = "Render queue is empty",
-    queue_paused_job   = "{name} (Paused)",
-    queue_paused       = "Render queue paused",
-    queue_pausing      = "Render queue pausing, the current render finishes first",
-    queue_resumed      = "Render queue resumed",
-    queue_added        = "Queued: {name}",
-    queue_added_paused = "Queued, the queue is paused: {name}",
-    queue_removed      = "Removed from the queue: {name}",
+    queue_empty          = "Render queue is empty",
+    queue_paused_job     = "{name} (Paused)",
+    queue_paused         = "Render queue paused",
+    queue_pausing        = "Render queue pausing, the current render finishes first",
+    queue_resumed        = "Render queue resumed",
+    queue_added          = "Queued: {name}",
+    queue_added_paused   = "Queued, the queue is paused: {name}",
+    queue_removed        = "Removed from the queue: {name}",
+    queue_cancel_confirm = "Cancel the render?",
+    queue_remove_confirm = "Remove from the queue?",
+    queue_trashes        = "Trashes {path}",
 
     render_progress      = "Rendering {name}: {percent}%",
     render_started       = "Render started: {name}",

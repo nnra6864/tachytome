@@ -216,6 +216,17 @@ function M.display_path(path, input_path)
     return best
 end
 
+function M.same_path(a, b)
+    if not a or not b then return false end
+    a = a:gsub("[/\\]+", "/")
+    b = b:gsub("[/\\]+", "/")
+    if M.get_platform() ~= "linux" then
+        a = a:lower()
+        b = b:lower()
+    end
+    return a == b
+end
+
 function M.text_len(s)
     return select(2, s:gsub("[^\128-\191]", ""))
 end

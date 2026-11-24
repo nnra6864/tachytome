@@ -8,6 +8,8 @@ local notify      = require 'src.notify'
 local theme       = require 'src.theme'
 local ui_input    = require 'src.ui_input'
 local ui_choice   = require 'src.ui_choice'
+local ui_confirm  = require 'src.ui_confirm'
+local trash       = require 'src.trash'
 local list_search = require 'src.list_search'
 local lang        = require 'src.lang'
 local ui          = require 'src.ui'
@@ -213,26 +215,51 @@ function M.show(on_close)
             end
         end)
 
+        local function after_delete()
+            jobs = rebuild_jobs()
+            if #jobs == 0 then
+                if on_close then on_close() end
+            else
+                if cursor > #jobs then cursor = #jobs end
+                open_ui()
+            end
+        end
+
         local function delete_selected()
             local job = jobs[cursor]
             if not job then return end
+            local q_job = job.is_active and queue.active or queue.jobs[job.original_index]
+            if not q_job then return end
+            local input = q_job.input_file
 
-            if job.is_active then
-                render.cancel_render()
-            else
-                table.remove(queue.jobs, job.original_index)
-                queue.total_jobs = queue.total_jobs > 0 and (queue.total_jobs - 1) or 0
-                notify.show(lang.t("queue_removed", { name = job.title }), true)
-                queue.save()
+            local function remove()
+                if job.is_active then
+                    render.cancel_render()
+                else
+                    table.remove(queue.jobs, job.original_index)
+                    queue.total_jobs = queue.total_jobs > 0 and (queue.total_jobs - 1) or 0
+                    notify.show(lang.t("queue_removed", { name = job.title }), true)
+                    queue.save()
+                    trash.settle(input)
+                end
             end
 
-            jobs = rebuild_jobs()
-            if #jobs == 0 then
-                cleanup()
-            else
+            local lines = {}
+            if trash.pending(input) and trash.users(input) == 1 then lines[1] = lang.t("queue_trashes", { path = common.display_path(input) }) end
+            if not job.is_active and #lines == 0 then
+                remove()
+                jobs = rebuild_jobs()
+                if #jobs == 0 then return cleanup() end
                 if cursor > #jobs then cursor = #jobs end
-                draw()
+                return draw()
             end
+
+            teardown()
+            local title = job.is_active and lang.t("queue_cancel_confirm") or lang.t("queue_remove_confirm")
+            ui_confirm.show(title, job.title, function()
+                remove()
+                after_delete()
+            end, open_ui, lines)
         end
 
         mp.add_forced_key_binding("d", "qm-d", delete_selected)

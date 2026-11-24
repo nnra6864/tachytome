@@ -7,6 +7,7 @@ local ui_list       = require 'src.ui_list'
 local ui_confirm    = require 'src.ui_confirm'
 local queue_manager = require 'src.queue_manager'
 local render        = require 'src.render'
+local trash         = require 'src.trash'
 local stats         = require 'src.stats'
 local state         = require 'src.state'
 local notify        = require 'src.notify'
@@ -324,13 +325,14 @@ function M.trash_source(on_complete)
         return
     end
 
-    ui_confirm.show(lang.t("trash_confirm"), current_file, function()
-        common.trash_file(current_file, state.trash_path, function(success)
-            if success then
-                notify.show(lang.t("trash_done"), true)
-                mp.commandv("playlist-next", "weak")
-            else notify.show(lang.t("trash_failed"), true, "error") end
-        end)
+    local queued = trash.users(current_file)
+    local title  = queued > 0 and lang.t("trash_confirm_queued", { count = queued }) or lang.t("trash_confirm")
+    ui_confirm.show(title, current_file, function()
+        if queued > 0 then
+            trash.request(current_file, state.trash_path)
+        else
+            trash.now(current_file, state.trash_path)
+        end
         if on_complete then on_complete() end
     end, on_complete)
 end

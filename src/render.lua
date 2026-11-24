@@ -9,6 +9,7 @@ local theme     = require 'src.theme'
 local process   = require 'src.process'
 local ui_choice = require 'src.ui_choice'
 local tracks    = require 'src.tracks'
+local trash     = require 'src.trash'
 local lang      = require 'src.lang'
 
 local M = {}
@@ -219,6 +220,7 @@ function M.process_queue()
             queue.delete_temp_file(active_job.temp_file)
             notify.show(lang.t("render_cancelled", { name = active_job.final_name }), true)
             reset_and_advance()
+            trash.settle(active_job.input_file)
             return
         end
 
@@ -258,16 +260,13 @@ function M.process_queue()
                 notify.show(lang.t("render_move_failed", { path = active_job.output_file }), true, "error")
                 mp.msg.error("Rename failed (" .. tostring(rename_err) .. "), rendered file kept at: " .. active_job.temp_file)
                 reset_and_advance()
+                trash.settle(active_job.input_file)
                 return
             end
 
-            if active_job.trash_source and active_job.trash_path and active_job.input_file ~= active_job.output_file then
-                common.trash_file(active_job.input_file, active_job.trash_path, function(t_success)
-                    if not t_success then notify.show(lang.t("trash_failed"), true, "warn") end
-                    finish_job()
-                end)
-            else
-                finish_job()
+            finish_job()
+            if active_job.trash_source and not common.same_path(active_job.input_file, active_job.output_file) then
+                trash.request(active_job.input_file, active_job.trash_path)
             end
         else
             queue.delete_temp_file(active_job.temp_file)
