@@ -122,6 +122,13 @@ local channel_bitrates = { libopus = 256000, aac = 256000 }
 
 local seek_margin = 10
 
+local function seek_point(keyframe, mark)
+    if not keyframe then return math.max(0, math.floor(mark - seek_margin)) end
+    local point = math.ceil(keyframe * 1000) / 1000
+    if point > mark then point = math.floor(keyframe * 1000) / 1000 end
+    return point
+end
+
 local ogg_codecs ={ opus = true, vorbis = true, flac = true }
 local wav_codecs = { pcm_s16le = true, pcm_s24le = true, pcm_s32le = true, pcm_f32le = true, pcm_u8 = true }
 
@@ -451,12 +458,13 @@ function M.build_args(opts, input_file, output_file, creation_time)
     local duration = opts.mark_out - opts.mark_in
     local out_fps  = nil
     local accurate = opts.accurate_cut or opts.lossless_cut
-    local coarse   = accurate and math.max(0, math.floor(opts.mark_in - seek_margin)) or 0
+    local keyframe = accurate and common.nearest_keyframe_at_or_before(input_file, opts.mark_in) or nil
+    local coarse   = accurate and seek_point(keyframe, opts.mark_in) or 0
 
     local vf_effects = {}
     local af_effects = {}
     if opts.effects then
-        local offset = accurate and (opts.mark_in - coarse) or 0
+        local offset = accurate and opts.mark_in or 0
         vf_effects, af_effects = effects.build_filters(opts.effects, duration, offset, {
             full_range = media_info.full_range,
             fps        = parse_fps(opts.fps_override or media_info.v_fps)
@@ -478,11 +486,10 @@ function M.build_args(opts, input_file, output_file, creation_time)
     end)
     if not fits_video then return nil, video_err end
 
-    local trim_at = opts.mark_in - coarse
-    local trimmed = accurate and trim_at > 0
+    local trimmed = accurate and opts.mark_in > 0
     if trimmed then
-        if #vf_effects > 0 then table.insert(vf_effects, 1, "trim=start=" .. tostring(trim_at)) end
-        if #af_effects > 0 then table.insert(af_effects, 1, "atrim=start=" .. tostring(trim_at)) end
+        if #vf_effects > 0 then table.insert(vf_effects, 1, "trim=start=" .. tostring(opts.mark_in)) end
+        if #af_effects > 0 then table.insert(af_effects, 1, "atrim=start=" .. tostring(opts.mark_in)) end
     end
     local at = (trimmed and #vf_effects > 0) and 2 or 1
     for i, f in ipairs(vf_resolution) do table.insert(vf_effects, at + i - 1, f) end
@@ -491,17 +498,18 @@ function M.build_args(opts, input_file, output_file, creation_time)
 
     local seek_in = opts.mark_in
     if lossless then
-        seek_in = common.nearest_keyframe_at_or_before(input_file, opts.mark_in) or opts.mark_in
-        coarse  = math.max(0, math.floor(seek_in - seek_margin))
+        seek_in = keyframe or opts.mark_in
+        coarse  = seek_point(keyframe and seek_in > 0 and common.nearest_keyframe_at_or_before(input_file, seek_in - 0.001) or nil, seek_in)
     end
 
     if accurate then
         if coarse > 0 then
-            table.insert(args, "-ss") table.insert(args, tostring(coarse))
+            table.insert(args, "-itsoffset") table.insert(args, tostring(coarse))
+            table.insert(args, "-ss")        table.insert(args, tostring(coarse))
         end
         table.insert(args, "-i")  table.insert(args, input_file)
-        table.insert(args, "-ss") table.insert(args, tostring(seek_in - coarse))
-        table.insert(args, "-to") table.insert(args, tostring(opts.mark_out - coarse))
+        table.insert(args, "-ss") table.insert(args, tostring(seek_in))
+        table.insert(args, "-to") table.insert(args, tostring(opts.mark_out))
     else
         table.insert(args, "-ss") table.insert(args, tostring(opts.mark_in))
         table.insert(args, "-i")  table.insert(args, input_file)
