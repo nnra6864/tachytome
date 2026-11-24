@@ -34,15 +34,11 @@ New strings go in every language file, `lang/en.lua` and `lang/sr.lua`.
 - Lists show as many rows as the OSD height and `font_size` allow instead
   of a fixed 15.
 
-## 5. README states the minimum mpv version
-- Under Dependencies, from what the script uses, `create_osd_overlay`,
-  `command_native_async`, `clipboard/text` and the `any_unicode` key text.
-
-## 6. Loading current values in the Config Editor lists them
+## 5. Loading current values in the Config Editor lists them
 - `l` asks first with the changes it would load, `quality 35 -> 40` one
   per line like saving does, instead of only counting them.
 
-## 7. Smaller performance fixes
+## 6. Smaller performance fixes
 - Autocrop runs at most 2-3 ffmpeg decoders at once, waits for marks to
   settle and forgets old results per file.
 - The Config Editor parses the builtin config once instead of on every
@@ -50,7 +46,7 @@ New strings go in every language file, `lang/en.lua` and `lang/sr.lua`.
 - The ffprobes at render start, creation time and stream info, run in the
   background.
 
-## 8. URL and ytdl sources [?]
+## 7. URL and ytdl sources [?]
 - ffmpeg reads plain http(s) media URLs directly, so those mostly need the
   output name taken from `media-title`, no Trash Source, and no size from
   `file_info`.
@@ -62,7 +58,7 @@ New strings go in every language file, `lang/en.lua` and `lang/sr.lua`.
   their headers, or hand the cut to `yt-dlp --download-sections` and render
   from that.
 
-## 9. Restructure, once the features above are in
+## 8. Restructure, once the features above are in
 - Audit section 4: one job record, data-driven encoders, a view helper for
   every OSD screen, a preset store factory, one file module with atomic
   writes, `common.lua` split up, one owner for state, tests for the pure

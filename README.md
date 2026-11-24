@@ -68,6 +68,7 @@ To install manually instead, get the dependencies and clone the repo or add it a
 
 ### Dependencies
 
+- [mpv](https://mpv.io/) 0.33 or newer, 0.40 or newer for pasting into text inputs.
 - [ffmpeg](https://ffmpeg.org/) - needed for all the video operations.
 - [gio](https://www.gtk.org/docs/architecture/glib)/[trash](https://github.com/andreafrancia/trash-cli) - needed on Linux for trashing files.
 
