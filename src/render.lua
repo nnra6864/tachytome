@@ -1,16 +1,17 @@
-local mp        = require 'mp'
-local utils     = require 'mp.utils'
-local common    = require 'src.common'
-local stats     = require 'src.stats'
-local queue     = require 'src.queue'
-local state     = require 'src.state'
-local notify    = require 'src.notify'
-local theme     = require 'src.theme'
-local process   = require 'src.process'
-local ui_choice = require 'src.ui_choice'
-local tracks    = require 'src.tracks'
-local trash     = require 'src.trash'
-local lang      = require 'src.lang'
+local mp         = require 'mp'
+local utils      = require 'mp.utils'
+local common     = require 'src.common'
+local stats      = require 'src.stats'
+local queue      = require 'src.queue'
+local state      = require 'src.state'
+local notify     = require 'src.notify'
+local theme      = require 'src.theme'
+local process    = require 'src.process'
+local ui_choice  = require 'src.ui_choice'
+local ui_confirm = require 'src.ui_confirm'
+local tracks     = require 'src.tracks'
+local trash      = require 'src.trash'
+local lang       = require 'src.lang'
 
 local M = {}
 
@@ -164,10 +165,6 @@ local function queue_job(job, on_complete)
         notify.show(lang.t("queue_added_paused", { name = job.final_name }), true)
     end
     M.process_queue()
-    if job.dropped_subs > 0 then
-        local ext = job.output_file:match("%.([^%./\\]+)$") or ""
-        notify.show(lang.t("render_subs_dropped", { container = ext, count = job.dropped_subs }), true, "warn")
-    end
     queue.save()
     if on_complete then on_complete() end
 end
@@ -367,6 +364,11 @@ function M.dismiss(rec)
     trash.cancel(rec.input_file)
 end
 
+function M.confirm_losses(job, on_yes, on_no)
+    if #job.losses == 0 then return on_yes() end
+    ui_confirm.show(lang.t("render_losses_title"), job.final_name, on_yes, on_no, job.losses)
+end
+
 local function verify_and_queue(job, file_path, on_complete)
     if not queue.is_path_in_use(file_path) then
         queue_job(job, on_complete)
@@ -447,7 +449,11 @@ function M.start(opts)
         return
     end
 
-    verify_and_queue(job, output_file, opts.on_complete)
+    M.confirm_losses(job, function()
+        verify_and_queue(job, output_file, opts.on_complete)
+    end, function()
+        if opts.on_complete then opts.on_complete() end
+    end)
 end
 
 return M

@@ -415,6 +415,18 @@ function M.nearest_keyframe_at_or_before(file, t)
     return found
 end
 
+function M.keyframe_dts(file, t)
+    local from = string.format("%.3f%%+#64", math.max(0, t - 0.001))
+    local raw  = M.ffprobe_get(file, {"-select_streams", "v:0", "-read_intervals", from, "-show_entries", "packet=pts_time,dts_time,flags", "-of", "csv=p=0"})
+    for line in (raw or ""):gmatch("[^\r\n]+") do
+        local pts, dts, flags = line:match("^(.-),(.-),(.*)$")
+        if flags and flags:find("K", 1, true) and tonumber(pts) and math.abs(tonumber(pts) - t) < 0.0005 then
+            return tonumber(dts)
+        end
+    end
+    return nil
+end
+
 function M.listen_keyframes(name, fn)
     keyframe_listeners[name] = fn
 end

@@ -191,6 +191,43 @@ function M.show(on_close)
             return common.resolve_absolute_path_for(input, state.opts, q_job.input_file)
         end
 
+        local function ext_of(file)
+            return (file:match("%.([^%./\\]+)$") or ""):lower()
+        end
+
+        local function change_to(input, new_output)
+            if ext_of(new_output) == ext_of(current_output) then
+                apply_change_path(input, new_output)
+                return open_ui()
+            end
+            if q_job == queue.active then
+                notify.show(lang.t("queue_active_container"), true, "warn")
+                return open_ui()
+            end
+            local item = sel.is_failed and {} or queue.item_from_job(q_job)
+            if sel.is_failed then
+                for k, v in pairs(q_job) do item[k] = v end
+            end
+            local _, fname   = utils.split_path(new_output)
+            item.output_file = new_output
+            item.final_name  = fname
+            local job, err   = queue.job_from_item(item)
+            if not job then
+                notify.show(err, true, "error")
+                return open_ui()
+            end
+            render.confirm_losses(job, function()
+                for i, j in ipairs(queue.jobs) do
+                    if j == q_job then
+                        queue.jobs[i] = job
+                        q_job         = job
+                    end
+                end
+                apply_change_path(input, new_output)
+                open_ui()
+            end, open_ui)
+        end
+
         local function prompt_change_path()
             ui_input.show({
                 title       = lang.t("menu_path"),
@@ -203,15 +240,11 @@ function M.show(on_close)
                     local new_output = input ~= "" and resolve(input) or ""
                     if new_output == "" or new_output == current_output then return open_ui() end
 
-                    if not queue.is_path_in_use(new_output) then
-                        apply_change_path(input, new_output)
-                        return open_ui()
-                    end
+                    if not queue.is_path_in_use(new_output) then return change_to(input, new_output) end
 
                     local _, new_name = utils.split_path(new_output)
                     ui_choice.show_exists(new_name, prompt_change_path, function()
-                        apply_change_path(input, new_output)
-                        open_ui()
+                        change_to(input, new_output)
                     end, open_ui)
                 end
             })

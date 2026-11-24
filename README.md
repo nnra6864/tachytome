@@ -283,7 +283,7 @@ Only Tachytome's own git repo is updated through git, a script dir inside anothe
 | Keybind | Action        | Description                                                                                |
 |---------|---------------|--------------------------------------------------------------------------------------------|
 | Space   | Pause/Resume  | Pauses or resumes the current render and render queue.<br>Only the queue on Windows.      |
-| p       | Change Path   | Change output path, a failed render keeps it for its retry.                               |
+| p       | Change Path   | Change output path, a failed render keeps it for its retry.<br>Another container [asks first](#containers) if it loses anything, the active render keeps its own. |
 | d       | Delete        | Deletes the item, asks first if it cancels a render or trashes the source.                |
 | r       | Retry         | Retry the failed render with the same settings.                                           |
 | l       | Log           | Shows the failed render's ffmpeg command and its whole error.                             |
@@ -1047,14 +1047,20 @@ This only affects what is displayed, ffmpeg and the render queue always use the 
 
 #### Containers
 
-`mkv` holds everything, other containers get what they can hold:
-- Data tracks, like the timecode track phones and cameras write, are left out, and attachments like fonts only go in `mkv`.
-- Subtitles become `mov_text` in `mp4`, `mov` and `m4v` and WebVTT in `webm`, picture subtitles like PGS are left out there.<br>
-  `avi`, `flv` and `wmv` hold no subtitles and `ts` only DVB ones, a notice says how many tracks were left out.
+`mkv` holds the most, other containers get what they can hold.<br>
+Anything a render would lose is listed in one dialog before it's queued, `y` or Enter renders anyway, `n` or Esc cancels.<br>
+Changing the path of a queued render to another container in the [Render Queue](#render-queue) asks the same way.
+- Subtitles become `mov_text` in `mp4`, `mov` and `m4v` and WebVTT in `webm`.<br>
+  Styled ASS/SSA subtitles lose their fonts, colors and positions there, picture subtitles like PGS are left out.<br>
+  `avi`, `flv` and `wmv` hold no subtitles and `ts` only DVB ones.
+- Attachments like fonts only go in `mkv`.
+- The timecode phones and cameras write is kept in `mkv`, `mp4`, `mov` and `webm`.
+- GoPro telemetry is kept in `mp4` and `mov`, other data tracks can't be copied by ffmpeg and are left out.
 - Audio the container can't hold is re-encoded, to Opus in `webm` and AAC in `mov`, `m4v`, `avi`, `flv` and `wmv`.
+- Containers that hold one audio track, like `mp3` and `wav`, keep only the first mix or track.
+- Cover pictures the container can't hold are left out.
 - Video the container can't hold stops the render before it's queued.<br>
   `webm` holds AV1 and VP9, `mov` H.264 and H.265, `m4v` H.264 and `wmv` anything but H.265.
-
 
 ## Contributing
 

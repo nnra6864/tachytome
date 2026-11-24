@@ -49,10 +49,11 @@ local function get_media_info(input_file)
         "-show_streams", "-print_format", "json"
     })
 
-    local info = { audio = {}, video = {}, subs = {} }
+    local info = { audio = {}, video = {}, subs = {}, data = {}, attachments = 0, timecode = false }
     if not probe_data or not probe_data.streams then return info end
 
     for _, s in ipairs(probe_data.streams) do
+        if s.tags and (s.tags.timecode or s.tags.TIMECODE) then info.timecode = true end
         if s.codec_type == "audio" then
             local title = s.tags and (s.tags.title or s.tags.TITLE)
             info.audio[#info.audio + 1] = { codec = s.codec_name, sample_rate = s.sample_rate, bit_rate = s.bit_rate, channels = tonumber(s.channels), title = title }
@@ -63,6 +64,11 @@ local function get_media_info(input_file)
             info.video[#info.video + 1] = { codec = s.codec_name, cover = cover, fps = fps, full_range = s.color_range == "pc", size = display_size(s) }
         elseif s.codec_type == "subtitle" then
             info.subs[#info.subs + 1] = s.codec_name or ""
+        elseif s.codec_type == "data" then
+            if s.codec_tag_string == "tmcd" then info.timecode = true end
+            info.data[#info.data + 1] = s.codec_tag_string or ""
+        elseif s.codec_type == "attachment" then
+            info.attachments = info.attachments + 1
         end
     end
     return info
@@ -82,12 +88,13 @@ local function with_pcm(list)
 end
 
 local bitmap_subs = codec_set({ "hdmv_pgs_subtitle", "dvd_subtitle", "dvb_subtitle", "dvb_teletext", "xsub" })
+local styled_subs = codec_set({ "ass", "ssa" })
 
 local video_formats = {
-    mkv  = { attachments = true, subs = "copy" },
-    mp4  = { subs = "mov_text" },
-    webm = { video = codec_set({ "av1", "vp9", "vp8" }), encoder = "opus", codecs = codec_set({ "opus", "vorbis" }), subs = "webvtt" },
-    mov  = { video = codec_set({ "h264", "hevc" }), encoder = "aac", codecs = with_pcm({ "aac", "mp3", "ac3", "eac3", "vorbis" }), subs = "mov_text" },
+    mkv  = { attachments = true, timecode = true, subs = "copy" },
+    mp4  = { timecode = true, data = codec_set({ "gpmd" }), subs = "mov_text" },
+    webm = { video = codec_set({ "av1", "vp9", "vp8" }), timecode = true, encoder = "opus", codecs = codec_set({ "opus", "vorbis" }), subs = "webvtt" },
+    mov  = { video = codec_set({ "h264", "hevc" }), timecode = true, data = codec_set({ "gpmd" }), encoder = "aac", codecs = with_pcm({ "aac", "mp3", "ac3", "eac3", "vorbis" }), subs = "mov_text" },
     m4v  = { video = codec_set({ "h264" }), encoder = "aac", codecs = codec_set({ "aac", "ac3", "eac3" }), subs = "mov_text" },
     avi  = { encoder = "aac", codecs = with_pcm({ "aac", "mp3", "flac", "ac3", "vorbis" }) },
     ts   = { subs = "dvb_subtitle" },
@@ -165,12 +172,15 @@ local function select_streams(info, opts, output_file)
     if not result then return nil, err end
     local ext       = (output_file:match("%.([a-zA-Z0-9]+)$") or ""):lower()
     info.ext        = ext
-    info.dropped    = 0
+    info.losses     = {}
     info.format     = audio_formats[ext] or video_formats[ext]
     info.audio_only = audio_formats[ext] ~= nil
     info.single     = info.audio_only and info.format.single == true
     info.audio_out  = result.audio
-    if info.single and #info.audio_out > 1 then info.audio_out = { first_mix(info.audio_out) } end
+    if info.single and #info.audio_out > 1 then
+        info.losses[#info.losses + 1] = lang.t("loss_audio_tracks", { container = ext, count = #info.audio_out - 1 })
+        info.audio_out = { first_mix(info.audio_out) }
+    end
     info.a_titles   = {}
     for k, e in ipairs(info.audio_out) do info.audio_out[k], info.a_titles[k] = tracks.flatten(e) end
     info.has_mix    = needs_graph(info.audio_out)
@@ -239,20 +249,50 @@ local function deselect(args, kind, count, keep)
     end
 end
 
+local function add_loss(media_info, key, count, vars)
+    if count == 0 then return end
+    vars           = vars or {}
+    vars.count     = count
+    vars.container = media_info.ext
+    media_info.losses[#media_info.losses + 1] = lang.t(key, vars)
+end
+
 local function map_subs(args, media_info)
-    local kept = 0
+    local kept    = 0
+    local dropped = 0
+    local styled  = 0
+    local format  = nil
     for i, codec in ipairs(media_info.subs) do
         local out = sub_codec(media_info.format, codec)
         if out then
             if out ~= "copy" then
                 table.insert(args, "-c:s:" .. kept) table.insert(args, out)
+                if styled_subs[codec] then
+                    styled = styled + 1
+                    format = out
+                end
             end
             kept = kept + 1
         else
             table.insert(args, "-map") table.insert(args, string.format("-0:s:%d", i - 1))
-            media_info.dropped = media_info.dropped + 1
+            dropped = dropped + 1
         end
     end
+    add_loss(media_info, "loss_subs", dropped)
+    add_loss(media_info, "loss_sub_styles", styled, { format = format })
+end
+
+local function map_data(args, media_info)
+    local fmt     = media_info.format or {}
+    local dropped = 0
+    for i, tag in ipairs(media_info.data) do
+        if not (fmt.data and fmt.data[tag]) then
+            table.insert(args, "-map") table.insert(args, string.format("-0:d:%d", i - 1))
+            if tag ~= "tmcd" then dropped = dropped + 1 end
+        end
+    end
+    add_loss(media_info, "loss_data", dropped)
+    if media_info.timecode and not fmt.timecode then add_loss(media_info, "loss_timecode", 1) end
 end
 
 local function map_source(args, media_info, audio)
@@ -260,9 +300,10 @@ local function map_source(args, media_info, audio)
     deselect(args, "a", #media_info.audio, audio)
     if media_info.audio_only then return end
     deselect(args, "v", #media_info.video, media_info.video_pick)
-    table.insert(args, "-map") table.insert(args, "-0:d")
+    map_data(args, media_info)
     if not (media_info.format and media_info.format.attachments) then
         table.insert(args, "-map") table.insert(args, "-0:t")
+        add_loss(media_info, "loss_attachments", media_info.attachments)
     end
     map_subs(args, media_info)
 end
@@ -270,17 +311,21 @@ end
 local function check_video(media_info, codec_of)
     local fmt = media_info.format
     if not fmt or not fmt.video then return true end
-    local pick = {}
+    local pick   = {}
+    local covers = 0
     for _, i in ipairs(media_info.video_pick) do
         local v     = media_info.video[i + 1]
         local codec = codec_of(v)
         if fmt.video[codec] then
             pick[#pick + 1] = i
-        elseif not v.cover then
+        elseif v.cover then
+            covers = covers + 1
+        else
             return nil, lang.t("render_bad_video", { codec = codec, container = media_info.ext })
         end
     end
     media_info.video_pick = pick
+    add_loss(media_info, "loss_covers", covers)
     return true
 end
 
@@ -312,6 +357,9 @@ end
 
 local function audio_codec_args(args, media_info, index, meta, force)
     local encoder  = track_encoder(media_info, meta)
+    if encoder and not force and not media_info.a_choice then
+        add_loss(media_info, "loss_audio", 1, { track = index + 1, codec = meta.codec, encoder = media_info.format.encoder })
+    end
     local lossless = meta.codec == "flac" or meta.codec == "alac" or meta.codec:match("^pcm_")
     if not encoder and not force and (not media_info.a_bitrate or lossless) then return end
 
@@ -497,9 +545,14 @@ function M.build_args(opts, input_file, output_file, creation_time)
     table.insert(args, "-fflags") table.insert(args, "+genpts")
 
     local seek_in = opts.mark_in
+    local cut_at  = seek_in
     if lossless then
-        seek_in = keyframe or opts.mark_in
-        coarse  = seek_point(keyframe and seek_in > 0 and common.nearest_keyframe_at_or_before(input_file, seek_in - 0.001) or nil, seek_in)
+        seek_in    = keyframe or opts.mark_in
+        local prev = keyframe and seek_in > 0 and common.nearest_keyframe_at_or_before(input_file, seek_in - 0.001) or nil
+        coarse     = seek_point(prev, seek_in)
+        cut_at     = nil
+        if prev then cut_at = math.min(seek_in, math.floor((common.keyframe_dts(input_file, seek_in) or seek_in) * 1000) / 1000) end
+        if not keyframe then cut_at = seek_in end
     end
 
     if accurate then
@@ -508,7 +561,9 @@ function M.build_args(opts, input_file, output_file, creation_time)
             table.insert(args, "-ss")        table.insert(args, tostring(coarse))
         end
         table.insert(args, "-i")  table.insert(args, input_file)
-        table.insert(args, "-ss") table.insert(args, tostring(seek_in))
+        if cut_at then
+            table.insert(args, "-ss") table.insert(args, tostring(cut_at))
+        end
         table.insert(args, "-to") table.insert(args, tostring(opts.mark_out))
     else
         table.insert(args, "-ss") table.insert(args, tostring(opts.mark_in))
@@ -621,7 +676,7 @@ function M.build_args(opts, input_file, output_file, creation_time)
     end
 
     table.insert(args, output_file)
-    return args, out_fps, media_info.dropped
+    return args, out_fps, media_info.losses
 end
 
 return M
