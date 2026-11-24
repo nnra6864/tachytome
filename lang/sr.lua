@@ -282,6 +282,7 @@ return {
     opt_space_replacement = { "Zamenjuje razmake u imenima izlaza, razmak ih zadržava, prazno ih uklanja" },
     opt_container         = {
         "Kontejner izlaza, mkv podržava najviše, prazno koristi kontejner izvora",
+        "Trake koje drugi kontejner ne može da sadrži se pretvaraju ili izostavljaju, video koji ne može zaustavlja render",
         "Ekstenzija upisana u putanju važi za taj render, npr. clip.mp4",
         "mka, opus, ogg, oga, m4a, mp3, aac, flac i wav su samo audio",
         "opus, mp3, aac, flac i wav drže jednu traku, prvi miks ili zadržanu traku",
@@ -476,6 +477,8 @@ return {
     render_cant_resume   = "Nastavljanje renderovanja nije moguće",
     render_invalid_marks = "Neispravne oznake, početak {mark_in} mora biti pre kraja {mark_out}",
     render_exists        = "Datoteka već postoji",
+    render_bad_video     = "{container} ne može da sadrži {codec} video, koristite mkv ili drugi enkoder",
+    render_subs_dropped  = "Titlovi koje {container} ne može da sadrži su izostavljeni: {count}",
 
     resolution_unknown      = "Rezolucija: nepoznato '{token}'",
     resolution_disabled     = "Rezolucija: preset '{token}' je isključen",

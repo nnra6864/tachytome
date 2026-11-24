@@ -282,6 +282,7 @@ return {
     opt_space_replacement = { "Replaces spaces in output names, a space keeps them, empty removes them" },
     opt_container         = {
         "Output container, mkv supports the most, empty uses the source's",
+        "Tracks another container can't hold are converted or left out, video it can't hold stops the render",
         "An extension typed in the path wins for that render, e.g. clip.mp4",
         "mka, opus, ogg, oga, m4a, mp3, aac, flac and wav are audio only",
         "opus, mp3, aac, flac and wav hold one track, the first mix or kept track",
@@ -476,6 +477,8 @@ return {
     render_cant_resume   = "Cannot resume the render",
     render_invalid_marks = "Invalid marks, In {mark_in} must be before Out {mark_out}",
     render_exists        = "File already exists",
+    render_bad_video     = "{container} can't hold {codec} video, use mkv or another encoder",
+    render_subs_dropped  = "Subtitle tracks {container} can't hold are left out: {count}",
 
     resolution_unknown      = "Resolution: unknown '{token}'",
     resolution_disabled     = "Resolution: preset '{token}' is disabled",

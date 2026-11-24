@@ -140,7 +140,7 @@ function M.build_job(spec)
         audio_bitrate     = spec.audio_bitrate,
         tracks            = spec.tracks
     }
-    local args, out_fps = builder.build_args(build_opts, spec.input_file, spec.output_file, creation_time)
+    local args, out_fps, dropped = builder.build_args(build_opts, spec.input_file, spec.output_file, creation_time)
     if not args then return nil, out_fps end
 
     local in_info  = utils.file_info(spec.input_file)
@@ -181,6 +181,7 @@ function M.build_job(spec)
         show_stats_terminal = spec.show_stats_terminal,
         stats_osd_time      = spec.stats_osd_time,
         input_size          = (in_info and in_info.size) or spec.input_size or 0,
+        dropped_subs        = dropped or 0,
         rename_callback     = spec.rename_callback
     }
 end

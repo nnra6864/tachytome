@@ -1017,6 +1017,16 @@ To keep the menu narrow, paths are shown in their shortest form:
 While typing a path, the fully expanded path is shown below the input and updates as you type.<br>
 This only affects what is displayed, ffmpeg and the render queue always use the full path.
 
+#### Containers
+
+`mkv` holds everything, other containers get what they can hold:
+- Data tracks, like the timecode track phones and cameras write, are left out, and attachments like fonts only go in `mkv`.
+- Subtitles become `mov_text` in `mp4`, `mov` and `m4v` and WebVTT in `webm`, picture subtitles like PGS are left out there.<br>
+  `avi`, `flv` and `wmv` hold no subtitles and `ts` only DVB ones, a notice says how many tracks were left out.
+- Audio the container can't hold is re-encoded, to Opus in `webm` and AAC in `mov`, `m4v`, `avi`, `flv` and `wmv`.
+- Video the container can't hold stops the render before it's queued.<br>
+  `webm` holds AV1 and VP9, `mov` H.264 and H.265, `m4v` H.264 and `wmv` anything but H.265.
+
 
 ## Contributing
 

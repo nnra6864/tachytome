@@ -3,6 +3,7 @@ local common     = require 'src.common'
 local effects    = require 'src.effects'
 local resolution = require 'src.resolution'
 local tracks     = require 'src.tracks'
+local lang       = require 'src.lang'
 
 local M = {}
 
@@ -48,7 +49,7 @@ local function get_media_info(input_file)
         "-show_streams", "-print_format", "json"
     })
 
-    local info = { audio = {}, video = {} }
+    local info = { audio = {}, video = {}, subs = {} }
     if not probe_data or not probe_data.streams then return info end
 
     for _, s in ipairs(probe_data.streams) do
@@ -58,10 +59,54 @@ local function get_media_info(input_file)
         elseif s.codec_type == "video" then
             local fps = nil
             if s.avg_frame_rate and s.avg_frame_rate ~= "0/0" and s.avg_frame_rate ~= "N/A" then fps = s.avg_frame_rate end
-            info.video[#info.video + 1] = { fps = fps, full_range = s.color_range == "pc", size = display_size(s) }
+            local cover = s.disposition and s.disposition.attached_pic == 1
+            info.video[#info.video + 1] = { codec = s.codec_name, cover = cover, fps = fps, full_range = s.color_range == "pc", size = display_size(s) }
+        elseif s.codec_type == "subtitle" then
+            info.subs[#info.subs + 1] = s.codec_name or ""
         end
     end
     return info
+end
+
+local function codec_set(list)
+    local set = {}
+    for _, codec in ipairs(list) do set[codec] = true end
+    return set
+end
+
+local pcm_codecs = { "pcm_s16le", "pcm_s24le", "pcm_s32le", "pcm_f32le", "pcm_u8" }
+
+local function with_pcm(list)
+    for _, codec in ipairs(pcm_codecs) do list[#list + 1] = codec end
+    return codec_set(list)
+end
+
+local bitmap_subs = codec_set({ "hdmv_pgs_subtitle", "dvd_subtitle", "dvb_subtitle", "dvb_teletext", "xsub" })
+
+local video_formats = {
+    mkv  = { attachments = true, subs = "copy" },
+    mp4  = { subs = "mov_text" },
+    webm = { video = codec_set({ "av1", "vp9", "vp8" }), encoder = "opus", codecs = codec_set({ "opus", "vorbis" }), subs = "webvtt" },
+    mov  = { video = codec_set({ "h264", "hevc" }), encoder = "aac", codecs = with_pcm({ "aac", "mp3", "ac3", "eac3", "vorbis" }), subs = "mov_text" },
+    m4v  = { video = codec_set({ "h264" }), encoder = "aac", codecs = codec_set({ "aac", "ac3", "eac3" }), subs = "mov_text" },
+    avi  = { encoder = "aac", codecs = with_pcm({ "aac", "mp3", "flac", "ac3", "vorbis" }) },
+    ts   = { subs = "dvb_subtitle" },
+    flv  = { encoder = "aac", codecs = with_pcm({ "aac", "opus", "mp3", "flac", "ac3" }) },
+    wmv  = { video = codec_set({ "h264", "av1", "vp9" }), encoder = "aac", codecs = with_pcm({ "aac", "mp3", "flac", "ac3", "vorbis" }) }
+}
+
+local function encoder_codec(enc)
+    if enc:match("h265$") then return "hevc" end
+    if enc:match("h264$") then return "h264" end
+    return "av1"
+end
+
+local function sub_codec(fmt, codec)
+    if not fmt or not fmt.subs then return nil end
+    if fmt.subs == "copy" then return "copy" end
+    if bitmap_subs[codec] then return codec == fmt.subs and "copy" or nil end
+    if fmt.subs == "dvb_subtitle" then return nil end
+    return codec == fmt.subs and "copy" or fmt.subs
 end
 
 local audio_encoders = {
@@ -110,9 +155,11 @@ local function select_streams(info, opts, output_file)
     local result, err = tracks.build(opts.tracks or "", #info.audio, #info.video)
     if not result then return nil, err end
     local ext       = (output_file:match("%.([a-zA-Z0-9]+)$") or ""):lower()
-    info.format     = audio_formats[ext]
-    info.audio_only = info.format ~= nil
-    info.single     = info.format ~= nil and info.format.single == true
+    info.ext        = ext
+    info.dropped    = 0
+    info.format     = audio_formats[ext] or video_formats[ext]
+    info.audio_only = audio_formats[ext] ~= nil
+    info.single     = info.audio_only and info.format.single == true
     info.audio_out  = result.audio
     if info.single and #info.audio_out > 1 then info.audio_out = { first_mix(info.audio_out) } end
     info.a_titles   = {}
@@ -183,10 +230,49 @@ local function deselect(args, kind, count, keep)
     end
 end
 
+local function map_subs(args, media_info)
+    local kept = 0
+    for i, codec in ipairs(media_info.subs) do
+        local out = sub_codec(media_info.format, codec)
+        if out then
+            if out ~= "copy" then
+                table.insert(args, "-c:s:" .. kept) table.insert(args, out)
+            end
+            kept = kept + 1
+        else
+            table.insert(args, "-map") table.insert(args, string.format("-0:s:%d", i - 1))
+            media_info.dropped = media_info.dropped + 1
+        end
+    end
+end
+
 local function map_source(args, media_info, audio)
     table.insert(args, "-map") table.insert(args, media_info.audio_only and "0:a?" or "0")
     deselect(args, "a", #media_info.audio, audio)
-    if not media_info.audio_only then deselect(args, "v", #media_info.video, media_info.video_pick) end
+    if media_info.audio_only then return end
+    deselect(args, "v", #media_info.video, media_info.video_pick)
+    table.insert(args, "-map") table.insert(args, "-0:d")
+    if not (media_info.format and media_info.format.attachments) then
+        table.insert(args, "-map") table.insert(args, "-0:t")
+    end
+    map_subs(args, media_info)
+end
+
+local function check_video(media_info, codec_of)
+    local fmt = media_info.format
+    if not fmt or not fmt.video then return true end
+    local pick = {}
+    for _, i in ipairs(media_info.video_pick) do
+        local v     = media_info.video[i + 1]
+        local codec = codec_of(v)
+        if fmt.video[codec] then
+            pick[#pick + 1] = i
+        elseif not v.cover then
+            return nil, lang.t("render_bad_video", { codec = codec, container = media_info.ext })
+        end
+    end
+    media_info.video_pick = pick
+    return true
 end
 
 local function kept_audio(media_info)
@@ -382,6 +468,12 @@ function M.build_args(opts, input_file, output_file, creation_time)
         vf_resolution = filters
     end
     local lossless = opts.lossless_cut and #vf_effects == 0 and #af_effects == 0 and #vf_resolution == 0
+    local enc      = opts.video_encoder:lower()
+
+    local fits_video, video_err = check_video(media_info, function(v)
+        return lossless and v.codec or encoder_codec(enc)
+    end)
+    if not fits_video then return nil, video_err end
 
     local trimmed = accurate and opts.mark_in > 0
     if trimmed then
@@ -425,6 +517,10 @@ function M.build_args(opts, input_file, output_file, creation_time)
             "-metadata",     "TACHYTOME_MODE=Lossless"
         }
         for _, v in ipairs(codec_args) do table.insert(args, v) end
+        local first = media_info.video[(media_info.video_pick[1] or -1) + 1]
+        if media_info.ext == "avi" and first and first.codec == "h264" then
+            table.insert(args, "-bsf:v") table.insert(args, "h264_mp4toannexb")
+        end
         if media_info.has_mix then
             append_mixes(args, media_info, af_effects)
         else
@@ -432,8 +528,6 @@ function M.build_args(opts, input_file, output_file, creation_time)
             append_audio_effects(args, media_info, af_effects)
         end
     else
-        local enc = opts.video_encoder:lower()
-
         local safe_quality = tonumber(opts.quality) or 30
         if enc == "av1" then safe_quality = math.min(63, math.max(0, safe_quality))
         elseif enc == "nv_av1" then safe_quality = math.min(63, math.max(0, safe_quality))
@@ -511,7 +605,7 @@ function M.build_args(opts, input_file, output_file, creation_time)
     end
 
     table.insert(args, output_file)
-    return args, out_fps
+    return args, out_fps, media_info.dropped
 end
 
 return M

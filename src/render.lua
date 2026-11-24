@@ -106,6 +106,10 @@ local function queue_job(job, on_complete)
         notify.show(lang.t("queue_added_paused", { name = job.final_name }), true)
     end
     M.process_queue()
+    if job.dropped_subs > 0 then
+        local ext = job.output_file:match("%.([^%./\\]+)$") or ""
+        notify.show(lang.t("render_subs_dropped", { container = ext, count = job.dropped_subs }), true, "warn")
+    end
     queue.save()
     if on_complete then on_complete() end
 end
