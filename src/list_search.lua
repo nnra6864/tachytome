@@ -37,7 +37,7 @@ function M.new(opts)
         typing = false
         edit.remove_bindings(prefix)
         edit.remove_char_bindings(prefix)
-        for _, name in ipairs({ "enter", "esc", "up", "down" }) do mp.remove_key_binding(prefix .. "-" .. name) end
+        for _, name in ipairs({ "enter", "kp-enter", "esc", "up", "down" }) do mp.remove_key_binding(prefix .. "-" .. name) end
         edit.remove_layers(layers)
     end
 
@@ -77,11 +77,12 @@ function M.new(opts)
     function s.start()
         if typing then return end
         typing = true
-        edit.add_bindings(prefix, apply)
+        edit.add_bindings(prefix, apply, function(text) return (text:gsub("\n", " ")) end)
         edit.add_char_bindings(prefix, function(c)
             apply(function(t, p) return edit.insert(t, p, c) end)
         end, true)
         mp.add_forced_key_binding("ENTER", prefix .. "-enter", submit)
+        mp.add_forced_key_binding("KP_ENTER", prefix .. "-kp-enter", submit)
         mp.add_forced_key_binding("ESC", prefix .. "-esc", s.clear)
         mp.add_forced_key_binding("UP", prefix .. "-up", function()
             stop()

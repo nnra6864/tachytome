@@ -61,46 +61,87 @@ function M.delete_word(text, pos)
     return text:sub(1, start) .. text:sub(pos + 1), start
 end
 
+function M.delete(text, pos)
+    if pos >= #text then return text, pos end
+    return text:sub(1, pos) .. text:sub(M.right(text, pos) + 1), pos
+end
+
+function M.delete_word_right(text, pos)
+    return text:sub(1, pos) .. text:sub(M.word_right(text, pos) + 1), pos
+end
+
+function M.delete_to_start(text, pos)
+    return text:sub(pos + 1), 0
+end
+
+local function home(t) return t, 0 end
+local function to_end(t) return t, #t end
+local function left(t, p) return t, M.left(t, p) end
+local function right(t, p) return t, M.right(t, p) end
+
 local bindings = {
-    { key = "LEFT",       name = "left",       fn = function(t, p) return t, M.left(t, p) end },
-    { key = "RIGHT",      name = "right",      fn = function(t, p) return t, M.right(t, p) end },
-    { key = "HOME",       name = "home",       fn = function(t) return t, 0 end },
-    { key = "END",        name = "end",        fn = function(t) return t, #t end },
+    { key = "LEFT",       name = "left",       fn = left },
+    { key = "RIGHT",      name = "right",      fn = right },
+    { key = "KP_LEFT",    name = "kp-left",    fn = left },
+    { key = "KP_RIGHT",   name = "kp-right",   fn = right },
+    { key = "HOME",       name = "home",       fn = home },
+    { key = "END",        name = "end",        fn = to_end },
+    { key = "KP_HOME",    name = "kp-home",    fn = home },
+    { key = "KP_END",     name = "kp-end",     fn = to_end },
+    { key = "ctrl+a",     name = "ctrl-a",     fn = home },
+    { key = "ctrl+e",     name = "ctrl-e",     fn = to_end },
     { key = "ctrl+LEFT",  name = "word-left",  fn = function(t, p) return t, M.word_left(t, p) end },
     { key = "ctrl+RIGHT", name = "word-right", fn = function(t, p) return t, M.word_right(t, p) end },
     { key = "BS",         name = "bs",         fn = M.backspace },
-    { key = "ctrl+BS",    name = "word-bs",    fn = M.delete_word }
+    { key = "ctrl+BS",    name = "word-bs",    fn = M.delete_word },
+    { key = "ctrl+w",     name = "ctrl-w",     fn = M.delete_word },
+    { key = "ctrl+u",     name = "ctrl-u",     fn = M.delete_to_start },
+    { key = "DEL",        name = "del",        fn = M.delete },
+    { key = "KP_DEL",     name = "kp-del",     fn = M.delete },
+    { key = "ctrl+DEL",   name = "word-del",   fn = M.delete_word_right }
 }
 
-function M.add_bindings(prefix, edit)
+local paste_keys = { "ctrl+v", "shift+INS" }
+
+M.keypad = { KP0 = "0", KP1 = "1", KP2 = "2", KP3 = "3", KP4 = "4", KP5 = "5", KP6 = "6", KP7 = "7", KP8 = "8", KP9 = "9", KP_DEC = ".", KP_ADD = "+", KP_SUBTRACT = "-", KP_MULTIPLY = "*", KP_DIVIDE = "/" }
+
+local function clipboard(filter)
+    local text = (mp.get_property("clipboard/text") or ""):gsub("\r\n?", "\n"):gsub("^\n+", ""):gsub("\n+$", "")
+    if filter then text = filter(text) end
+    return text
+end
+
+function M.add_bindings(prefix, edit, filter)
     for _, b in ipairs(bindings) do
         mp.add_forced_key_binding(b.key, prefix .. "-" .. b.name, function() edit(b.fn) end, {repeatable=true})
+    end
+    for _, key in ipairs(paste_keys) do
+        mp.add_forced_key_binding(key, prefix .. "-paste-" .. key, function()
+            local text = clipboard(filter)
+            if text ~= "" then edit(function(t, p) return M.insert(t, p, text) end) end
+        end)
     end
 end
 
 function M.remove_bindings(prefix)
     for _, b in ipairs(bindings) do mp.remove_key_binding(prefix .. "-" .. b.name) end
-end
-
-local char_keys      = { ["SHARP"] = "#" }
-local standard_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.,:;/\\|()[]~@$%^&*+=<>?'\"!`"
-for i = 1, #standard_chars do
-    local c = standard_chars:sub(i, i)
-    char_keys[c] = c
+    for _, key in ipairs(paste_keys) do mp.remove_key_binding(prefix .. "-paste-" .. key) end
 end
 
 function M.add_char_bindings(prefix, insert, allow_space)
-    for key, char in pairs(char_keys) do
-        mp.add_forced_key_binding(key, prefix .. "-char-" .. key, function() insert(char) end, {repeatable=true})
-    end
-    if allow_space then
-        mp.add_forced_key_binding("SPACE", prefix .. "-space", function() insert(" ") end, {repeatable=true})
+    mp.add_forced_key_binding("any_unicode", prefix .. "-chars", function(e)
+        if e.event == "up" or not e.key_text or e.key_text:find("%c") then return end
+        if e.key_text == " " and not allow_space then return end
+        insert(e.key_text)
+    end, {repeatable=true, complex=true})
+    for key, char in pairs(M.keypad) do
+        mp.add_forced_key_binding(key, prefix .. "-" .. key, function() insert(char) end, {repeatable=true})
     end
 end
 
 function M.remove_char_bindings(prefix)
-    for key in pairs(char_keys) do mp.remove_key_binding(prefix .. "-char-" .. key) end
-    mp.remove_key_binding(prefix .. "-space")
+    mp.remove_key_binding(prefix .. "-chars")
+    for key in pairs(M.keypad) do mp.remove_key_binding(prefix .. "-" .. key) end
 end
 
 local function cursor_key()

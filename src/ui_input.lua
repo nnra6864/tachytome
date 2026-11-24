@@ -47,6 +47,7 @@ end
 local function cleanup_bindings()
     edit.remove_bindings("osd-input")
     mp.remove_key_binding("osd-input-enter")
+    mp.remove_key_binding("osd-input-kp-enter")
     mp.remove_key_binding("osd-input-newline")
     mp.remove_key_binding("osd-input-esc")
     mp.remove_key_binding("osd-input-up")
@@ -133,8 +134,13 @@ function M.show(opts)
     ui.clear_osd()
     render()
 
-    edit.add_bindings("osd-input", apply_edit)
+    edit.add_bindings("osd-input", apply_edit, function(text)
+        if not current_multiline then text = text:gsub("\n", " ") end
+        if not opts.allow_space then text = text:gsub(" ", "") end
+        return text
+    end)
     mp.add_forced_key_binding("ENTER", "osd-input-enter", confirm)
+    mp.add_forced_key_binding("KP_ENTER", "osd-input-kp-enter", confirm)
     if current_multiline then mp.add_forced_key_binding("shift+ENTER", "osd-input-newline", function() add_char("\n") end, {repeatable=true}) end
     mp.add_forced_key_binding("ESC", "osd-input-esc", cancel)
     mp.add_forced_key_binding("UP", "osd-input-up", history_up, {repeatable=true})

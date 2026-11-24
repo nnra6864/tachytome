@@ -44,8 +44,10 @@ local function cleanup()
     edit.remove_layers(layers)
     edit.remove_bindings("goto")
     mp.remove_key_binding("goto-enter")
+    mp.remove_key_binding("goto-kp-enter")
     mp.remove_key_binding("goto-esc")
     for key, _ in pairs(key_mappings) do mp.remove_key_binding("goto-char-" .. key) end
+    for key, _ in pairs(edit.keypad) do mp.remove_key_binding("goto-char-" .. key) end
     for _, opt in ipairs(current_options) do mp.remove_key_binding("goto-opt-" .. opt.key) end
     if current_callback then pcall(current_callback) end
 end
@@ -242,12 +244,18 @@ function M.show(on_complete, options, place)
     ui.clear_osd()
     render()
 
-    edit.add_bindings("goto", apply_edit)
+    edit.add_bindings("goto", apply_edit, function(text)
+        return (text:lower():gsub(".", function(c) return key_mappings[c] and c or "" end))
+    end)
     mp.add_forced_key_binding("ENTER", "goto-enter", parse_and_apply)
+    mp.add_forced_key_binding("KP_ENTER", "goto-kp-enter", parse_and_apply)
     mp.add_forced_key_binding("ESC", "goto-esc", cleanup)
 
     for key, char in pairs(key_mappings) do
         mp.add_forced_key_binding(key, "goto-char-" .. key, function() add_char(char) end, {repeatable=true})
+    end
+    for key, char in pairs(edit.keypad) do
+        if key_mappings[char] then mp.add_forced_key_binding(key, "goto-char-" .. key, function() add_char(char) end, {repeatable=true}) end
     end
     for _, opt in ipairs(current_options) do
         mp.add_forced_key_binding(opt.key, "goto-opt-" .. opt.key, function() run_option(opt) end)

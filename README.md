@@ -312,14 +312,22 @@ The log is also saved in the `logs` folder of the [state dir](#recovery), the la
 
 #### Text Inputs (Path, Quality, Go To etc.)
 
-| Keybind              | Action      | Description                             |
-|----------------------|-------------|-----------------------------------------|
-| Left/Right           | Move        | Move the cursor by one character.       |
-| ctrl+Left/ctrl+Right | Move Word   | Move the cursor by one word.            |
-| Home/End             | Start/End   | Jump to the start or end of the text.   |
-| Backspace            | Delete      | Delete the character before the cursor. |
-| ctrl+Backspace       | Delete Word | Delete the word before the cursor.      |
-| Shift+Enter          | New Line    | Start a new line, where it's allowed.   |
+| Keybind                 | Action      | Description                              |
+|-------------------------|-------------|------------------------------------------|
+| Left/Right              | Move        | Move the cursor by one character.        |
+| ctrl+Left/ctrl+Right    | Move Word   | Move the cursor by one word.             |
+| Home/End, ctrl+a/ctrl+e | Start/End   | Jump to the start or end of the text.    |
+| Backspace               | Delete      | Delete the character before the cursor.  |
+| Delete                  | Delete      | Delete the character after the cursor.   |
+| ctrl+Backspace, ctrl+w  | Delete Word | Delete the word before the cursor.       |
+| ctrl+Delete             | Delete Word | Delete the word after the cursor.        |
+| ctrl+u                  | Delete All  | Delete everything before the cursor.     |
+| ctrl+v, shift+Insert    | Paste       | Paste the clipboard at the cursor.       |
+| Shift+Enter             | New Line    | Start a new line, where it's allowed.    |
+
+Any character your keyboard types works, letters with diacritics and Cyrillic included, and so does the numpad, its Enter too.<br>
+Go To only takes what a time can contain, a paste keeps just those characters.<br>
+Pasting needs mpv 0.40 or newer.
 
 Shift+Enter only works in inputs that take several lines, the description when [saving a preset](#saving-presets) for now, the rest stay on one line.<br>
 Inputs show the current value and a hint on the accepted format below the prompt.<br>
