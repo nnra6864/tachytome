@@ -46,8 +46,6 @@ New strings go in every language file, `lang/en.lua` and `lang/sr.lua`.
 ## 6. Smaller performance fixes
 - Autocrop runs at most 2-3 ffmpeg decoders at once, waits for marks to
   settle and forgets old results per file.
-- The Config Editor parses the builtin config once instead of on every
-  draw.
 - The ffprobes at render start, creation time and stream info, run in the
   background.
 

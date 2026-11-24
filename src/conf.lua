@@ -282,12 +282,29 @@ function M.write_option(key, val)
     return M.write_options({ { key = key, val = val } })
 end
 
-function M.keys()
-    local list = {}
+local builtin_keys     = nil
+local builtin_sections = nil
+
+local function parse_builtin()
+    if builtin_keys then return end
+    builtin_keys     = {}
+    builtin_sections = {}
+    local current    = nil
     for _, line in ipairs(read_lines(M.builtin_path)) do
+        local title = line:match("^## (.+)$")
+        if title then current = title:lower():gsub("%s+", "_") end
         local key = line:match("^([%w_]+)=")
-        if key and key ~= "configs" then list[#list + 1] = key end
+        if key and not builtin_sections[key] then
+            builtin_sections[key] = current or false
+            if key ~= "configs" then builtin_keys[#builtin_keys + 1] = key end
+        end
     end
+end
+
+function M.keys()
+    parse_builtin()
+    local list = {}
+    for i, key in ipairs(builtin_keys) do list[i] = key end
     return list
 end
 
@@ -301,13 +318,8 @@ function M.parse_value(key, text)
 end
 
 function M.section(key)
-    local current = nil
-    for _, line in ipairs(read_lines(M.builtin_path)) do
-        local title = line:match("^## (.+)$")
-        if title then current = title:lower():gsub("%s+", "_") end
-        if line:sub(1, #key + 1) == key .. "=" then return current end
-    end
-    return nil
+    parse_builtin()
+    return builtin_sections[key] or nil
 end
 
 function M.file_options(name)
