@@ -330,7 +330,10 @@ function M.process_queue()
             if not renamed then return keep_temp("Rename failed (" .. tostring(rename_err) .. ")") end
 
             finish_job()
-            if trashed and over_source then stats.record_trash(active_job.input_file, "after_render") end
+            if trashed then
+                local how = trash.take(active_job.output_file)
+                if how or over_source then stats.record_trash(active_job.output_file, how or "after_render") end
+            end
             if active_job.trash_source and not over_source then
                 trash.request(active_job.input_file, active_job.trash_path, "after_render")
             end
@@ -370,7 +373,15 @@ local function remove_failed(rec)
     end
 end
 
+local function overwritten(input_file)
+    if not queue.overwriter(input_file) then return false end
+    local _, name = utils.split_path(input_file)
+    notify.show(lang.t("render_source_overwritten", { name = name }), true, "warn")
+    return true
+end
+
 function M.retry(rec)
+    if overwritten(rec.input_file) then return end
     local job, err = queue.job_from_item(rec)
     if not job then return notify.show(err, true, "error") end
     remove_failed(rec)
@@ -399,14 +410,10 @@ function M.confirm_losses(job, on_yes, on_no)
     ui_confirm.show(lang.t("render_losses_title"), job.final_name, on_yes, on_no, lines)
 end
 
-function M.show_exists(input_file, output_file, on_rename, on_overwrite, on_cancel, own_job)
+function M.show_exists(input_file, output_file, on_rename, on_overwrite, on_cancel)
     local _, name = utils.split_path(output_file)
-    local readers = trash.users(output_file)
-    if own_job and common.same_path(own_job.input_file, output_file) then readers = readers - 1 end
     local title   = common.same_path(input_file, output_file) and lang.t("render_exists_source") or nil
-    local lines   = {}
-    if state.trash_path then lines[1] = lang.t("render_overwrite_trash") end
-    if readers > 0 then lines[#lines + 1] = lang.t("render_overwrite_readers") end
+    local lines   = state.trash_path and { lang.t("render_overwrite_trash") } or {}
     ui_choice.show_exists(name, on_rename, on_overwrite, on_cancel, title, lines)
 end
 
@@ -441,6 +448,10 @@ function M.start(opts)
     local input_file = mp.get_property("path")
     if not input_file then
         notify.show(lang.t("no_video"), true, "error")
+        if opts.on_complete then opts.on_complete() end
+        return
+    end
+    if overwritten(input_file) then
         if opts.on_complete then opts.on_complete() end
         return
     end

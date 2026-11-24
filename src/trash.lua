@@ -77,6 +77,15 @@ function M.cancel(path)
     end
 end
 
+function M.take(path)
+    for p, req in pairs(pending) do
+        if common.same_path(p, path) then
+            pending[p] = nil
+            return req.how
+        end
+    end
+end
+
 function M.settle(path)
     for p, req in pairs(pending) do
         if common.same_path(p, path) and not M.in_use(p) then

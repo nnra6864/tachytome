@@ -195,7 +195,21 @@ function M.show(on_close)
             return common.resolve_absolute_path_for(input, state.opts, q_job.input_file, ext ~= "" and ext or nil)
         end
 
+        local function read_later(path)
+            local after = q_job == queue.active
+            for _, j in ipairs(queue.jobs) do
+                if after and common.same_path(j.input_file, path) then return true end
+                if j == q_job then after = true end
+            end
+            return false
+        end
+
         local function change_to(input, new_output)
+            if read_later(new_output) then
+                local _, name = utils.split_path(new_output)
+                notify.show(lang.t("queue_source_needed", { name = name }), true, "warn")
+                return open_ui()
+            end
             if ext_of(new_output) == ext_of(current_output) then
                 apply_change_path(input, new_output)
                 return open_ui()
@@ -245,7 +259,7 @@ function M.show(on_close)
                     local _, new_name = utils.split_path(new_output)
                     render.show_exists(q_job.input_file, new_output, prompt_change_path, function()
                         change_to(input, new_output)
-                    end, open_ui, q_job)
+                    end, open_ui)
                 end
             })
         end

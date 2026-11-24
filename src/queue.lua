@@ -213,6 +213,13 @@ function M.job_from_item(it)
     })
 end
 
+function M.overwriter(path)
+    if M.is_rendering and M.active and common.same_path(M.active.output_file, path) then return M.active end
+    for _, q_job in ipairs(M.jobs) do
+        if common.same_path(q_job.output_file, path) then return q_job end
+    end
+end
+
 function M.is_path_in_use(file_path)
     if utils.file_info(file_path) then return true end
     if M.is_rendering and M.active and common.same_path(M.active.output_file, file_path) then return true end
