@@ -191,14 +191,9 @@ function M.show(on_close)
             return (file:match("%.([^%./\\]+)$") or ""):lower()
         end
 
-        local job_opts = {}
-        for k, v in pairs(state.opts) do job_opts[k] = v end
-        job_opts.output_dir        = utils.split_path(current_output)
-        job_opts.space_replacement = q_job.space_replacement or state.opts.space_replacement
-
         local function resolve(input)
             local ext = ext_of(current_output)
-            return common.resolve_absolute_path_for(input, job_opts, q_job.input_file, ext ~= "" and ext or nil)
+            return common.typed_path(input, q_job.input_file, ext ~= "" and ext or nil)
         end
 
         local function change_to(input, new_output)
@@ -237,7 +232,7 @@ function M.show(on_close)
         local function prompt_change_path()
             ui_input.show({
                 title       = lang.t("menu_path"),
-                current     = common.display_path(current_output, q_job.input_file),
+                text        = common.display_path(current_output, q_job.input_file),
                 history     = state.path_history,
                 allow_space = true,
                 preview     = resolve,

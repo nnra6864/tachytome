@@ -130,12 +130,12 @@ function M.show(opts)
     current_preview         = opts.preview
     current_hint            = opts.hint
     current_multiline       = opts.multiline or false
-    buffer                  = ""
-    cursor                  = 0
+    buffer                  = opts.text or ""
+    cursor                  = #buffer
 
     history      = opts.history or {}
     history_idx  = #history + 1
-    draft_buffer = ""
+    draft_buffer = buffer
 
     ui.clear_osd()
     render()

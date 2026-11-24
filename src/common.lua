@@ -190,10 +190,6 @@ function M.resolve_absolute_path(custom, opts, container)
     return resolve_absolute_path_base(custom, opts, mp.get_property("path"), container)
 end
 
-function M.resolve_absolute_path_for(custom, opts, input_path, container)
-    return resolve_absolute_path_base(custom, opts, input_path, container)
-end
-
 local function path_under(path, dir, windows)
     if not dir or dir == "" then return nil end
     dir = dir:gsub("[/\\]+$", "")
@@ -205,6 +201,16 @@ local function path_under(path, dir, windows)
     local rest = path:sub(#dir + 1)
     if head ~= dir or not rest:match("^[/\\]") then return nil end
     return rest
+end
+
+function M.typed_path(typed, input_path, container)
+    local path = M.expand_path(typed)
+    if not path:match("^[/\\]") and not path:match("^%a:[/\\]") then
+        path = utils.join_path(utils.split_path(input_path), (path:gsub("^%.[/\\]", "")))
+    end
+    local ext = path:match("%.([a-zA-Z0-9]+)$")
+    if container and not (ext and known_exts[ext:lower()]) then path = path .. "." .. container end
+    return path
 end
 
 function M.display_path(path, input_path)
