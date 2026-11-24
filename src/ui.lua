@@ -30,14 +30,19 @@ function M.dim(text)
     return string.format("\\N%s%s%s%s", theme.f(true), theme.c("dim_text_color"), theme.escape(text), theme.reset())
 end
 
-function M.dim_lines(lines)
+function M.gap()
+    return string.format("\\N%s\\h", theme.f(true))
+end
+
+function M.dim_lines(lines, gap)
     if not lines or #lines == 0 then return "" end
     local out = {}
     for i, line in ipairs(lines) do
         local indent = #line:match("^ *")
         out[i]       = line == "" and "\\h" or string.rep("\\h", indent) .. theme.escape(line:sub(indent + 1))
     end
-    return string.format("\\N%s\\h\\N%s%s%s", theme.f(true), theme.c("dim_text_color"), table.concat(out, "\\N"), theme.reset())
+    local head = gap and M.gap() or string.format("\\N%s\\h", theme.f(true))
+    return string.format("%s\\N%s%s%s%s", head, theme.f(true), theme.c("dim_text_color"), table.concat(out, "\\N"), theme.reset())
 end
 
 function M.note(text)
@@ -46,7 +51,7 @@ end
 
 function M.tips(lines)
     if not state.opts.tips then return "" end
-    return M.dim_lines(lines)
+    return M.dim_lines(lines, true)
 end
 
 function M.tip(text)
@@ -68,7 +73,7 @@ function M.tooltip(hints)
         local list = groups[row]
         list[#list + 1] = { rank = rank, i = i, text = lang.t("key_hint", { keys = hint[1], action = lang.t("key_" .. hint[2]) }) }
     end
-    local out = string.format("\\N%s%s%s", theme.f(true), theme.c("text_color"), theme.escape(lang.t("keys_title")))
+    local out = string.format("%s\\N%s%s%s", M.gap(), theme.f(true), theme.c("text_color"), theme.escape(lang.t("keys_title")))
     for _, list in ipairs(groups) do
         if #list > 0 then
             table.sort(list, function(a, b)
