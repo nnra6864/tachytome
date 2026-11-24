@@ -190,8 +190,8 @@ function M.resolve_absolute_path(custom, opts, container)
     return resolve_absolute_path_base(custom, opts, mp.get_property("path"), container)
 end
 
-function M.resolve_absolute_path_for(custom, opts, input_path)
-    return resolve_absolute_path_base(custom, opts, input_path)
+function M.resolve_absolute_path_for(custom, opts, input_path, container)
+    return resolve_absolute_path_base(custom, opts, input_path, container)
 end
 
 local function path_under(path, dir, windows)

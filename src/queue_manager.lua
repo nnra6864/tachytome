@@ -187,12 +187,18 @@ function M.show(on_close)
             queue.save()
         end
 
-        local function resolve(input)
-            return common.resolve_absolute_path_for(input, state.opts, q_job.input_file)
-        end
-
         local function ext_of(file)
             return (file:match("%.([^%./\\]+)$") or ""):lower()
+        end
+
+        local job_opts = {}
+        for k, v in pairs(state.opts) do job_opts[k] = v end
+        job_opts.output_dir        = utils.split_path(current_output)
+        job_opts.space_replacement = q_job.space_replacement or state.opts.space_replacement
+
+        local function resolve(input)
+            local ext = ext_of(current_output)
+            return common.resolve_absolute_path_for(input, job_opts, q_job.input_file, ext ~= "" and ext or nil)
         end
 
         local function change_to(input, new_output)
