@@ -155,7 +155,7 @@ local function collect_orphan_queues()
             local items = {}
             if type(parsed.items) == "table" then
                 for _, it in ipairs(parsed.items) do
-                    if type(it) == "table" and it.status ~= "done" and type(it.input_file) == "string" and type(it.output_file) == "string" then
+                    if type(it) == "table" and it.status ~= "done" and it.status ~= "failed" and type(it.input_file) == "string" and type(it.output_file) == "string" then
                         table.insert(items, it)
                     end
                 end
@@ -216,33 +216,7 @@ local function adopt_orphan_queue(file)
         elseif (tonumber(it.mark_out) or 0) <= (tonumber(it.mark_in) or 0) then
             notify.show(lang.t("recovery_skipped", { reason = lang.t("recovery_bad_marks"), name = it.final_name }), true, "warn")
         else
-            local job, err = queue.build_job({
-                input_file          = it.input_file,
-                output_file         = it.output_file,
-                final_name          = it.final_name,
-                start_time          = it.mark_in,
-                end_time            = it.mark_out,
-                input_duration      = it.input_duration,
-                input_size          = it.input_size,
-                video_encoder       = it.video_encoder,
-                quality             = it.quality,
-                preset              = it.preset,
-                fps_override        = it.fps_override,
-                keyframe_interval   = it.keyframe_interval,
-                effects             = it.effects,
-                resolution          = it.resolution,
-                lossless_cut        = it.lossless_cut,
-                accurate_cut        = it.accurate_cut,
-                audio_encoder       = it.audio_encoder,
-                audio_bitrate       = it.audio_bitrate,
-                tracks              = it.tracks,
-                trash_source        = it.trash_source,
-                trash_path          = it.trash_path,
-                space_replacement   = it.space_replacement,
-                show_stats_screen   = it.show_stats_screen,
-                show_stats_terminal = it.show_stats_terminal,
-                stats_osd_time      = it.stats_osd_time
-            })
+            local job, err = queue.job_from_item(it)
             if job then
                 table.insert(queue.jobs, job)
                 adopted = adopted + 1

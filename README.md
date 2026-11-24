@@ -281,8 +281,24 @@ Updating through git switches the checkout to the branch, or detaches it at the 
 | Keybind | Action        | Description                                                                                |
 |---------|---------------|--------------------------------------------------------------------------------------------|
 | Enter   | Pause Render  | Pauses the current render and render queue.<br>Can only pause the render queue on Windows. |
-| p       | Change Path   | Change output path.                                                                        |
+| p       | Change Path   | Change output path, a failed render keeps it for its retry.                               |
 | d       | Delete        | Deletes the item, asks first if it cancels a render or trashes the source.                |
+| r       | Retry         | Retry the failed render with the same settings.                                           |
+| l       | Log           | Shows the failed render's ffmpeg command and its whole error.                             |
+| d       | Dismiss       | Dismisses the failed render, trashing the source if it was meant to.                      |
+
+A failed render stays in the queue marked Failed, with ffmpeg's error shown below the list when it's selected.<br>
+Its source is only trashed once it's dismissed, or retried and finished.<br>
+The log is also saved in the `logs` folder of the [state dir](#recovery), the last 20 are kept.
+
+#### Log
+
+| Keybind   | Action | Description                                         |
+|-----------|--------|-----------------------------------------------------|
+| Up/Down   | Scroll | Scroll by a line, also j/k.                         |
+| PgUp/PgDn | Page   | Scroll by a page, Home and End jump to either end.  |
+| c         | Copy   | Copy the whole log, e.g. to paste it in an issue.   |
+| Esc       | Close  | Back to the render queue.                           |
 
 #### Go To Prompt
 
@@ -742,7 +758,8 @@ Tachytome gracefully handles crashes and accidental closes.<br>
 Render queues are stored as files tied to the mpv PID, in the state dir: `$XDG_STATE_HOME/tachytome` or `~/.local/state/tachytome` on Linux, `~/Library/Application Support/tachytome` on Mac and `%LOCALAPPDATA%/tachytome` on Windows.<br>
 The path history and the installed version live there too.<br>
 Every time you start a new mpv instance, the script checks if any of these are present without an active mpv instance.<br>
-It then asks you whether you want to recover, discard or ignore the queue.
+It then asks you whether you want to recover, discard or ignore the queue.<br>
+Failed renders aren't recovered, their logs stay in the `logs` folder.
 
 ### Go To
 

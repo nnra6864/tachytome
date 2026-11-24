@@ -108,9 +108,6 @@ function M.save()
     for _, q_job in ipairs(M.jobs) do
         table.insert(items, M.item_from_job(q_job, "queued"))
     end
-    for _, rec in ipairs(M.failed) do
-        table.insert(items, rec)
-    end
 
     if not common.write_json_file(queue_tmp, { owner_pid = utils.getpid(), items = items }) then
         mp.msg.warn("Could not write render queue file: " .. queue_tmp)
@@ -184,6 +181,36 @@ function M.build_job(spec)
         dropped_subs        = dropped or 0,
         rename_callback     = spec.rename_callback
     }
+end
+
+function M.job_from_item(it)
+    return M.build_job({
+        input_file          = it.input_file,
+        output_file         = it.output_file,
+        final_name          = it.final_name,
+        start_time          = it.mark_in,
+        end_time            = it.mark_out,
+        input_duration      = it.input_duration,
+        input_size          = it.input_size,
+        video_encoder       = it.video_encoder,
+        quality             = it.quality,
+        preset              = it.preset,
+        fps_override        = it.fps_override,
+        keyframe_interval   = it.keyframe_interval,
+        effects             = it.effects,
+        resolution          = it.resolution,
+        lossless_cut        = it.lossless_cut,
+        accurate_cut        = it.accurate_cut,
+        audio_encoder       = it.audio_encoder,
+        audio_bitrate       = it.audio_bitrate,
+        tracks              = it.tracks,
+        trash_source        = it.trash_source,
+        trash_path          = it.trash_path,
+        space_replacement   = it.space_replacement,
+        show_stats_screen   = it.show_stats_screen,
+        show_stats_terminal = it.show_stats_terminal,
+        stats_osd_time      = it.stats_osd_time
+    })
 end
 
 function M.is_path_in_use(file_path)

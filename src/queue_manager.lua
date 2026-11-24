@@ -9,6 +9,7 @@ local theme       = require 'src.theme'
 local ui_input    = require 'src.ui_input'
 local ui_choice   = require 'src.ui_choice'
 local ui_confirm  = require 'src.ui_confirm'
+local ui_log      = require 'src.ui_log'
 local trash       = require 'src.trash'
 local list_search = require 'src.list_search'
 local lang        = require 'src.lang'
@@ -27,7 +28,16 @@ function M.show(on_close)
         for i, q_job in ipairs(queue.jobs) do
             table.insert(new_jobs, {title = q_job.final_name, is_active = false, original_index = i})
         end
+        for _, rec in ipairs(queue.failed) do
+            table.insert(new_jobs, {title = rec.final_name, is_active = false, is_failed = true, rec = rec})
+        end
         return new_jobs
+    end
+
+    local function job_of(row)
+        if row.is_active then return queue.active end
+        if row.is_failed then return row.rec end
+        return queue.jobs[row.original_index]
     end
 
     local ov            = mp.create_osd_overlay("ass-events")
@@ -45,6 +55,8 @@ function M.show(on_close)
         mp.remove_key_binding("qm-enter")
         mp.remove_key_binding("qm-d")
         mp.remove_key_binding("qm-path")
+        mp.remove_key_binding("qm-retry")
+        mp.remove_key_binding("qm-log")
         mp.remove_key_binding("qm-search")
         mp.remove_key_binding("qm-esc")
     end
@@ -80,12 +92,25 @@ function M.show(on_close)
         if #vis > 0 and ui.position(vis, cursor) == 0 then cursor = vis[1] end
         local body = ui.list(#vis, ui.position(vis, cursor), function(k)
             local job    = jobs[vis[k]]
-            local status = job.is_active and string.format(" %s%s", theme.c("on_color"), state.opts.on_text) or ""
+            local status = ""
+            if job.is_active then status = string.format(" %s%s", theme.c("on_color"), state.opts.on_text) end
+            if job.is_failed then status = string.format(" %s%s", theme.c("error_color"), theme.escape(lang.t("queue_failed"))) end
             return theme.escape(job.title) .. status
         end)
         if #vis == 0 then body = search.empty() end
-        local hints = search.hints({ { "Up/Down", "navigate" }, { "Enter", "pause" }, { "p", "path" }, { "d", "delete" }, { "/", "search" }, { "Esc", "close" } })
-        ov.data = search.title(lang.t("menu_render_queue")) .. "\\N" .. body .. "\\N" .. ui.tooltip(hints)
+        local row   = #vis > 0 and jobs[cursor] or nil
+        local hints = { { "Up/Down", "navigate" }, { "Enter", "pause" }, { "p", "path" } }
+        if row and row.is_failed then
+            hints[#hints + 1] = { "r", "retry" }
+            hints[#hints + 1] = { "l", "log" }
+            hints[#hints + 1] = { "d", "dismiss" }
+        else
+            hints[#hints + 1] = { "d", "delete" }
+        end
+        hints[#hints + 1] = { "/", "search" }
+        hints[#hints + 1] = { "Esc", "close" }
+        local tip = row and row.is_failed and ui.tip(row.rec.error) or ""
+        ov.data = search.title(lang.t("menu_render_queue")) .. "\\N" .. body .. tip .. "\\N" .. ui.tooltip(search.hints(hints))
         ov:update()
     end
 
@@ -114,7 +139,7 @@ function M.show(on_close)
             changed = true
         else
             for i = 1, #jobs do
-                if jobs[i].title ~= new_jobs[i].title or jobs[i].is_active ~= new_jobs[i].is_active then
+                if jobs[i].title ~= new_jobs[i].title or jobs[i].is_active ~= new_jobs[i].is_active or jobs[i].rec ~= new_jobs[i].rec then
                     changed = true; break
                 end
             end
@@ -137,7 +162,7 @@ function M.show(on_close)
         local sel = jobs[cursor]
         if not sel then return end
 
-        local q_job = sel.is_active and queue.active or queue.jobs[sel.original_index]
+        local q_job = job_of(sel)
         if not q_job or not q_job.output_file then return end
 
         local current_output = q_job.output_file
@@ -151,7 +176,7 @@ function M.show(on_close)
             q_job.output_file = new_output
             q_job.final_name  = fname
 
-            if queue.active ~= q_job then
+            if queue.active ~= q_job and q_job.args then
                 q_job.args[q_job.output_arg_index] = new_output
                 q_job.temp_file                    = queue.temp_path_for(new_output, q_job.temp_id)
             end
@@ -228,13 +253,15 @@ function M.show(on_close)
         local function delete_selected()
             local job = jobs[cursor]
             if not job then return end
-            local q_job = job.is_active and queue.active or queue.jobs[job.original_index]
+            local q_job = job_of(job)
             if not q_job then return end
             local input = q_job.input_file
 
             local function remove()
                 if job.is_active then
                     render.cancel_render()
+                elseif job.is_failed then
+                    render.dismiss(q_job)
                 else
                     table.remove(queue.jobs, job.original_index)
                     queue.total_jobs = queue.total_jobs > 0 and (queue.total_jobs - 1) or 0
@@ -244,8 +271,9 @@ function M.show(on_close)
                 end
             end
 
-            local lines = {}
-            if trash.pending(input) and trash.users(input) == 1 then lines[1] = lang.t("queue_trashes", { path = common.display_path(input) }) end
+            local lines   = {}
+            local trashes =trash.pending(input) or (job.is_failed and q_job.trash_source and q_job.trash_path)
+            if trashes and trash.users(input) == 1 then lines[1] = lang.t("queue_trashes", { path = common.display_path(input) }) end
             if not job.is_active and #lines == 0 then
                 remove()
                 jobs = rebuild_jobs()
@@ -255,7 +283,9 @@ function M.show(on_close)
             end
 
             teardown()
-            local title = job.is_active and lang.t("queue_cancel_confirm") or lang.t("queue_remove_confirm")
+            local title = lang.t("queue_remove_confirm")
+            if job.is_active then title = lang.t("queue_cancel_confirm") end
+            if job.is_failed then title = lang.t("queue_dismiss_confirm") end
             ui_confirm.show(title, job.title, function()
                 remove()
                 after_delete()
@@ -265,6 +295,21 @@ function M.show(on_close)
         mp.add_forced_key_binding("d", "qm-d", delete_selected)
 
         mp.add_forced_key_binding("p", "qm-path", change_path_selected)
+
+        mp.add_forced_key_binding("r", "qm-retry", function()
+            local row = jobs[cursor]
+            if not (row and row.is_failed) then return end
+            render.retry(row.rec)
+            jobs = rebuild_jobs()
+            draw()
+        end)
+
+        mp.add_forced_key_binding("l", "qm-log", function()
+            local row = jobs[cursor]
+            if not (row and row.is_failed) then return end
+            teardown()
+            ui_log.show(row.title, row.rec.log or {}, row.rec.log_file, open_ui)
+        end)
 
         mp.add_forced_key_binding("/", "qm-search", search.start)
 

@@ -21,6 +21,64 @@ local can_suspend = platform ~= "windows"
 
 local stats_ov = mp.create_osd_overlay("ass-events")
 
+local log_dir   = utils.join_path(common.get_state_dir(), "logs")
+local log_keep  = 20
+local error_max = 120
+
+local function quote(arg)
+    if arg:match("^[%w%-%._/:=+,@%%]+$") then return arg end
+    return "'" .. arg:gsub("'", "'\\''") .. "'"
+end
+
+local error_words = { "error", "invalid", "not supported", "not found", "could not", "cannot", "unable", "failed", "no such", "no capable" }
+
+local function is_error(line)
+    local lower = line:lower()
+    for _, word in ipairs(error_words) do
+        if lower:find(word, 1, true) then return true end
+    end
+    return false
+end
+
+local function failure_log(args, stderr)
+    local command = {}
+    for i, arg in ipairs(args) do command[i] = quote(tostring(arg)) end
+    local lines   = { table.concat(command, " "), "" }
+    local last    = nil
+    local cause   = nil
+    local running = false
+    for line in (stderr or ""):gmatch("[^\r\n]+") do
+        if not line:match("^frame=") and not line:match("^size=") and not line:match("^Conversion failed") then
+            lines[#lines + 1] = line
+            if line:match("%S") then last = line end
+            if line:match("^Press %[q%]") then
+                running = true
+                cause   = nil
+            elseif not cause and is_error(line) then
+                cause = line
+            end
+        end
+    end
+    if not running then cause = cause or last end
+    local shown = (cause or last or lang.t("render_no_error")):gsub("^%[[^%]]*%]%s*", ""):gsub("^%[[^%]]*%]%s*", "")
+    if #shown > error_max then shown = shown:sub(1, error_max - 3) .. "..." end
+    return lines, shown
+end
+
+local function write_log(name, lines)
+    common.ensure_dir(log_dir)
+    local path = utils.join_path(log_dir, os.date("%Y%m%d-%H%M%S") .. "-" .. name .. ".log")
+    local f    = io.open(path, "w")
+    if not f then return nil end
+    f:write(table.concat(lines, "\n"), "\n")
+    f:close()
+
+    local logs = utils.readdir(log_dir, "files") or {}
+    table.sort(logs)
+    for i = 1, #logs - log_keep do os.remove(utils.join_path(log_dir, logs[i])) end
+    return path
+end
+
 function M.cancel_render()
     mp.set_osd_ass(0, 0, "")
     mp.osd_message("", 0)
@@ -274,17 +332,43 @@ function M.process_queue()
             end
         else
             queue.delete_temp_file(active_job.temp_file)
+            local lines, last    = failure_log(active_job.args, result and result.stderr or tostring(error))
             local failed_rec     = queue.item_from_job(active_job, "failed")
             failed_rec.temp_file = nil
             failed_rec.pid_file  = nil
+            failed_rec.log       = lines
+            failed_rec.log_file  = write_log(active_job.final_name, lines)
+            failed_rec.error     = last
             table.insert(queue.failed, failed_rec)
-            notify.show(lang.t("render_failed", { name = active_job.final_name }), true, "error")
-            print(result and result.stderr or error)
+            notify.show(lang.t("render_failed", { name = active_job.final_name, error = last }), true, "error")
+            mp.msg.error(table.concat(lines, "\n"))
             reset_and_advance()
         end
     end)
 
     queue.save()
+end
+
+local function remove_failed(rec)
+    for i, r in ipairs(queue.failed) do
+        if r == rec then return table.remove(queue.failed, i) end
+    end
+end
+
+function M.retry(rec)
+    local job, err = queue.job_from_item(rec)
+    if not job then return notify.show(err, true, "error") end
+    remove_failed(rec)
+    queue_job(job)
+end
+
+function M.dismiss(rec)
+    remove_failed(rec)
+    if rec.trash_source and not common.same_path(rec.input_file, rec.output_file) then
+        trash.request(rec.input_file, rec.trash_path)
+    else
+        trash.settle(rec.input_file)
+    end
 end
 
 local function verify_and_queue(job, file_path, on_complete)
