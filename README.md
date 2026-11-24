@@ -287,10 +287,10 @@ Only Tachytome's own git repo is updated through git, a script dir inside anothe
 | d       | Delete        | Deletes the item, asks first if it cancels a render or trashes the source.                |
 | r       | Retry         | Retry the failed render with the same settings.                                           |
 | l       | Log           | Shows the failed render's ffmpeg command and its whole error.                             |
-| d       | Dismiss       | Dismisses the failed render, trashing the source if it was meant to.                      |
+| d       | Dismiss       | Dismisses the failed render and keeps its source.                                         |
 
 A failed render stays in the queue marked Failed, with ffmpeg's error shown below the list when it's selected.<br>
-Its source is only trashed once it's dismissed, or retried and finished.<br>
+Its source is only trashed once it's retried and finished, dismissing it keeps the source even if another render of it wanted it trashed.<br>
 The log is also saved in the `logs` folder of the [state dir](#recovery), the last 20 are kept.
 
 #### Log

@@ -364,11 +364,7 @@ end
 
 function M.dismiss(rec)
     remove_failed(rec)
-    if rec.trash_source and not common.same_path(rec.input_file, rec.output_file) then
-        trash.request(rec.input_file, rec.trash_path)
-    else
-        trash.settle(rec.input_file)
-    end
+    trash.cancel(rec.input_file)
 end
 
 local function verify_and_queue(job, file_path, on_complete)

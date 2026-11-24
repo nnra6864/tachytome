@@ -109,7 +109,7 @@ function M.show(on_close)
         end
         hints[#hints + 1] = { "/", "search" }
         hints[#hints + 1] = { "Esc", "close" }
-        local tip = row and row.is_failed and ui.tip(row.rec.error) or ""
+        local tip = row and row.is_failed and ui.note(row.rec.error) or ""
         ov.data = search.title(lang.t("menu_render_queue")) .. "\\N" .. body .. tip .. "\\N" .. ui.tooltip(search.hints(hints))
         ov:update()
     end
@@ -271,9 +271,8 @@ function M.show(on_close)
                 end
             end
 
-            local lines   = {}
-            local trashes =trash.pending(input) or (job.is_failed and q_job.trash_source and q_job.trash_path)
-            if trashes and trash.users(input) == 1 then lines[1] = lang.t("queue_trashes", { path = common.display_path(input) }) end
+            local lines = {}
+            if not job.is_failed and trash.pending(input) and trash.users(input) == 1 then lines[1] = lang.t("queue_trashes", { path = common.display_path(input) }) end
             if not job.is_active and #lines == 0 then
                 remove()
                 jobs = rebuild_jobs()

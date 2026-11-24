@@ -68,6 +68,12 @@ function M.now(path, trash_path, on_done)
     end)
 end
 
+function M.cancel(path)
+    for p in pairs(pending) do
+        if common.same_path(p, path) then pending[p] = nil end
+    end
+end
+
 function M.settle(path)
     for p, trash_path in pairs(pending) do
         if common.same_path(p, path) and not M.in_use(p) then

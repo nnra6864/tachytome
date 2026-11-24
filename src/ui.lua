@@ -40,6 +40,10 @@ function M.dim_lines(lines)
     return string.format("\\N%s\\h\\N%s%s%s", theme.f(true), theme.c("dim_text_color"), table.concat(out, "\\N"), theme.reset())
 end
 
+function M.note(text)
+    return string.format("\\N%s%s%s%s", theme.f(true), theme.c("text_color"), theme.escape(text), theme.reset())
+end
+
 function M.tips(lines)
     if not state.opts.tips then return "" end
     return M.dim_lines(lines)
