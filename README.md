@@ -1049,6 +1049,7 @@ This only affects what is displayed, ffmpeg and the render queue always use the 
 
 `mkv` holds the most, other containers get what they can hold.<br>
 Anything a render would lose is listed in one dialog before it's queued, `y` or Enter renders anyway, `n` or Esc cancels.<br>
+The last line says what `mkv`, or `mka` for audio only, would keep instead, when it keeps any of it.<br>
 Changing the path of a queued render to another container in the [Render Queue](#render-queue) asks the same way.
 - Subtitles become `mov_text` in `mp4`, `mov` and `m4v` and WebVTT in `webm`.<br>
   Styled ASS/SSA subtitles lose their fonts, colors and positions there, picture subtitles like PGS are left out.<br>

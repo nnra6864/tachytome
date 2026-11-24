@@ -167,18 +167,32 @@ local function needs_graph(out)
     return false
 end
 
+local function add_loss(media_info, key, count, vars)
+    if count == 0 then return end
+    vars           = vars or {}
+    vars.count     = count
+    vars.container = media_info.ext
+    media_info.losses[#media_info.losses + 1] = lang.t(key, vars)
+    if not media_info.loss_keys[key] then
+        media_info.loss_keys[key]                         = true
+        media_info.loss_order[#media_info.loss_order + 1] = key
+    end
+end
+
 local function select_streams(info, opts, output_file)
     local result, err = tracks.build(opts.tracks or "", #info.audio, #info.video)
     if not result then return nil, err end
     local ext       = (output_file:match("%.([a-zA-Z0-9]+)$") or ""):lower()
     info.ext        = ext
     info.losses     = {}
+    info.loss_keys  = {}
+    info.loss_order = {}
     info.format     = audio_formats[ext] or video_formats[ext]
     info.audio_only = audio_formats[ext] ~= nil
     info.single     = info.audio_only and info.format.single == true
     info.audio_out  = result.audio
     if info.single and #info.audio_out > 1 then
-        info.losses[#info.losses + 1] = lang.t("loss_audio_tracks", { container = ext, count = #info.audio_out - 1 })
+        add_loss(info, "loss_audio_tracks", #info.audio_out - 1)
         info.audio_out = { first_mix(info.audio_out) }
     end
     info.a_titles   = {}
@@ -247,14 +261,6 @@ local function deselect(args, kind, count, keep)
             table.insert(args, "-map") table.insert(args, string.format("-0:%s:%d", kind, i))
         end
     end
-end
-
-local function add_loss(media_info, key, count, vars)
-    if count == 0 then return end
-    vars           = vars or {}
-    vars.count     = count
-    vars.container = media_info.ext
-    media_info.losses[#media_info.losses + 1] = lang.t(key, vars)
 end
 
 local function map_subs(args, media_info)
@@ -675,8 +681,25 @@ function M.build_args(opts, input_file, output_file, creation_time)
         end
     end
 
+    if #media_info.losses > 0 and not opts.no_suggest then
+        local alt = media_info.audio_only and "mka" or "mkv"
+        if media_info.ext ~= alt then
+            local alt_opts = { no_suggest = true }
+            for k, v in pairs(opts) do alt_opts[k] = v end
+            local alt_out                  = output_file:gsub("%.[^%./\\]+$", "") .. "." .. alt
+            local alt_args, _, _, alt_keys = M.build_args(alt_opts, input_file, alt_out, creation_time)
+            local kept                     = {}
+            for _, key in ipairs(alt_args and media_info.loss_order or {}) do
+                if not alt_keys[key] then kept[#kept + 1] = lang.t(key .. "_kept") end
+            end
+            if #kept > 0 then
+                media_info.losses[#media_info.losses + 1] = lang.t("loss_suggest", { container = alt, what = table.concat(kept, ", ") })
+            end
+        end
+    end
+
     table.insert(args, output_file)
-    return args, out_fps, media_info.losses
+    return args, out_fps, media_info.losses, media_info.loss_keys
 end
 
 return M
