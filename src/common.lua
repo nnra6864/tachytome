@@ -11,6 +11,7 @@ local interval_cache     = {}
 local interval_pending   = {}
 local interval_query     = {"-select_streams", "v:0", "-read_intervals", "%+60", "-show_entries", "packet=pts_time,flags", "-of", "csv=p=0"}
 local cached_platform    = nil
+local cached_state_dir   = nil
 
 function M.get_platform()
     if cached_platform then return cached_platform end
@@ -29,6 +30,7 @@ function M.get_platform()
 end
 
 function M.get_state_dir()
+    if cached_state_dir then return cached_state_dir end
     local platform = M.get_platform()
     local path = ""
 
@@ -49,6 +51,7 @@ function M.get_state_dir()
 
     path = M.expand_path(path)
     M.ensure_dir(path)
+    cached_state_dir = path
     return path
 end
 
@@ -89,9 +92,11 @@ function M.check_trash(platform)
 end
 
 function M.ensure_dir(path)
+    local info = utils.file_info(path)
+    if info and info.is_dir then return end
     local platform = M.get_platform()
     if platform == "windows" then
-        utils.subprocess({args = {"powershell", "-NoProfile", "-Command", "New-Item -ItemType Directory -Force -Path '" .. path:gsub("'", "''") .. "'"}, cancellable = false})
+        utils.subprocess({args = {"cmd", "/d", "/c", "mkdir", (path:gsub("/", "\\"))}, cancellable = false})
     else
         utils.subprocess({args = {"mkdir", "-p", path}, cancellable = false})
     end
