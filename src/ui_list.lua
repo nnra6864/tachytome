@@ -63,6 +63,10 @@ function M.show(title, items, current_val, on_select, on_cancel, opts)
     local function draw()
         local vis = visible()
         if #vis > 0 and ui.position(vis, cursor) == 0 then cursor = vis[1] end
+        local tips = {}
+        if opts.describe then
+            for i = 1, #items do tips[i] = opts.describe(i) or {} end
+        end
         local body = ui.list(#vis, ui.position(vis, cursor), function(k)
             local i      = vis[k]
             local marker = items[i] == current_val and string.format(" %s%s", theme.c("on_color"), state.opts.on_text) or ""
@@ -72,14 +76,14 @@ function M.show(title, items, current_val, on_select, on_cancel, opts)
                 detail    = string.format("%s\\h\\h%s%s%s", pad, theme.c("dim_text_color"), opts.detail(i), theme.c("text_color"))
             end
             return ui.number_prefix(k) .. theme.escape(items[i]) .. detail .. marker
-        end)
+        end, opts.describe and ui.tip_lines(tips) or nil)
         if #vis == 0 then body = #items == 0 and opts.empty and ui.dim(opts.empty) or search.empty() end
         local hints = { { "Up/Down", "navigate" }, { "0-9/Enter", opts.action or "select" } }
         for _, key in ipairs(keys) do hints[#hints + 1] = { key[1], key[2] } end
         hints[#hints + 1] = { "/", "search" }
         hints[#hints + 1] = { "Esc", "cancel" }
         hints             = search.hints(hints)
-        if opts.describe and #vis > 0 then body = body .. ui.tips(opts.describe(cursor)) end
+        if opts.describe and #vis > 0 then body = body .. ui.tips(tips[cursor]) end
         ov.data = search.title(title) .. "\\N" .. body .. "\\N" .. ui.tooltip(hints)
         ov:update()
     end

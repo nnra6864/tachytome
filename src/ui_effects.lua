@@ -127,10 +127,16 @@ function M.show(on_close)
             end
             local marker = effects.instance(row.preset.id) and string.format(" %s%s", theme.c("on_color"), state.opts.on_text) or ""
             return string.format("\\h%s%s", theme.escape(effects.title(row.preset)), marker)
-        end)
+        end, ui.tip_lines(descs))
         if #vis == 0 then body = search.empty() end
-        local hints = search.hints({ { "Up/Down", "navigate" }, { "Tab", "toggle" }, { "e", "edit" }, { "m", "manage" }, { "/", "search" }, { "Enter", "apply" }, { "Esc", "cancel" } })
-        local row = #nav > 0 and rows[cursor]
+        local row   = #nav > 0 and rows[cursor]
+        local hints = { { "Up/Down", "navigate" }, { "Tab", "toggle" } }
+        if row and row.kind == "preset" then hints[#hints + 1] = { "e", "edit" } end
+        hints[#hints + 1] = { "m", "manage" }
+        hints[#hints + 1] = { "/", "search" }
+        hints[#hints + 1] = { "Enter", "apply" }
+        hints[#hints + 1] = { "Esc", "cancel" }
+        hints             = search.hints(hints)
         if row and row.kind == "preset" then body = body .. ui.tips(descs[row.preset]) end
         ov.data = search.title(lang.t("menu_effects")) .. "\\N" .. body .. "\\N" .. ui.tooltip(hints)
         ov:update()

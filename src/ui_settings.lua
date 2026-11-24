@@ -235,11 +235,13 @@ function M.show(name, enabled, pickers, on_close)
             if not active then return end
             local vis = visible()
             if #vis > 0 and ui.position(vis, cursor) == 0 then cursor = vis[1] end
-            local body = ui.list(#vis, ui.position(vis, cursor), function(k) return row_text(keys[vis[k]], vis[k] == cursor) end)
+            local tips = {}
+            for i, key in ipairs(keys) do tips[i] = options.describe(key, effective.video_encoder) end
+            local body = ui.list(#vis, ui.position(vis, cursor), function(k) return row_text(keys[vis[k]], vis[k] == cursor) end, ui.tip_lines(tips))
             if #vis == 0 then
                 body = search.empty()
             else
-                body = body .. ui.tips(options.describe(keys[cursor], effective.video_encoder))
+                body = body .. ui.tips(tips[cursor])
             end
 
             local title   = lang.t("config_editor", { name = name .. ".conf" })

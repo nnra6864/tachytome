@@ -113,7 +113,7 @@ function M.show(opts)
             local detail = kind.detail and string.format("\\h\\h%s%s", theme.c("dim_text_color"), theme.escape(kind.detail(p))) or ""
             local pad    = string.rep("\\h", width - common.text_len(name))
             return string.format("%s%s%s\\h\\h%s%s", ui.number_prefix(ui.position(nav, vis[k])), theme.escape(name), pad, value, detail)
-        end)
+        end, ui.tip_lines(descs))
         if #vis == 0 then body = search.filtering() and search.empty() or ui.dim(lang.t("presets_none")) end
         local row   = #nav > 0 and rows[cursor]
         local hints = { { "Up/Down", "navigate" }, { "Tab/0-9", "toggle" } }

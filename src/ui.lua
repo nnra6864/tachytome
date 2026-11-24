@@ -124,13 +124,20 @@ function M.step(vis, index, delta)
     return vis[M.wrap(at, delta, #vis)]
 end
 
-local function row_count()
-    local free = 720 - 4 * state.opts.font_size - 10 * state.opts.small_font_size
+function M.tip_lines(all)
+    if not state.opts.tips then return 0 end
+    local most = 0
+    for _, lines in pairs(all) do most = math.max(most, #lines) end
+    return most > 0 and most + 1 or 0
+end
+
+local function row_count(tip_lines)
+    local free = 720 - 4 * state.opts.font_size - (6 + (tip_lines or 4)) * state.opts.small_font_size
     return math.max(5, math.floor(free / state.opts.font_size))
 end
 
-function M.list(count, cursor, line)
-    local visible_rows = row_count()
+function M.list(count, cursor, line, tip_lines)
+    local visible_rows = row_count(tip_lines)
     local start_idx    = math.max(1, cursor - math.floor(visible_rows / 2))
     local end_idx      = math.min(count, start_idx + visible_rows - 1)
     if end_idx - start_idx < visible_rows - 1 then start_idx = math.max(1, end_idx - visible_rows + 1) end
