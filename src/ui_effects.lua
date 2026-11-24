@@ -166,7 +166,7 @@ function M.show(on_close)
                 local curve = effects.is_curve(prm.default)
                 prompts[#prompts + 1] = {
                     key     = prm.key,
-                    label   = prm.key,
+                    label   = lang.choose(prm.labels),
                     hint    = curve and lang.t("hint_easing") or nil,
                     curve   = curve,
                     default = params[prm.key] or prm.default

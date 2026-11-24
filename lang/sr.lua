@@ -613,6 +613,7 @@ return {
     warn_not_builtin     = "{where}: {name} nije preset koji dolazi uz Tachytome",
     warn_empty           = "'{name}' u {where} je prazan, preskače se",
     warn_unknown_easing  = "{where}: nepoznato ublažavanje '{value}', koristi se linearno",
+    warn_unknown_param   = "{where}: '{name}' nema parametar '{key}'",
     warn_unknown_action  = "Nepoznata akcija menija '{action}' za taster '{keys}'",
     warn_unreachable_seq = "Niz tastera '{seq}' u meniju je nedostižan, taster '{prefix}' je vezan",
     warn_several_rows    = "Meni '{name}': akcija '{action}' je u više redova, menja se prvi",

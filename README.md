@@ -538,7 +538,7 @@ vertical = 1080x1920 cover
   vertical = 1080x1920 cover
   ```
   The code is a language file's name, e.g. `sr`, an `[sr]` also matches `sr-RS`, without any lines above the first one `[en]` is used, or the first block.
-- An effect's name works the same way, a `label [code]` line next to its `label`, e.g. `label [sr] Pretapanje`.
+- An effect's name works the same way, a `label [code]` line next to its `label`, e.g. `label [sr] Pretapanje`, and so do the names its values are prompted with, `param_label [sr] curve Kriva`.
 - The presets and effects that come with Tachytome carry these for every language Tachytome has.
 
 #### Config Manager
@@ -995,7 +995,10 @@ effect blur_fade
     label Blur Fade
     duration 0.5
     param blur 200
+    param_label blur Blur
     param curve ease_out_expo
+    param_label curve Curve
+    param_label [sr] curve Kriva
 
     anchor start
     ramp {blur} 0 0 {curve}
@@ -1009,6 +1012,7 @@ end
 
 - `anchor` picks whether the following lines apply to the start or the end of the clip.
 - `duration` and `param` values can be changed from the menu, and are used in the effect as `{name}`.
+- `param_label` gives a `param` the name it's prompted with, `{name}` stays the same inside the effect, `param_label [code]` names it in that language, like `label [code]`.
 - `fade`, `vfade`, `afade`, `ramp`, `blur`, `tmix`, `vanimate` and `aanimate` cover the common cases.
 - `video` and `audio` accept raw ffmpeg filters for everything else.
 - Easings follow [easings.net](https://easings.net) in snake_case, custom curves can be made with `bezier(x1, y1, x2, y2)`.

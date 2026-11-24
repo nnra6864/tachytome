@@ -5,14 +5,7 @@ question that needs an answer before that item starts.
 
 New strings go in every language file, `lang/en.lua` and `lang/sr.lua`.
 
-## 1. Effect parameter names are translatable
-- The names prompted when adding an effect, e.g. `curve` or `blur`, can
-  get a display name per language, so `{curve}` keeps working inside the
-  effect while the prompt shows a translated name.
-- The effects that come with Tachytome get Serbian names for theirs.
-- Not urgent.
-
-## 2. Edit renders in the Render Queue
+## 1. Edit renders in the Render Queue
 - A key in the Render Queue, e.g. `e`, opens the whole Tachytome menu for
   the selected queued or failed render: marks, quality, encoder, effects,
   tracks, path and everything else.
@@ -23,13 +16,13 @@ New strings go in every language file, `lang/en.lua` and `lang/sr.lua`.
   can be reordered, and a render's settings can be viewed.
 - Big step, not started.
 
-## 3. Config warnings show when the menu opens
+## 2. Config warnings show when the menu opens
 - Invalid lines, unknown actions or keys, shadowed sequences and redefined
   presets only go to the terminal now.
 - Opening the Tachytome menu lists them all on the OSD, one per line,
   instead of popping up at startup.
 
-## 4. Go To checks what's typed
+## 3. Go To checks what's typed
 - Invalid input keeps the prompt open with an error instead of closing it
   silently.
 - Setting a mark so Mark In ends up after Mark Out warns right away
@@ -37,19 +30,19 @@ New strings go in every language file, `lang/en.lua` and `lang/sr.lua`.
 - Repeated dots, e.g. `5.........1`, are rejected or kept to one instead
   of reading as `5.1`.
 
-## 5. Lists fit the screen
+## 4. Lists fit the screen
 - Lists show as many rows as the OSD height and `font_size` allow instead
   of a fixed 15.
 
-## 6. README states the minimum mpv version
+## 5. README states the minimum mpv version
 - Under Dependencies, from what the script uses, `create_osd_overlay`,
   `command_native_async`, `clipboard/text` and the `any_unicode` key text.
 
-## 7. Loading current values in the Config Editor lists them
+## 6. Loading current values in the Config Editor lists them
 - `l` asks first with the changes it would load, `quality 35 -> 40` one
   per line like saving does, instead of only counting them.
 
-## 8. Smaller performance fixes
+## 7. Smaller performance fixes
 - Autocrop runs at most 2-3 ffmpeg decoders at once, waits for marks to
   settle and forgets old results per file.
 - The Config Editor parses the builtin config once instead of on every
@@ -57,7 +50,7 @@ New strings go in every language file, `lang/en.lua` and `lang/sr.lua`.
 - The ffprobes at render start, creation time and stream info, run in the
   background.
 
-## 9. URL and ytdl sources [?]
+## 8. URL and ytdl sources [?]
 - ffmpeg reads plain http(s) media URLs directly, so those mostly need the
   output name taken from `media-title`, no Trash Source, and no size from
   `file_info`.
@@ -69,7 +62,7 @@ New strings go in every language file, `lang/en.lua` and `lang/sr.lua`.
   their headers, or hand the cut to `yt-dlp --download-sections` and render
   from that.
 
-## 10. Restructure, once the features above are in
+## 9. Restructure, once the features above are in
 - Audit section 4: one job record, data-driven encoders, a view helper for
   every OSD screen, a preset store factory, one file module with atomic
   writes, `common.lua` split up, one owner for state, tests for the pure

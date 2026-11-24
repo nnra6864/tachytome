@@ -613,6 +613,7 @@ return {
     warn_not_builtin     = "{where}: {name} isn't a preset that comes with Tachytome",
     warn_empty           = "'{name}' at {where} is empty, skipping",
     warn_unknown_easing  = "{where}: unknown easing '{value}', using linear",
+    warn_unknown_param   = "{where}: '{name}' has no param '{key}'",
     warn_unknown_action  = "Unknown menu action '{action}' for key '{keys}'",
     warn_unreachable_seq = "Menu sequence '{seq}' unreachable, key '{prefix}' is bound",
     warn_several_rows    = "Menu '{name}': action '{action}' is on several rows, patching the first",

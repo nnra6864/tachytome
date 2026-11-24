@@ -335,6 +335,18 @@ local function finish_effect(current)
         notify.show(lang.t("warn_empty", { name = current.name, where = current.where }), false, "warn")
         return
     end
+    local by_key = {}
+    for _, prm in ipairs(current.params) do
+        prm.labels      = { [""] = prm.key }
+        by_key[prm.key] = prm
+    end
+    for _, pl in ipairs(current.param_labels) do
+        if by_key[pl.key] then
+            by_key[pl.key].labels[pl.tag] = pl.text
+        else
+            notify.show(lang.t("warn_unknown_param", { name = current.name, key = pl.key, where = pl.where }), false, "warn")
+        end
+    end
     for _, atom in ipairs(current.atoms) do
         if timed_atoms[atom.type] then current.d = current.d or 1 end
     end
@@ -371,6 +383,14 @@ local function parse_effects_file(path, file, states)
                 elseif head == "label" and #words > 1 then
                     local tag, text = lang.tag(content:match("^%s*label%s+(.+)$"))
                     current.labels[tag or ""] = text
+                elseif head == "param_label" and #words > 2 then
+                    local tag, rest = lang.tag(content:match("^%s*param_label%s+(.+)$"))
+                    local key, text = rest:match("^(%S+)%s+(.+)$")
+                    if key then
+                        current.param_labels[#current.param_labels + 1] = { key = key, tag = tag or "", text = text, where = where }
+                    else
+                        notify.show(lang.t("warn_invalid_line", { where = where, line = content }), false, "warn")
+                    end
                 elseif head == "anchor" and (words[2] == "start" or words[2] == "end") then
                     current.anchor = words[2]
                 elseif head == "duration" and tonumber(words[2]) and tonumber(words[2]) > 0 then
@@ -400,15 +420,16 @@ local function parse_effects_file(path, file, states)
             elseif (head == "effect" and #words == 2) or (head == "disabled" and words[2] == "effect" and #words == 3) then
                 local name = words[#words]
                 current = {
-                    name     = name:lower(),
-                    labels   = { [""] = name },
-                    anchor   = "start",
-                    file     = file,
-                    where    = where,
-                    line     = n,
-                    params   = {},
-                    atoms    = {},
-                    disabled = head == "disabled"
+                    name         = name:lower(),
+                    labels       = { [""] = name },
+                    anchor       = "start",
+                    file         = file,
+                    where        = where,
+                    line         = n,
+                    params       = {},
+                    param_labels = {},
+                    atoms        = {},
+                    disabled     = head == "disabled"
                 }
             else
                 notify.show(lang.t("warn_invalid_line", { where = where, line = content }), false, "warn")
