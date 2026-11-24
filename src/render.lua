@@ -316,19 +316,34 @@ function M.process_queue()
             reset_and_advance()
         end
 
-        if result and result.status == 0 then
+        local over_source = common.same_path(active_job.input_file, active_job.output_file)
+
+        local function keep_temp(reason)
+            notify.show(lang.t("render_move_failed", { path = active_job.output_file }), true, "error")
+            mp.msg.error(reason .. ", rendered file kept at: " .. active_job.temp_file)
+            reset_and_advance()
+            trash.settle(active_job.input_file)
+        end
+
+        local function move_into_place(trashed)
             local renamed, rename_err = common.replace_file(active_job.temp_file, active_job.output_file)
-            if not renamed then
-                notify.show(lang.t("render_move_failed", { path = active_job.output_file }), true, "error")
-                mp.msg.error("Rename failed (" .. tostring(rename_err) .. "), rendered file kept at: " .. active_job.temp_file)
-                reset_and_advance()
-                trash.settle(active_job.input_file)
-                return
-            end
+            if not renamed then return keep_temp("Rename failed (" .. tostring(rename_err) .. ")") end
 
             finish_job()
-            if active_job.trash_source and not common.same_path(active_job.input_file, active_job.output_file) then
+            if trashed and over_source then stats.record_trash(active_job.input_file, "after_render") end
+            if active_job.trash_source and not over_source then
                 trash.request(active_job.input_file, active_job.trash_path, "after_render")
+            end
+        end
+
+        if result and result.status == 0 then
+            if active_job.trash_path and utils.file_info(active_job.output_file) then
+                trash.now(active_job.output_file, active_job.trash_path, nil, function(trashed)
+                    if not trashed then return keep_temp("Could not trash " .. active_job.output_file) end
+                    move_into_place(true)
+                end)
+            else
+                move_into_place(false)
             end
         else
             queue.delete_temp_file(active_job.temp_file)
@@ -388,12 +403,9 @@ function M.show_exists(input_file, output_file, on_rename, on_overwrite, on_canc
     local _, name = utils.split_path(output_file)
     local readers = trash.users(output_file)
     if own_job and common.same_path(own_job.input_file, output_file) then readers = readers - 1 end
-    local title   = nil
+    local title   = common.same_path(input_file, output_file) and lang.t("render_exists_source") or nil
     local lines   = {}
-    if common.same_path(input_file, output_file) then
-        title    = lang.t("render_exists_source")
-        lines[1] = lang.t("render_overwrite_source")
-    end
+    if state.trash_path then lines[1] = lang.t("render_overwrite_trash") end
     if readers > 0 then lines[#lines + 1] = lang.t("render_overwrite_readers") end
     ui_choice.show_exists(name, on_rename, on_overwrite, on_cancel, title, lines)
 end

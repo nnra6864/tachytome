@@ -1022,7 +1022,8 @@ end
 
 Tachytome offers powerful path resolution.<br>
 Config includes the `output_dir` option which you can set to the path you most commonly use, by default `~/Videos/tachytome`.<br>
-The default name is the source's name, with `suffix`, ` Remuxed` by default, added only when it goes in the source's own directory, so it never overwrites the source.
+The default name is the source's name, with `suffix`, ` Remuxed` by default, added only when it goes in the source's own directory, so it never overwrites the source.<br>
+Overwriting an existing file, the source included, moves the old one to the trash once the render finishes.
 
 #### Prefixes
 

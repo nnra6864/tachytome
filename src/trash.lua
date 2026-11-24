@@ -58,12 +58,13 @@ end
 
 function M.now(path, trash_path, how, on_done)
     unload(path, function()
+        local _, name = utils.split_path(path)
         common.trash_file(path, trash_path, function(success)
             if success then
-                stats.record_trash(path, how)
-                notify.show(lang.t("trash_done"), true)
+                if how then stats.record_trash(path, how) end
+                notify.show(lang.t(how and "trash_done" or "trash_old_done", { name = name }), true)
             else
-                notify.show(lang.t("trash_failed"), true, "error")
+                notify.show(lang.t(how and "trash_failed" or "trash_old_failed", { name = name }), true, "error")
             end
             if on_done then on_done(success) end
         end)

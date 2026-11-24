@@ -148,6 +148,8 @@ return {
     trash_waiting        = "{name} ide u smeće kad se njena renderovanja završe",
     trash_done           = "Izvorni video je premešten u smeće",
     trash_failed         = "Premeštanje izvornog videa u smeće nije uspelo, možda je u upotrebi",
+    trash_old_done       = "Stara datoteka {name} je premeštena u smeće",
+    trash_old_failed     = "Premeštanje stare datoteke {name} u smeće nije uspelo, možda je u upotrebi",
 
     effects_duration  = "Trajanje (s)",
     effects_added     = "Efekat dodat: {name}",
@@ -495,7 +497,7 @@ return {
     render_exists_source     = "To je izvorna datoteka",
     render_bad_video         = "{container} ne može da sadrži {codec} video, koristite mkv ili drugi enkoder",
     render_losses_title      = "Svejedno renderovati?",
-    render_overwrite_source  = "Prepisivanje je zamenjuje kad se renderovanje završi i ne šalje je u smeće",
+    render_overwrite_trash   = "Prepisivanje šalje staru datoteku u smeće kad se renderovanje završi",
     render_overwrite_readers = "Renderovanja u redu iz nje čitaće novu datoteku",
 
     loss_unsupported  = "Nije podržano u {container}:",

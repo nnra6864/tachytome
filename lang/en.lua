@@ -148,6 +148,8 @@ return {
     trash_waiting        = "{name} goes to the trash once its renders finish",
     trash_done           = "Trashed the source video",
     trash_failed         = "Failed to trash the source video, it may be in use",
+    trash_old_done       = "Moved the old {name} to the trash",
+    trash_old_failed     = "Failed to trash the old {name}, it may be in use",
 
     effects_duration  = "Duration (s)",
     effects_added     = "Effect added: {name}",
@@ -495,7 +497,7 @@ return {
     render_exists_source     = "That's the source file",
     render_bad_video         = "{container} can't hold {codec} video, use mkv or another encoder",
     render_losses_title      = "Render anyway?",
-    render_overwrite_source  = "Overwrite replaces it once the render finishes and keeps it out of the trash",
+    render_overwrite_trash   = "Overwrite moves the old file to the trash once the render finishes",
     render_overwrite_readers = "Renders queued from it will read the new file",
 
     loss_unsupported  = "Unsupported in {container}:",
