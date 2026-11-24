@@ -52,7 +52,7 @@ function M.show(on_close)
         mp.remove_key_binding("qm-down")
         mp.remove_key_binding("qm-j")
         mp.remove_key_binding("qm-k")
-        mp.remove_key_binding("qm-enter")
+        mp.remove_key_binding("qm-space")
         mp.remove_key_binding("qm-d")
         mp.remove_key_binding("qm-path")
         mp.remove_key_binding("qm-retry")
@@ -99,7 +99,7 @@ function M.show(on_close)
         end)
         if #vis == 0 then body = search.empty() end
         local row   = #vis > 0 and jobs[cursor] or nil
-        local hints = { { "Up/Down", "navigate" }, { "Enter", "pause" }, { "p", "path" } }
+        local hints = { { "Up/Down", "navigate" }, { "Space", "pause" }, { "p", "path" } }
         if row and row.is_failed then
             hints[#hints + 1] = { "r", "retry" }
             hints[#hints + 1] = { "l", "log" }
@@ -229,7 +229,7 @@ function M.show(on_close)
         mp.add_forced_key_binding("j", "qm-j", move_down, {repeatable = true})
         mp.add_forced_key_binding("k", "qm-k", move_up, {repeatable = true})
 
-        mp.add_forced_key_binding("ENTER", "qm-enter", function()
+        mp.add_forced_key_binding("SPACE", "qm-space", function()
             render.toggle_pause()
 
             jobs = rebuild_jobs()

@@ -282,7 +282,7 @@ Only Tachytome's own git repo is updated through git, a script dir inside anothe
 
 | Keybind | Action        | Description                                                                                |
 |---------|---------------|--------------------------------------------------------------------------------------------|
-| Enter   | Pause Render  | Pauses the current render and render queue.<br>Can only pause the render queue on Windows. |
+| Space   | Pause Render  | Pauses the current render and render queue.<br>Can only pause the render queue on Windows. |
 | p       | Change Path   | Change output path, a failed render keeps it for its retry.                               |
 | d       | Delete        | Deletes the item, asks first if it cancels a render or trashes the source.                |
 | r       | Retry         | Retry the failed render with the same settings.                                           |
@@ -386,7 +386,7 @@ Inputs like the Path prompt use ctrl+k/ctrl+j instead, since plain letters are t
 | Keybind | Action | Description                                         |
 |---------|--------|-----------------------------------------------------|
 | Tab     | Toggle | Select or deselect the preset, or toggle Effects.   |
-| d       | Edit   | Edit the duration and params of the preset.         |
+| e       | Edit   | Edit the duration and params of the preset.         |
 | m       | Manage | Open the [Preset Manager](#preset-manager).         |
 | Enter   | Apply  | Keep the changes and close the list.                |
 | Esc     | Cancel | Put the effects back as they were and close.        |

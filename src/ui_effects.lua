@@ -33,7 +33,7 @@ function M.show(on_close)
         mp.remove_key_binding("fx-k")
         mp.remove_key_binding("fx-tab")
         mp.remove_key_binding("fx-enter")
-        mp.remove_key_binding("fx-d")
+        mp.remove_key_binding("fx-e")
         mp.remove_key_binding("fx-m")
         mp.remove_key_binding("fx-search")
         mp.remove_key_binding("fx-esc")
@@ -129,7 +129,7 @@ function M.show(on_close)
             return string.format("\\h%s%s", theme.escape(effects.title(row.preset)), marker)
         end)
         if #vis == 0 then body = search.empty() end
-        local hints = search.hints({ { "Up/Down", "navigate" }, { "Tab", "toggle" }, { "d", "edit" }, { "m", "manage" }, { "/", "search" }, { "Enter", "apply" }, { "Esc", "cancel" } })
+        local hints = search.hints({ { "Up/Down", "navigate" }, { "Tab", "toggle" }, { "e", "edit" }, { "m", "manage" }, { "/", "search" }, { "Enter", "apply" }, { "Esc", "cancel" } })
         local row = #nav > 0 and rows[cursor]
         if row and row.kind == "preset" then body = body .. ui.tips(descs[row.preset]) end
         ov.data = search.title(lang.t("menu_effects")) .. "\\N" .. body .. "\\N" .. ui.tooltip(hints)
@@ -271,7 +271,7 @@ function M.show(on_close)
         end)
         mp.add_forced_key_binding("ENTER", "fx-enter", cleanup)
 
-        mp.add_forced_key_binding("d", "fx-d", function()
+        mp.add_forced_key_binding("e", "fx-e", function()
             local row = rows[cursor]
             if row and row.kind == "preset" then edit_preset(row.preset) end
         end)
