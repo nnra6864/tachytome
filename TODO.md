@@ -27,25 +27,17 @@ New strings go in every language file, `lang/en.lua` and `lang/sr.lua`.
 - Opening the Tachytome menu lists them all on the OSD, one per line,
   instead of popping up at startup.
 
-## 3. Go To checks what's typed
-- Invalid input keeps the prompt open with an error instead of closing it
-  silently.
-- Setting a mark so Mark In ends up after Mark Out warns right away
-  instead of only at render time.
-- Repeated dots, e.g. `5.........1`, are rejected or kept to one instead
-  of reading as `5.1`.
-
-## 4. Loading current values in the Config Editor lists them
+## 3. Loading current values in the Config Editor lists them
 - `l` asks first with the changes it would load, `quality 35 -> 40` one
   per line like saving does, instead of only counting them.
 
-## 5. Smaller performance fixes
+## 4. Smaller performance fixes
 - Autocrop runs at most 2-3 ffmpeg decoders at once, waits for marks to
   settle and forgets old results per file.
 - The ffprobes at render start, creation time and stream info, run in the
   background.
 
-## 6. URL and ytdl sources [?]
+## 5. URL and ytdl sources [?]
 - ffmpeg reads plain http(s) media URLs directly, so those mostly need the
   output name taken from `media-title`, no Trash Source, and no size from
   `file_info`.
@@ -57,7 +49,7 @@ New strings go in every language file, `lang/en.lua` and `lang/sr.lua`.
   their headers, or hand the cut to `yt-dlp --download-sections` and render
   from that.
 
-## 7. Restructure, once the features above are in
+## 6. Restructure, once the features above are in
 - Audit section 4: one job record, data-driven encoders, a view helper for
   every OSD screen, a preset store factory, one file module with atomic
   writes, `common.lua` split up, one owner for state, tests for the pure

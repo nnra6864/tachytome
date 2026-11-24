@@ -55,6 +55,7 @@ function M.mark(place)
         state.mark_out = time
         notify_set("mark_out", common.format_time(time))
     end
+    ui_goto.check_marks()
 end
 
 function M.goto_mark(place)

@@ -141,6 +141,7 @@ return {
     goto_not_seekable = "Cannot seek in this file",
     goto_no_duration  = "Cannot jump by percent, duration unknown",
     goto_no_fps       = "Cannot jump by frames, FPS unknown",
+    goto_invalid      = "Can't read that, e.g. 1:30, 90s, 1m30s, +10, -5%, 120f",
 
     trash_no_tool        = "Trash utility not found",
     trash_confirm        = "Move the current file to the trash?",

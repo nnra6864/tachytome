@@ -18,6 +18,7 @@ local current_callback = nil
 local current_options  = {}
 local current_place    = nil
 local current_title    = ""
+local current_error    = nil
 
 local key_mappings   = {}
 local standard_chars = "0123456789:.dhmsf%+-[]"
@@ -32,7 +33,8 @@ local function render()
 
     local hints = { { "Enter", current_place and "set" or "seek" }, { "Esc", "cancel" } }
     local line  = edit.render(layers, theme.align(7) .. theme.f() .. theme.c("text_color"), current_title .. " > ", input, cursor)
-    overlay.data = string.format("%s%s%s%s", line, theme.reset(), ui.rows(rows), ui.tooltip(hints))
+    local err    = current_error and string.format("\\N%s%s%s%s", theme.f(true), theme.c("warning_color"), theme.escape(current_error), theme.reset()) or ""
+    overlay.data = string.format("%s%s%s%s%s", line, theme.reset(), err, ui.rows(rows), ui.tooltip(hints))
     overlay:update()
 end
 
@@ -64,13 +66,18 @@ end
 
 local unit_factors = { ms = 0.001, s = 1, m = 60, h = 3600, d = 86400 }
 
+local function number(str)
+    if str:match("^%d*%.?%d*$") and str:match("%d") then return tonumber(str) end
+    return nil
+end
+
 local function parse_compound(str)
     local total = 0
     local pos   = 1
     while pos <= #str do
         local num, unit, next_pos = str:match("^([%d%.]+)(%a*)()", pos)
         if not num then return nil end
-        local value  = tonumber(num)
+        local value  = number(num)
         local factor = unit == "" and 1 or unit_factors[unit]
         if not value or not factor then return nil end
         total = total + value * factor
@@ -84,10 +91,12 @@ local function parse_duration(str)
 
     if str:find(":") then
         local parts = {}
-        for part in str:gmatch("([%d%.]+)") do
-            table.insert(parts, tonumber(part) or 0)
+        for part in (str .. ":"):gmatch("(.-):") do
+            local value = part == "" and 0 or number(part)
+            if not value then return nil end
+            parts[#parts + 1] = value
         end
-        if #parts == 0 then return nil end
+        if #parts > 3 then return nil end
 
         local h, m, s = 0, 0, 0
         if #parts == 1 then
@@ -131,14 +140,11 @@ local function parse_input(str)
     end
 
     if str:sub(-1) == '%' then
-        local num = tonumber(str:sub(1, -2))
+        local num = number(str:sub(1, -2))
         if not num then return nil end
         if base or relative then
             local duration = mp.get_property_number("duration")
-            if not (duration and duration > 0) then
-                notify.show(lang.t("goto_no_duration"), true, "warn")
-                return nil
-            end
+            if not (duration and duration > 0) then return nil, "goto_no_duration" end
             if base then
                 return { kind = "abs", seconds = base + sign * duration * num / 100 }
             end
@@ -148,13 +154,10 @@ local function parse_input(str)
     end
 
     if str:sub(-1) == 'f' then
-        local num = tonumber(str:sub(1, -2))
+        local num = number(str:sub(1, -2))
         if not num then return nil end
         local fps = mp.get_property_number("container-fps") or mp.get_property_number("container-fps-approx")
-        if not (fps and fps > 0) then
-            notify.show(lang.t("goto_no_fps"), true, "warn")
-            return nil
-        end
+        if not (fps and fps > 0) then return nil, "goto_no_fps" end
         if base then
             return { kind = "abs", seconds = base + sign * num / fps, exact = true }
         end
@@ -176,10 +179,7 @@ local function apply_input(t)
         if t.kind == "delta" then
             seconds = mp.get_property_number("time-pos", 0) + t.seconds
         elseif t.kind == "percent" then
-            if not (duration and duration > 0) then
-                notify.show(lang.t("goto_no_duration"), true, "warn")
-                return
-            end
+            if not (duration and duration > 0) then return "goto_no_duration" end
             seconds = duration * t.value / 100
         end
         if seconds < 0 then seconds = 0 end
@@ -191,6 +191,7 @@ local function apply_input(t)
         end
         local label = lang.t(current_place == 0 and "menu_mark_in" or "menu_mark_out")
         notify.show(lang.t("value_set", { label = label, value = common.format_time(seconds) }))
+        M.check_marks()
         return
     end
 
@@ -204,19 +205,29 @@ end
 local function parse_and_apply()
     local str = input:lower():gsub("%s+", "")
     if str ~= "" then
-        local t = parse_input(str)
-        if t then apply_input(t) end
+        local t, err = parse_input(str)
+        if t then err = apply_input(t) end
+        if err or not t then
+            current_error = lang.t(err or "goto_invalid")
+            return render()
+        end
     end
     cleanup()
 end
 
 local function apply_edit(fn)
     input, cursor = fn(input, cursor)
+    current_error = nil
     render()
 end
 
 local function add_char(c)
     apply_edit(function(t, p) return edit.insert(t, p, c) end)
+end
+
+function M.check_marks()
+    if state.mark_in < state.mark_out then return end
+    notify.show(lang.t("render_invalid_marks", { mark_in = common.format_time(state.mark_in), mark_out = common.format_time(state.mark_out) }), true, "warn")
 end
 
 local function run_option(opt)
@@ -235,6 +246,7 @@ function M.show(on_complete, options, place)
     state.ui_owner   = "goto"
     input            = ""
     cursor           = 0
+    current_error    = nil
     current_callback = on_complete
     current_place    = place
     current_title    = lang.t(place == 0 and "menu_set_mark_in" or place == 1 and "menu_set_mark_out" or "menu_goto")

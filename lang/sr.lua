@@ -141,6 +141,7 @@ return {
     goto_not_seekable = "Premotavanje nije moguće u ovoj datoteci",
     goto_no_duration  = "Skok po procentima nije moguć, trajanje je nepoznato",
     goto_no_fps       = "Skok po frejmovima nije moguć, FPS je nepoznat",
+    goto_invalid      = "Nije moguće pročitati, npr. 1:30, 90s, 1m30s, +10, -5%, 120f",
 
     trash_no_tool        = "Alatka za smeće nije pronađena",
     trash_confirm        = "Premestiti trenutnu datoteku u smeće?",
