@@ -26,7 +26,8 @@ local esc_back      = false
 local flashes       = {}
 local flash_timer   = nil
 local pending_row   = nil
-local flash_frame   = 0.003
+local flash_frame   = 1 / 60
+local values        = {}
 local load_menu
 local reload
 
@@ -456,7 +457,8 @@ local function flash_progress(fl)
     return 1 - spec.out_e(u)
 end
 
-local function draw()
+local function draw(cached)
+    if not cached then values = {} end
     local title = " < " .. theme.escape(lang.t("menu_title"))
     for _, row in ipairs(path) do
         title = title .. " " .. theme.escape(state.opts.menu_path_separator) .. " " .. theme.escape(row_label(row))
@@ -501,7 +503,8 @@ local function draw()
 
             if row.item and row.item.get_val then
                 local val_pad = string.rep("\\h", max_label_len - common.text_len(label) + 1)
-                line = line .. val_pad .. "> " .. row.item.get_val()
+                if values[row] == nil then values[row] = row.item.get_val() end
+                line = line .. val_pad .. "> " .. values[row]
             end
 
             if dim then line = line .. theme.a("00") end
@@ -535,7 +538,7 @@ local function flash_tick()
         flash_timer:kill()
         flash_timer = nil
     end
-    if menu_active then draw() end
+    if menu_active then draw(true) end
 end
 
 local function start_flash(row, delay, spec)
