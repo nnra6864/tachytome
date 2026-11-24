@@ -31,8 +31,5 @@ managing multiple pending/active renders.
   identifiers; double-quoted strings; `require 'x'` without parentheses;
   comments are essentially absent from the code — don't add any unless
   asked.
-- **File editing:** Do not run Python, `sed`, or custom shell scripts to
-  edit files. Use native file modification or write the updated file
-  directly.
 - **Environment:** Assume the current working directory is already the
   project root. Do not prepend `cd` to shell commands.
