@@ -28,11 +28,6 @@ local mac_classes = {
     jpg = "«class JPEG»"
 }
 
-local windows_formats = {
-    png = true,
-    jpg = true
-}
-
 local encoder_options = {
     "screenshot_tag_colorspace",
     "screenshot_high_bit_depth",
@@ -83,10 +78,8 @@ local function restore_options()
     originals = {}
 end
 
-local function can_copy(format)
-    if platform == "windows" then return windows_formats[format] == true end
-    if platform == "macos" then return mac_classes[format] ~= nil end
-    return true
+local function native(format)
+    return platform == "linux" or mac_classes[format] ~= nil
 end
 
 local function copy_args(path, format)
@@ -141,23 +134,41 @@ end
 
 local function copy(path, saved, format)
     local shown = saved and common.display_path(path, mp.get_property("path")) or nil
-    if not can_copy(format) then
-        return notify.show(lang.t("screenshot_cant_copy_saved", { format = format, path = shown }), true, "warn")
+
+    local function send(clip, clip_format)
+        mp.command_native_async({
+            name           = "subprocess",
+            args           = copy_args(clip, clip_format),
+            playback_only  = false,
+            capture_stdout = true,
+            capture_stderr = true
+        }, function(success, result, error)
+            if clip ~= path then os.remove(clip) end
+            if not saved then os.remove(path) end
+            if result and result.status == 0 then
+                notify.show(lang.t(saved and "screenshot_saved" or "screenshot_copied", { path = shown }), true)
+                return
+            end
+            local key = (result and result.status == 127 and platform == "linux") and "screenshot_no_tool" or "screenshot_copy_failed"
+            notify.show(lang.t(key .. (saved and "_saved" or ""), { path = shown }), true, "warn")
+            if result and result.stderr and result.stderr ~= "" then print(result.stderr) end
+            if error then print(error) end
+        end)
     end
+
+    if native(format) then return send(path, format) end
+    local png = temp_path("png")
     mp.command_native_async({
         name           = "subprocess",
-        args           = copy_args(path, format),
+        args           = {"ffmpeg", "-v", "error", "-y", "-i", path, "-frames:v", "1", "-update", "1", png},
         playback_only  = false,
         capture_stdout = true,
         capture_stderr = true
     }, function(success, result, error)
+        if result and result.status == 0 then return send(png, "png") end
+        os.remove(png)
         if not saved then os.remove(path) end
-        if result and result.status == 0 then
-            notify.show(lang.t(saved and "screenshot_saved" or "screenshot_copied", { path = shown }), true)
-            return
-        end
-        local key = (result and result.status == 127 and platform == "linux") and "screenshot_no_tool" or "screenshot_copy_failed"
-        notify.show(lang.t(key .. (saved and "_saved" or ""), { path = shown }), true, "warn")
+        notify.show(lang.t("screenshot_copy_failed" .. (saved and "_saved" or ""), { path = shown }), true, "warn")
         if result and result.stderr and result.stderr ~= "" then print(result.stderr) end
         if error then print(error) end
     end)
@@ -167,9 +178,6 @@ function M.take()
     if not mp.get_property("path") then return notify.show(lang.t("no_video"), true, "warn") end
     local format = get_format()
     local saved  = state.opts.screenshot_save
-    if not saved and not can_copy(format) then
-        return notify.show(lang.t("screenshot_cant_copy", { format = format }), true, "warn")
-    end
     local path = saved and save_path(mp.get_property_number("time-pos", 0), format) or temp_path(format)
     if saved then common.ensure_dir((utils.split_path(path))) end
     apply_options()

@@ -1084,7 +1084,7 @@ Changing the path of a queued render to another container in the [Render Queue](
 Screenshot, `y` in the menu, copies the current frame to the clipboard at the video's own resolution, without black bars or the Tachytome menu.<br>
 It includes the subtitles, set `screenshot_subtitles=no` for the bare frame.<br>
 `screenshot_format` picks the format, `png` by default, or `jpg`, `webp`, `jxl` or `avif`, the clipboard gets that same format.<br>
-Windows and Mac can only copy `png` and `jpg`, other formats need `screenshot_save=yes` there.<br>
+On Windows and Mac `webp`, `jxl` and `avif` are copied as PNG, FFmpeg converts them.<br>
 Nothing is saved by default, set `screenshot_save=yes` to also save it.<br>
 Saved screenshots go to `output_dir`, the same dir as renders, or to `screenshot_dir` when it's set, which takes the same [prefixes](#prefixes) as Path, e.g. `~/Pictures` or `./` for the source's dir.<br>
 They're named after the source and the time, with no spaces or characters a shell needs quoted, e.g. `My Video (2024).mkv` at 1:23.456 gives `My_Video_2024_00-01-23.456.png`.<br>
@@ -1110,7 +1110,7 @@ A value mpv rejects, e.g. `screenshot_jpeg_quality=500`, warns and the screensho
 | webp   | `screenshot_webp_compression`   | `4`                               | 0 to 6, higher is smaller and slower, also affects lossy quality.                           |
 | webp   | `screenshot_webp_lossless`      | `no`                              | Lossless, ignores the quality.                                                              |
 | jxl    | `screenshot_jxl_distance`       | `1`                               | 0 to 15, lower is better, 0 lossless, 0.1 visually lossless, 1 about JPEG 90.               |
-| jxl    | `screenshot_jxl_effort`         | `4`                               | 1 to 9, higher is usually smaller and slower.                                               |
+| jxl    | `screenshot_jxl_effort`         | `4`                               | 1 to 9, higher is usually smaller and slower, mpv stops at 9 though libjxl goes to 10.      |
 | avif   | `screenshot_avif_encoder`       | `libaom-av1`                      | AV1 encoder, e.g. `libsvtav1`.                                                              |
 | avif   | `screenshot_avif_pixfmt`        |                                   | Pixel format, e.g. `yuv420p`, empty picks one close to the source.                          |
 | avif   | `screenshot_avif_opts`          | `usage=allintra,crf=0,cpu-used=8` | Encoder options, `crf` is quality, lower is better, the default only works with libaom-av1. |

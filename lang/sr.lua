@@ -396,7 +396,7 @@ return {
     },
     opt_screenshot_format             = {
         "Format u kom se snimci ekrana kopiraju i čuvaju: png, jpg, webp, jxl ili avif",
-        "U klipbord ide isti format, Windows i Mac mogu da kopiraju samo png i jpg"
+        "U klipbord ide isti format, na Windows-u i Mac-u se webp, jxl i avif kopiraju kao PNG"
     },
     opt_screenshot_subtitles          = { "Snimci ekrana uključuju titlove, isključeno snima samo kadar videa" },
     opt_screenshot_tag_colorspace     = { "Označava snimke ekrana prostorom boja videa, isključeno ili nepodržano ih pretvara u sRGB" },
@@ -409,7 +409,7 @@ return {
     opt_screenshot_webp_quality       = { "WebP kvalitet, od 0 do 100, veće je bolje" },
     opt_screenshot_webp_compression   = { "WebP kompresija, od 0 do 6, veće je manje i sporije, utiče i na kvalitet sa gubicima" },
     opt_screenshot_jxl_distance       = { "JPEG XL distanca, od 0 do 15, manje je bolje, 0 je bez gubitaka, 0.1 vizuelno bez gubitaka, 1 oko JPEG kvaliteta 90" },
-    opt_screenshot_jxl_effort         = { "JPEG XL trud, od 1 do 9, veće je obično manje i sporije" },
+    opt_screenshot_jxl_effort         = { "JPEG XL trud, od 1 do 9, veće je obično manje i sporije, mpv staje na 9 iako libjxl ide do 10" },
     opt_screenshot_avif_encoder       = { "AV1 enkoder za AVIF, npr. libaom-av1 ili libsvtav1" },
     opt_screenshot_avif_pixfmt        = { "Format piksela za AVIF, npr. yuv420p, prazno bira jedan blizak izvoru" },
     opt_screenshot_avif_opts          = {
@@ -550,8 +550,6 @@ return {
     screenshot_copied            = "Snimak ekrana je kopiran",
     screenshot_saved             = "Snimak ekrana je kopiran, sačuvan u {path}",
     screenshot_failed            = "Snimanje ekrana kao {format} nije uspelo, mpv-u možda fali njegov enkoder",
-    screenshot_cant_copy         = "{format} ne može da se kopira na ovom sistemu, izaberi png ili jpg ili uključi screenshot_save",
-    screenshot_cant_copy_saved   = "{format} ne može da se kopira na ovom sistemu, sačuvan u {path}",
     screenshot_copy_failed       = "Kopiranje snimka ekrana nije uspelo",
     screenshot_copy_failed_saved = "Kopiranje snimka ekrana nije uspelo, sačuvan je u {path}",
     screenshot_no_tool           = "Kopiranje snimka ekrana nije uspelo, instaliraj wl-clipboard ili xclip",

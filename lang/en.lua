@@ -396,7 +396,7 @@ return {
     },
     opt_screenshot_format             = {
         "Format screenshots are copied and saved in: png, jpg, webp, jxl or avif",
-        "The clipboard gets the same format, Windows and Mac can only copy png and jpg"
+        "The clipboard gets the same format, on Windows and Mac webp, jxl and avif are copied as PNG"
     },
     opt_screenshot_subtitles          = { "Screenshots include the subtitles, off takes the bare video frame" },
     opt_screenshot_tag_colorspace     = { "Tags screenshots with the video's colorspace, off or unsupported converts them to sRGB" },
@@ -409,7 +409,7 @@ return {
     opt_screenshot_webp_quality       = { "WebP quality, 0 to 100, higher is better" },
     opt_screenshot_webp_compression   = { "WebP compression, 0 to 6, higher is smaller and slower, also affects lossy quality" },
     opt_screenshot_jxl_distance       = { "JPEG XL distance, 0 to 15, lower is better, 0 is lossless, 0.1 visually lossless, 1 about JPEG quality 90" },
-    opt_screenshot_jxl_effort         = { "JPEG XL effort, 1 to 9, higher is usually smaller and slower" },
+    opt_screenshot_jxl_effort         = { "JPEG XL effort, 1 to 9, higher is usually smaller and slower, mpv stops at 9 though libjxl goes to 10" },
     opt_screenshot_avif_encoder       = { "AV1 encoder for AVIF, e.g. libaom-av1 or libsvtav1" },
     opt_screenshot_avif_pixfmt        = { "Pixel format for AVIF, e.g. yuv420p, empty picks one close to the source" },
     opt_screenshot_avif_opts          = {
@@ -550,8 +550,6 @@ return {
     screenshot_copied            = "Copied the screenshot",
     screenshot_saved             = "Copied the screenshot, saved to {path}",
     screenshot_failed            = "Couldn't take a {format} screenshot, mpv may lack its encoder",
-    screenshot_cant_copy         = "{format} can't be copied on this system, pick png or jpg or turn on screenshot_save",
-    screenshot_cant_copy_saved   = "{format} can't be copied on this system, saved to {path}",
     screenshot_copy_failed       = "Couldn't copy the screenshot",
     screenshot_copy_failed_saved = "Couldn't copy the screenshot, it's saved to {path}",
     screenshot_no_tool           = "Couldn't copy the screenshot, install wl-clipboard or xclip",
