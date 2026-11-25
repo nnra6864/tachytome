@@ -38,12 +38,15 @@ local function file_name(time)
     return name .. (replacement ~= "" and replacement or "_") .. stamp
 end
 
-local function save_path(time, format)
-    local dir  = state.opts.screenshot_dir
-    local name = file_name(time)
-    local ext  = "." .. format
+function M.dir(value)
+    local dir = value or state.opts.screenshot_dir
     if dir ~= "" and not dir:match("[/\\]$") then dir = dir .. "/" end
-    local base = common.resolve_absolute_path(dir .. name, state.opts, ext):sub(1, -#ext - 1)
+    return (utils.split_path(common.resolve_absolute_path(dir .. "screenshot", state.opts, ".png")))
+end
+
+local function save_path(time, format)
+    local ext  = "." .. format
+    local base = utils.join_path(M.dir(), file_name(time))
     local path = base .. ext
     local n    = 1
     while common.file_exists(path) do

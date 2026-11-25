@@ -244,6 +244,34 @@ local items = {
         keep_open = true
     },
     {
+        name      = "screenshot_save",
+        label_key = "menu_screenshot_save",
+        get_val   = function() return toggle(state.opts.screenshot_save) end,
+        action    = actions.toggle_screenshot_save,
+        keep_open = true
+    },
+    {
+        name      = "screenshot_format",
+        label_key = "menu_screenshot_format",
+        get_val   = function() return v(theme.escape(state.opts.screenshot_format)) end,
+        action    = function() actions.select_screenshot_format(M.open) end,
+        keep_open = false
+    },
+    {
+        name      = "screenshot_dir",
+        label_key = "menu_screenshot_dir",
+        get_val   = function() return v(theme.escape(actions.get_screenshot_dir_display())) end,
+        action    = function() actions.set_screenshot_dir(M.open) end,
+        keep_open = false
+    },
+    {
+        name      = "screenshot_subtitles",
+        label_key = "menu_screenshot_subtitles",
+        get_val   = function() return toggle(state.opts.screenshot_subtitles) end,
+        action    = actions.toggle_screenshot_subtitles,
+        keep_open = true
+    },
+    {
         name      = "render",
         label_key = "menu_render",
         action    = function() actions.start_render(M.open) end,

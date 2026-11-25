@@ -264,11 +264,23 @@ Pick which audio tracks are exported in the [Tracks](#tracks-list) list.
 | Keybind | Action           | Description                                                                                                                                    |
 |---------|------------------|------------------------------------------------------------------------------------------------------------------------------------------------|
 | s       | Stats            | Toggle the Tachytome stats overlay, it counts the sources Tachytome trashed and their renders.<br>Set `stats_scope=all` to count every render. |
+| y       | Screenshot       | Open the [Screenshot](#screenshot-settings) submenu.                                                                                           |
 | m       | Menu             | Switch the menu, saved to `user.conf`.<br>Learn more about [Custom Menus](#custom-menus).                                                      |
 | c       | Config Manager   | Create, rename, delete, enable, reorder and edit configs.<br>Learn more about [Configs](#configs).                                             |
 | l       | Language         | Switch the UI language, saved to `user.conf`.<br>Learn more about [Translations](#translations).                                               |
 | v       | Version          | Pick the version Update installs, saved to `user.conf` as `version`.                                                                           |
 | U       | Update           | Update Tachytome to the picked version using git, falls back to the GitHub archive.<br>Restart mpv after updating.                             |
+
+###### Screenshot Settings
+
+| Keybind | Action               | Description                                                                      |
+|---------|----------------------|----------------------------------------------------------------------------------|
+| s       | Save Screenshots     | Toggle saving screenshots to disk too, they're always copied to the clipboard.   |
+| f       | Screenshot Format    | Pick the format saved screenshots use, `png`, `jpg`, `webp`, `jxl` or `avif`.    |
+| d       | Screenshot Dir       | Set the dir screenshots are saved to, the prompt shows where it resolves.        |
+| t       | Screenshot Subtitles | Toggle the subtitles in screenshots.                                             |
+
+These last until mpv closes or the config reloads, set them in a config to keep them, see [Screenshot](#screenshot).
 
 The `version` option takes:
 - `latest`, the default, the release marked Latest, or the highest version tag when there's no release.
@@ -1083,7 +1095,8 @@ Changing the path of a queued render to another container in the [Render Queue](
 
 Screenshot, `y` in the menu, copies the current frame to the clipboard at the video's own resolution, without black bars or the Tachytome menu.<br>
 It includes the subtitles, set `screenshot_subtitles=no` for the bare frame.<br>
-Nothing is saved by default, set `screenshot_save=yes` to also save it, as a PNG unless `screenshot_format` picks `jpg`, `webp`, `jxl` or `avif`.<br>
+Nothing is saved by default, set `screenshot_save=yes` to also save it, as a PNG unless `screenshot_format` picks `jpg`, `webp`, `jxl` or `avif`, the format only applies to saved files.<br>
+All four can also be changed from Settings, `s-s` `y`.<br>
 The clipboard always gets a PNG, since most apps can't paste the others, FFmpeg makes it from the saved file so it's the same frame.<br>
 Saved screenshots go to `output_dir`, the same dir as renders, or to `screenshot_dir` when it's set, which takes the same [prefixes](#prefixes) as Path, e.g. `~/Pictures` or `./` for the source's dir.<br>
 They're named after the source and the time, with no spaces or characters a shell needs quoted, e.g. `My Video (2024).mkv` at 1:23.456 gives `My_Video_2024_00-01-23.456.png`.<br>
