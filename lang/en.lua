@@ -26,6 +26,7 @@ return {
     menu_render_queue        = "Render Queue",
     menu_render_pause        = "Pause Render",
     menu_trash_source_now    = "Trash Source Now",
+    menu_screenshot          = "Screenshot",
     menu_stats               = "Stats",
     menu_menu_preset         = "Menu",
     menu_config_manager      = "Config Manager",
@@ -275,6 +276,7 @@ return {
     section_audio                = "Audio",
     section_tracks               = "Tracks",
     section_effects              = "Effects",
+    section_screenshot           = "Screenshot",
     section_stats                = "Stats",
     section_text                 = "Text",
     section_colors               = "Colors",
@@ -383,6 +385,16 @@ return {
         "Effects selected on start from the .eff files, comma separated, e.g. fade,blur_fade",
         "file/name picks one from a specific file, e.g. default/fade"
     },
+
+    opt_screenshot_save      = {
+        "Also saves screenshots to disk, they're always copied to the clipboard",
+        "Named after the source and the time, e.g. My_Video_00-01-23.456.png, spaces replaced like Space Replacement, or with _ when that's a space"
+    },
+    opt_screenshot_dir       = {
+        "Dir screenshots are saved to, relative to output_dir like a typed path",
+        "Empty uses output_dir, ./ the source's dir, see Path in the README for every prefix"
+    },
+    opt_screenshot_subtitles = { "Screenshots include the subtitles, off takes the bare video frame" },
 
     opt_show_stats_screen   = { "Shows the stats screen after a render" },
     opt_show_stats_terminal = { "Prints the stats to the terminal after a render" },
@@ -512,6 +524,14 @@ return {
     loss_data         = "Data tracks",
     loss_timecode     = "Timecode",
     loss_covers       = "Cover pictures",
+
+    screenshot_copied            = "Copied the screenshot",
+    screenshot_saved             = "Copied the screenshot, saved to {path}",
+    screenshot_failed            = "Couldn't take a screenshot",
+    screenshot_copy_failed       = "Couldn't copy the screenshot",
+    screenshot_copy_failed_saved = "Couldn't copy the screenshot, it's saved to {path}",
+    screenshot_no_tool           = "Couldn't copy the screenshot, install wl-clipboard or xclip",
+    screenshot_no_tool_saved     = "Couldn't copy the screenshot, install wl-clipboard or xclip, it's saved to {path}",
 
     log_lines       = "Lines {from}-{to} of {count}",
     log_copied      = "Copied the log",

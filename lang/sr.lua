@@ -26,6 +26,7 @@ return {
     menu_render_queue        = "Red renderovanja",
     menu_render_pause        = "Pauziraj renderovanje",
     menu_trash_source_now    = "Odmah u smeće",
+    menu_screenshot          = "Snimak ekrana",
     menu_stats               = "Statistike",
     menu_menu_preset         = "Meni",
     menu_config_manager      = "Upravljanje konfiguracijama",
@@ -275,6 +276,7 @@ return {
     section_audio                = "Audio",
     section_tracks               = "Trake",
     section_effects              = "Efekti",
+    section_screenshot           = "Snimak ekrana",
     section_stats                = "Statistike",
     section_text                 = "Tekst",
     section_colors               = "Boje",
@@ -383,6 +385,16 @@ return {
         "Efekti izabrani pri pokretanju iz .eff datoteka, odvojeni zarezom, npr. fade,blur_fade",
         "datoteka/ime bira jedan iz određene datoteke, npr. default/fade"
     },
+
+    opt_screenshot_save      = {
+        "Snimke ekrana čuva i na disk, uvek se kopiraju u međuspremnik",
+        "Nazvani po izvoru i vremenu, npr. My_Video_00-01-23.456.png, razmaci zamenjeni kao u Zameni razmaka, ili sa _ kad je ona razmak"
+    },
+    opt_screenshot_dir       = {
+        "Direktorijum u koji se čuvaju snimci ekrana, relativan u odnosu na output_dir kao upisana putanja",
+        "Prazno koristi output_dir, ./ direktorijum izvora, sve prefikse pogledajte u delu Path u README-u"
+    },
+    opt_screenshot_subtitles = { "Snimci ekrana uključuju titlove, isključeno snima samo kadar videa" },
 
     opt_show_stats_screen   = { "Prikazuje ekran sa statistikama posle renderovanja" },
     opt_show_stats_terminal = { "Ispisuje statistike u terminal posle renderovanja" },
@@ -512,6 +524,14 @@ return {
     loss_data         = "Trake sa podacima",
     loss_timecode     = "Vremenski kod",
     loss_covers       = "Naslovne slike",
+
+    screenshot_copied            = "Snimak ekrana je kopiran",
+    screenshot_saved             = "Snimak ekrana je kopiran, sačuvan u {path}",
+    screenshot_failed            = "Snimanje ekrana nije uspelo",
+    screenshot_copy_failed       = "Kopiranje snimka ekrana nije uspelo",
+    screenshot_copy_failed_saved = "Kopiranje snimka ekrana nije uspelo, sačuvan je u {path}",
+    screenshot_no_tool           = "Kopiranje snimka ekrana nije uspelo, instaliraj wl-clipboard ili xclip",
+    screenshot_no_tool_saved     = "Kopiranje snimka ekrana nije uspelo, instaliraj wl-clipboard ili xclip, sačuvan je u {path}",
 
     log_lines       = "Redovi {from}-{to} od {count}",
     log_copied      = "Zapis je kopiran",

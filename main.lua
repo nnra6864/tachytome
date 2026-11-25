@@ -20,6 +20,7 @@ local ui_confirm = require 'src.ui_confirm'
 local ui_migrate = require 'src.ui_migrate'
 local ui         = require 'src.ui'
 local lang       = require 'src.lang'
+local screenshot = require 'src.screenshot'
 
 local platform             = common.get_platform()
 local trash_ok, trash_path = common.check_trash(platform)
@@ -106,3 +107,4 @@ check_orphans()
 mp.add_key_binding("t", "menu", menu.open)
 mp.add_key_binding(nil, "goto", function() menu.run(actions.goto_prompt) end)
 mp.add_key_binding(nil, "trash", function() menu.run(actions.trash_source) end)
+mp.add_key_binding(nil, "screenshot", screenshot.take)

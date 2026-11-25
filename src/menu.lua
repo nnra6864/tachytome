@@ -1,15 +1,16 @@
-local mp      = require 'mp'
-local common  = require 'src.common'
-local state   = require 'src.state'
-local actions = require 'src.actions'
-local menus   = require 'src.menus'
-local notify  = require 'src.notify'
-local render  = require 'src.render'
-local tracks  = require 'src.tracks'
-local theme   = require 'src.theme'
-local easing  = require 'src.easing'
-local lang    = require 'src.lang'
-local ui      = require 'src.ui'
+local mp         = require 'mp'
+local common     = require 'src.common'
+local state      = require 'src.state'
+local actions    = require 'src.actions'
+local menus      = require 'src.menus'
+local notify     = require 'src.notify'
+local render     = require 'src.render'
+local tracks     = require 'src.tracks'
+local theme      = require 'src.theme'
+local easing     = require 'src.easing'
+local lang       = require 'src.lang'
+local ui         = require 'src.ui'
+local screenshot = require 'src.screenshot'
 
 local M             = {}
 local menu_active   = false
@@ -234,6 +235,12 @@ local items = {
         label_key = "menu_trash_source",
         get_val   = function() return toggle(state.opts.trash_source) end,
         action    = actions.toggle_trash_source,
+        keep_open = true
+    },
+    {
+        name      = "screenshot",
+        label_key = "menu_screenshot",
+        action    = screenshot.take,
         keep_open = true
     },
     {

@@ -30,6 +30,7 @@ Keyboard Driven, AV1/H265/H264/Lossless, MPV Video Cutter.
   - [Tracks](#tracks)
   - [Effects](#effects)
   - [Path](#path)
+  - [Screenshot](#screenshot)
 - [Contributing](#contributing)
 - [Donations](#donations)
 - [AI](#ai)
@@ -71,6 +72,7 @@ To install manually instead, get the dependencies and clone the repo or add it a
 - [mpv](https://mpv.io/) 0.33 or newer, 0.40 or newer for pasting into text inputs.
 - [ffmpeg](https://ffmpeg.org/) - needed for all the video operations.
 - [gio](https://www.gtk.org/docs/architecture/glib)/[trash](https://github.com/andreafrancia/trash-cli) - needed on Linux for trashing files.
+- [wl-clipboard](https://github.com/bugaevc/wl-clipboard) on Wayland or [xclip](https://github.com/astrand/xclip) on X11 - needed on Linux for copying [screenshots](#screenshot).
 
 *gio is preinstalled on most distributions*
 
@@ -178,14 +180,16 @@ This is done to avoid global bind conflicts.
 
 ### Keymap
 
-| Keybind | Action | Description              |
-|---------|--------|--------------------------|
-| t       | Menu   | Open the Tachytome menu. |
-| nil     | Go To  | Open the Go To menu.     |
-| nil     | Trash  | Trash current file.      |
+| Keybind | Action     | Description                                                                             |
+|---------|------------|-----------------------------------------------------------------------------------------|
+| t       | Menu       | Open the Tachytome menu.                                                                |
+| nil     | Go To      | Open the Go To menu.                                                                    |
+| nil     | Trash      | Trash current file.                                                                     |
+| nil     | Screenshot | Copy the current frame to the clipboard.<br>Learn more about [Screenshot](#screenshot). |
 
 Go To and Trash hide the Tachytome menu while they're open and bring it back where you left it once they close.<br>
-They do nothing while another list, prompt or dialog is open, close it first.
+They do nothing while another list, prompt or dialog is open, close it first.<br>
+Screenshot works any time, the menu or a list being open doesn't end up in it.
 
 #### Menu
 
@@ -210,6 +214,7 @@ The `simple` menu keeps every item on a single level, switch to it with `s-s` `m
 | p       | Path              | Set Output path.<br>Learn more about [Path](#path).                                          |
 | _       | Space Replacement | Set the character to replace spaces with.                                                    |
 | t       | Trash Source      | Trash the source once its last queued render finishes, playback moves on.                   |
+| y       | Screenshot        | Copy the current frame to the clipboard, the menu stays open.<br>Learn more about [Screenshot](#screenshot). |
 | <hr>    | <hr>              | <hr>                                                                                         |
 | Enter   | Render            | Start the render of the output file.                                                         |
 | r-q     | Render Queue      | Open the render queue menu.                                                                  |
@@ -612,8 +617,9 @@ To access exposed Tachytome functions, add the following to your `mpv/input.conf
 t script-binding tachytome/menu
 g script-binding tachytome/goto
 d script-binding tachytome/trash
+s script-binding tachytome/screenshot
 ```
-Replace `t`, `g` and `d` with keys of your choice.
+Replace `t`, `g`, `d` and `s` with keys of your choice, `s` here replaces mpv's own screenshot.
 
 #### Configs
 
@@ -1072,6 +1078,16 @@ Changing the path of a queued render to another container in the [Render Queue](
 - Cover pictures the container can't hold are left out.
 - Video the container can't hold stops the render before it's queued.<br>
   `webm` holds AV1 and VP9, `mov` H.264 and H.265, `m4v` H.264 and `wmv` anything but H.265.
+
+### Screenshot
+
+Screenshot, `y` in the menu, copies the current frame to the clipboard at the video's own resolution, without black bars or the Tachytome menu.<br>
+It includes the subtitles, set `screenshot_subtitles=no` for the bare frame.<br>
+Nothing is saved by default, set `screenshot_save=yes` to also save it as a PNG.<br>
+Saved screenshots go to `output_dir`, the same dir as renders, or to `screenshot_dir` when it's set, which takes the same [prefixes](#prefixes) as Path, e.g. `~/Pictures` or `./` for the source's dir.<br>
+They're named after the source and the time, with no spaces or characters a shell needs quoted, e.g. `My Video (2024).mkv` at 1:23.456 gives `My_Video_2024_00-01-23.456.png`.<br>
+Spaces become the `space_replacement`, or `_` when that's a space, and a second screenshot of the same frame gets `_2` instead of overwriting the first.<br>
+Copying uses PowerShell on Windows, `osascript` on Mac and wl-clipboard or xclip on Linux, see [Dependencies](#dependencies).
 
 ## Contributing
 
