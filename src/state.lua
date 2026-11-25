@@ -28,6 +28,7 @@ local M = {
         trash_source         = true,
         screenshot_save      = false,
         screenshot_dir       = "",
+        screenshot_format    = "png",
         screenshot_subtitles = true,
         show_stats_screen    = true,
         show_stats_terminal  = true,

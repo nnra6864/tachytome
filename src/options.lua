@@ -5,6 +5,7 @@ local resolution = require 'src.resolution'
 local text_edit  = require 'src.text_edit'
 local menus      = require 'src.menus'
 local lang       = require 'src.lang'
+local screenshot = require 'src.screenshot'
 
 local M = {}
 
@@ -60,19 +61,20 @@ local inherit = {
 }
 
 local choices = {
-    container        = common.containers,
-    cursor_style     = text_edit.cursor_styles,
-    tracks_type      = { "audio", "video" },
-    stats_scope      = { "trashed", "all" },
-    resolution_mode  = resolution.modes,
-    scaler_down      = resolution.scalers,
-    scaler_up        = resolution.scalers,
-    flash_in_easing  = easing.names,
-    flash_out_easing = easing.names,
-    start_in_easing  = easing.names,
-    start_out_easing = easing.names,
-    selected_menu    = function() return menus.names() end,
-    language         = function()
+    container         = common.containers,
+    screenshot_format = screenshot.formats,
+    cursor_style      = text_edit.cursor_styles,
+    tracks_type       = { "audio", "video" },
+    stats_scope       = { "trashed", "all" },
+    resolution_mode   = resolution.modes,
+    scaler_down       = resolution.scalers,
+    scaler_up         = resolution.scalers,
+    flash_in_easing   = easing.names,
+    flash_out_easing  = easing.names,
+    start_in_easing   = easing.names,
+    start_out_easing  = easing.names,
+    selected_menu     = function() return menus.names() end,
+    language          = function()
         local codes = { "auto" }
         for _, code in ipairs(lang.available()) do codes[#codes + 1] = code end
         return codes

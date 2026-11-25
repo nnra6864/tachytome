@@ -394,6 +394,11 @@ return {
         "Dir screenshots are saved to, relative to output_dir like a typed path",
         "Empty uses output_dir, ./ the source's dir, see Path in the README for every prefix"
     },
+    opt_screenshot_format    = {
+        "Format screenshots are saved in: png, jpg, webp, jxl or avif",
+        "The clipboard always gets a PNG, FFmpeg makes it from the saved file since apps can't paste the others",
+        "Quality and effort come from mpv's screenshot options, e.g. screenshot-jxl-effort, see Screenshot in the README"
+    },
     opt_screenshot_subtitles = { "Screenshots include the subtitles, off takes the bare video frame" },
 
     opt_show_stats_screen   = { "Shows the stats screen after a render" },
@@ -528,6 +533,7 @@ return {
     screenshot_copied            = "Copied the screenshot",
     screenshot_saved             = "Copied the screenshot, saved to {path}",
     screenshot_failed            = "Couldn't take a screenshot",
+    screenshot_save_failed       = "Couldn't take a screenshot as {format}, mpv may lack its encoder",
     screenshot_copy_failed       = "Couldn't copy the screenshot",
     screenshot_copy_failed_saved = "Couldn't copy the screenshot, it's saved to {path}",
     screenshot_no_tool           = "Couldn't copy the screenshot, install wl-clipboard or xclip",

@@ -394,6 +394,11 @@ return {
         "Direktorijum u koji se čuvaju snimci ekrana, relativan u odnosu na output_dir kao upisana putanja",
         "Prazno koristi output_dir, ./ direktorijum izvora, sve prefikse pogledajte u delu Path u README-u"
     },
+    opt_screenshot_format    = {
+        "Format u kom se čuvaju snimci ekrana: png, jpg, webp, jxl ili avif",
+        "U međuspremnik uvek ide PNG, FFmpeg ga pravi od sačuvane datoteke jer aplikacije ne mogu da nalepe ostale",
+        "Kvalitet i trud dolaze iz mpv opcija za snimke ekrana, npr. screenshot-jxl-effort, detalje pogledajte u delu Screenshot u README-u"
+    },
     opt_screenshot_subtitles = { "Snimci ekrana uključuju titlove, isključeno snima samo kadar videa" },
 
     opt_show_stats_screen   = { "Prikazuje ekran sa statistikama posle renderovanja" },
@@ -528,6 +533,7 @@ return {
     screenshot_copied            = "Snimak ekrana je kopiran",
     screenshot_saved             = "Snimak ekrana je kopiran, sačuvan u {path}",
     screenshot_failed            = "Snimanje ekrana nije uspelo",
+    screenshot_save_failed       = "Snimanje ekrana kao {format} nije uspelo, mpv-u možda fali njegov enkoder",
     screenshot_copy_failed       = "Kopiranje snimka ekrana nije uspelo",
     screenshot_copy_failed_saved = "Kopiranje snimka ekrana nije uspelo, sačuvan je u {path}",
     screenshot_no_tool           = "Kopiranje snimka ekrana nije uspelo, instaliraj wl-clipboard ili xclip",

@@ -1083,11 +1083,35 @@ Changing the path of a queued render to another container in the [Render Queue](
 
 Screenshot, `y` in the menu, copies the current frame to the clipboard at the video's own resolution, without black bars or the Tachytome menu.<br>
 It includes the subtitles, set `screenshot_subtitles=no` for the bare frame.<br>
-Nothing is saved by default, set `screenshot_save=yes` to also save it as a PNG.<br>
+Nothing is saved by default, set `screenshot_save=yes` to also save it, as a PNG unless `screenshot_format` picks `jpg`, `webp`, `jxl` or `avif`.<br>
+The clipboard always gets a PNG, since most apps can't paste the others, FFmpeg makes it from the saved file so it's the same frame.<br>
 Saved screenshots go to `output_dir`, the same dir as renders, or to `screenshot_dir` when it's set, which takes the same [prefixes](#prefixes) as Path, e.g. `~/Pictures` or `./` for the source's dir.<br>
 They're named after the source and the time, with no spaces or characters a shell needs quoted, e.g. `My Video (2024).mkv` at 1:23.456 gives `My_Video_2024_00-01-23.456.png`.<br>
 Spaces become the `space_replacement`, or `_` when that's a space, and a second screenshot of the same frame gets `_2` instead of overwriting the first.<br>
 Copying uses PowerShell on Windows, `osascript` on Mac and wl-clipboard or xclip on Linux, see [Dependencies](#dependencies).
+
+#### Quality
+
+Quality and compression effort come from mpv's own screenshot options, set them in `mpv/mpv.conf`, they apply to mpv's own screenshots too.<br>
+See [mpv's manual](https://mpv.io/manual/stable/#screenshot) for the rest, `screenshot-format` itself is ignored, `screenshot_format` picks it.
+
+| Format | Option                                 | Default                           | Description                                                        |
+|--------|----------------------------------------|-----------------------------------|--------------------------------------------------------------------|
+| png    | `screenshot-png-compression=<0-9>`     | 7                                 | Higher is smaller and slower, always lossless.                     |
+| jpg    | `screenshot-jpeg-quality=<0-100>`      | 90                                | Higher is better quality.                                          |
+| webp   | `screenshot-webp-quality=<0-100>`      | 75                                | Higher is better quality.                                          |
+| webp   | `screenshot-webp-compression=<0-6>`    | 4                                 | Higher is smaller and slower.                                      |
+| webp   | `screenshot-webp-lossless=<yes\|no>`   | no                                | Lossless, ignores the quality.                                     |
+| jxl    | `screenshot-jxl-distance=<0-15>`       | 1                                 | Lower is better quality, 0 is lossless, 0.1 visually lossless.     |
+| jxl    | `screenshot-jxl-effort=<1-9>`          | 4                                 | Higher is smaller and slower.                                      |
+| avif   | `screenshot-avif-opts=<key=value,...>` | `usage=allintra,crf=0,cpu-used=8` | libaom-av1 options, `crf` is quality, `cpu-used` speed.            |
+| all    | `screenshot-high-bit-depth=<yes\|no>`  | yes                               | Keeps the source's bit depth, 10-bit sources can give 16-bit PNGs. |
+
+E.g. visually lossless JPEG XL at a higher effort:
+```
+screenshot-jxl-distance=0.1
+screenshot-jxl-effort=7
+```
 
 ## Contributing
 
