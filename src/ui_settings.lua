@@ -394,7 +394,7 @@ function M.show(name, enabled, pickers, on_close)
             move   = move_cursor,
             pick   = function(i)
                 cursor = i
-                draw()
+                edit()
             end
         })
 

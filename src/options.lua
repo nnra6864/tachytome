@@ -96,18 +96,25 @@ function M.typed(key)
 end
 
 M.ranges = {
-    font_size          = { min = 1 },
-    small_font_size    = { min = 1 },
-    glow_size          = { min = 0 },
-    glow_blur          = { min = 0, max = 1 },
-    cursor_glow_size   = { min = 0 },
-    cursor_glow_blur   = { min = 0, max = 1 },
-    stats_osd_time     = { min = 0 },
-    flash_in_duration  = { min = 0 },
-    flash_out_duration = { min = 0 },
-    start_stagger      = { min = 0 },
-    start_in_duration  = { min = -1 },
-    start_out_duration = { min = -1 }
+    font_size                   = { min = 1 },
+    small_font_size             = { min = 1 },
+    glow_size                   = { min = 0 },
+    glow_blur                   = { min = 0, max = 1 },
+    cursor_glow_size            = { min = 0 },
+    cursor_glow_blur            = { min = 0, max = 1 },
+    stats_osd_time              = { min = 0 },
+    flash_in_duration           = { min = 0 },
+    flash_out_duration          = { min = 0 },
+    start_stagger               = { min = 0 },
+    start_in_duration           = { min = -1 },
+    start_out_duration          = { min = -1 },
+    screenshot_jpeg_quality     = { min = 0, max = 100 },
+    screenshot_png_compression  = { min = 0, max = 9 },
+    screenshot_png_filter       = { min = 0, max = 5 },
+    screenshot_webp_quality     = { min = 0, max = 100 },
+    screenshot_webp_compression = { min = 0, max = 6 },
+    screenshot_jxl_distance     = { min = 0, max = 15 },
+    screenshot_jxl_effort       = { min = 1, max = 9 }
 }
 
 M.ffmpeg_colors = { pad_color = true }

@@ -382,7 +382,7 @@ Search opens a `/` line under the list title, the list stays and hides what does
 - Up/Down stop typing and move through the matches.
 - Esc while typing, or on the kept matches, clears the search and shows the whole list again.
 
-Selecting a match picks it, toggles the effect, config or a preset in the Preset Manager, uses the resolution or track preset, or moves to the render.<br>
+Selecting a match picks it, edits the option in the Config Editor, toggles the effect, config or a preset in the Preset Manager, uses the resolution or track preset, or moves to the render.<br>
 Configs can't be moved until the search is cleared.<br>
 Effects are searched as `file/name`, so `/default` lists one file's effects and `/fade` picks `fade`.<br>
 The Resolution and Tracks Lists have no search, their rows are your own few layers and tracks, their Presets lists do.<br>
@@ -1109,8 +1109,8 @@ A value mpv rejects, e.g. `screenshot_jpeg_quality=500`, warns and the screensho
 | webp   | `screenshot_webp_quality`       | `75`                              | 0 to 100, higher is better.                                                                 |
 | webp   | `screenshot_webp_compression`   | `4`                               | 0 to 6, higher is smaller and slower, also affects lossy quality.                           |
 | webp   | `screenshot_webp_lossless`      | `no`                              | Lossless, ignores the quality.                                                              |
-| jxl    | `screenshot_jxl_distance`       | `1`                               | 0 to 15, lower is better, 0 lossless, 0.1 visually lossless, 1 about JPEG 90.               |
-| jxl    | `screenshot_jxl_effort`         | `4`                               | 1 to 9, higher is usually smaller and slower, mpv stops at 9 though libjxl goes to 10.      |
+| jxl    | `screenshot_jxl_distance`       | `0`                               | 0 to 15, lower is better, 0 lossless, 0.1 visually lossless, 1 about JPEG 90.               |
+| jxl    | `screenshot_jxl_effort`         | `5`                               | 1 to 9, higher is usually smaller and slower, mpv stops at 9 though libjxl goes to 10.      |
 | avif   | `screenshot_avif_encoder`       | `libaom-av1`                      | AV1 encoder, e.g. `libsvtav1`.                                                              |
 | avif   | `screenshot_avif_pixfmt`        |                                   | Pixel format, e.g. `yuv420p`, empty picks one close to the source.                          |
 | avif   | `screenshot_avif_opts`          | `usage=allintra,crf=0,cpu-used=8` | Encoder options, `crf` is quality, lower is better, the default only works with libaom-av1. |
