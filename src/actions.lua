@@ -24,7 +24,6 @@ local updater       = require 'src.updater'
 local conf          = require 'src.conf'
 local menus         = require 'src.menus'
 local lang          = require 'src.lang'
-local screenshot    = require 'src.screenshot'
 
 local M = {}
 
@@ -421,44 +420,6 @@ end
 function M.toggle_trash_source()
     state.opts.trash_source = not state.opts.trash_source
     notify_set("trash_source", on_off(state.opts.trash_source))
-end
-
-function M.toggle_screenshot_save()
-    state.opts.screenshot_save = not state.opts.screenshot_save
-    notify_set("screenshot_save", on_off(state.opts.screenshot_save))
-end
-
-function M.toggle_screenshot_subtitles()
-    state.opts.screenshot_subtitles = not state.opts.screenshot_subtitles
-    notify_set("screenshot_subtitles", on_off(state.opts.screenshot_subtitles))
-end
-
-function M.select_screenshot_format(on_complete)
-    ui_list.show(lang.t("menu_screenshot_format"), screenshot.formats, state.opts.screenshot_format, function(val)
-        state.opts.screenshot_format = val
-        notify_set("screenshot_format", val)
-        if on_complete then on_complete() end
-    end, on_complete)
-end
-
-function M.get_screenshot_dir_display()
-    return common.display_path(screenshot.dir(), mp.get_property("path"))
-end
-
-function M.set_screenshot_dir(on_complete)
-    ui_input.show({
-        title       = lang.t("menu_screenshot_dir"),
-        current     = state.opts.screenshot_dir,
-        hint        = lang.t("hint_screenshot_dir"),
-        allow_space = true,
-        on_cancel   = on_complete,
-        preview     = function(input) return screenshot.dir(input) end,
-        on_submit   = function(input)
-            state.opts.screenshot_dir = input
-            notify_set("screenshot_dir", M.get_screenshot_dir_display())
-            if on_complete then on_complete() end
-        end
-    })
 end
 
 function M.set_space_replacement(on_complete)

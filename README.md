@@ -264,23 +264,11 @@ Pick which audio tracks are exported in the [Tracks](#tracks-list) list.
 | Keybind | Action           | Description                                                                                                                                    |
 |---------|------------------|------------------------------------------------------------------------------------------------------------------------------------------------|
 | s       | Stats            | Toggle the Tachytome stats overlay, it counts the sources Tachytome trashed and their renders.<br>Set `stats_scope=all` to count every render. |
-| y       | Screenshot       | Open the [Screenshot](#screenshot-settings) submenu.                                                                                           |
 | m       | Menu             | Switch the menu, saved to `user.conf`.<br>Learn more about [Custom Menus](#custom-menus).                                                      |
 | c       | Config Manager   | Create, rename, delete, enable, reorder and edit configs.<br>Learn more about [Configs](#configs).                                             |
 | l       | Language         | Switch the UI language, saved to `user.conf`.<br>Learn more about [Translations](#translations).                                               |
 | v       | Version          | Pick the version Update installs, saved to `user.conf` as `version`.                                                                           |
 | U       | Update           | Update Tachytome to the picked version using git, falls back to the GitHub archive.<br>Restart mpv after updating.                             |
-
-###### Screenshot Settings
-
-| Keybind | Action               | Description                                                                      |
-|---------|----------------------|----------------------------------------------------------------------------------|
-| s       | Save Screenshots     | Toggle saving screenshots to disk too, they're always copied to the clipboard.   |
-| f       | Screenshot Format    | Pick the format saved screenshots use, `png`, `jpg`, `webp`, `jxl` or `avif`.    |
-| d       | Screenshot Dir       | Set the dir screenshots are saved to, the prompt shows where it resolves.        |
-| t       | Screenshot Subtitles | Toggle the subtitles in screenshots.                                             |
-
-These last until mpv closes or the config reloads, set them in a config to keep them, see [Screenshot](#screenshot).
 
 The `version` option takes:
 - `latest`, the default, the release marked Latest, or the highest version tag when there's no release.
@@ -1095,9 +1083,9 @@ Changing the path of a queued render to another container in the [Render Queue](
 
 Screenshot, `y` in the menu, copies the current frame to the clipboard at the video's own resolution, without black bars or the Tachytome menu.<br>
 It includes the subtitles, set `screenshot_subtitles=no` for the bare frame.<br>
-Nothing is saved by default, set `screenshot_save=yes` to also save it, as a PNG unless `screenshot_format` picks `jpg`, `webp`, `jxl` or `avif`, the format only applies to saved files.<br>
-All four can also be changed from Settings, `s-s` `y`.<br>
-The clipboard always gets a PNG, since most apps can't paste the others, FFmpeg makes it from the saved file so it's the same frame.<br>
+`screenshot_format` picks the format, `png` by default, or `jpg`, `webp`, `jxl` or `avif`, the clipboard gets that same format.<br>
+Windows and Mac can only copy `png` and `jpg`, other formats need `screenshot_save=yes` there.<br>
+Nothing is saved by default, set `screenshot_save=yes` to also save it.<br>
 Saved screenshots go to `output_dir`, the same dir as renders, or to `screenshot_dir` when it's set, which takes the same [prefixes](#prefixes) as Path, e.g. `~/Pictures` or `./` for the source's dir.<br>
 They're named after the source and the time, with no spaces or characters a shell needs quoted, e.g. `My Video (2024).mkv` at 1:23.456 gives `My_Video_2024_00-01-23.456.png`.<br>
 Spaces become the `space_replacement`, or `_` when that's a space, and a second screenshot of the same frame gets `_2` instead of overwriting the first.<br>
@@ -1105,25 +1093,33 @@ Copying uses PowerShell on Windows, `osascript` on Mac and wl-clipboard or xclip
 
 #### Quality
 
-Quality and compression effort come from mpv's own screenshot options, set them in `mpv/mpv.conf`, they apply to mpv's own screenshots too.<br>
-See [mpv's manual](https://mpv.io/manual/stable/#screenshot) for the rest, `screenshot-format` itself is ignored, `screenshot_format` picks it.
+Quality, compression effort and the rest are Tachytome options, set in your config or the [Config Editor](#config-editor) under Screenshot.<br>
+They're mpv's own [screenshot options](https://mpv.io/manual/stable/#screenshot), used only for Tachytome's screenshots, mpv's own keep what's in `mpv.conf`.<br>
+A value mpv rejects, e.g. `screenshot_jpeg_quality=500`, warns and the screenshot uses mpv's own.
 
-| Format | Option                                 | Default                           | Description                                                        |
-|--------|----------------------------------------|-----------------------------------|--------------------------------------------------------------------|
-| png    | `screenshot-png-compression=<0-9>`     | 7                                 | Higher is smaller and slower, always lossless.                     |
-| jpg    | `screenshot-jpeg-quality=<0-100>`      | 90                                | Higher is better quality.                                          |
-| webp   | `screenshot-webp-quality=<0-100>`      | 75                                | Higher is better quality.                                          |
-| webp   | `screenshot-webp-compression=<0-6>`    | 4                                 | Higher is smaller and slower.                                      |
-| webp   | `screenshot-webp-lossless=<yes\|no>`   | no                                | Lossless, ignores the quality.                                     |
-| jxl    | `screenshot-jxl-distance=<0-15>`       | 1                                 | Lower is better quality, 0 is lossless, 0.1 visually lossless.     |
-| jxl    | `screenshot-jxl-effort=<1-9>`          | 4                                 | Higher is smaller and slower.                                      |
-| avif   | `screenshot-avif-opts=<key=value,...>` | `usage=allintra,crf=0,cpu-used=8` | libaom-av1 options, `crf` is quality, `cpu-used` speed.            |
-| all    | `screenshot-high-bit-depth=<yes\|no>`  | yes                               | Keeps the source's bit depth, 10-bit sources can give 16-bit PNGs. |
+| Format | Option                          | Default                           | Description                                                                                 |
+|--------|---------------------------------|-----------------------------------|---------------------------------------------------------------------------------------------|
+| all    | `screenshot_tag_colorspace`     | `yes`                             | Tags the video's colorspace, off or unsupported converts to sRGB.                           |
+| all    | `screenshot_high_bit_depth`     | `yes`                             | Keeps the source's bit depth, 10-bit sources can give huge 16-bit PNGs.                     |
+| all    | `screenshot_sw`                 | `no`                              | Renders the screenshot in software instead of on the GPU.                                   |
+| png    | `screenshot_png_compression`    | `7`                               | 0 to 9, higher is smaller and slower, always lossless.                                      |
+| png    | `screenshot_png_filter`         | `5`                               | 0 none, 1 sub, 2 up, 3 average, 4 Paeth, 5 mixed, best for most images.                     |
+| jpg    | `screenshot_jpeg_quality`       | `90`                              | 0 to 100, higher is better.                                                                 |
+| jpg    | `screenshot_jpeg_source_chroma` | `yes`                             | Keeps the video's chroma subsampling, off uses libjpeg's default.                           |
+| webp   | `screenshot_webp_quality`       | `75`                              | 0 to 100, higher is better.                                                                 |
+| webp   | `screenshot_webp_compression`   | `4`                               | 0 to 6, higher is smaller and slower, also affects lossy quality.                           |
+| webp   | `screenshot_webp_lossless`      | `no`                              | Lossless, ignores the quality.                                                              |
+| jxl    | `screenshot_jxl_distance`       | `1`                               | 0 to 15, lower is better, 0 lossless, 0.1 visually lossless, 1 about JPEG 90.               |
+| jxl    | `screenshot_jxl_effort`         | `4`                               | 1 to 9, higher is usually smaller and slower.                                               |
+| avif   | `screenshot_avif_encoder`       | `libaom-av1`                      | AV1 encoder, e.g. `libsvtav1`.                                                              |
+| avif   | `screenshot_avif_pixfmt`        |                                   | Pixel format, e.g. `yuv420p`, empty picks one close to the source.                          |
+| avif   | `screenshot_avif_opts`          | `usage=allintra,crf=0,cpu-used=8` | Encoder options, `crf` is quality, lower is better, the default only works with libaom-av1. |
 
 E.g. visually lossless JPEG XL at a higher effort:
 ```
-screenshot-jxl-distance=0.1
-screenshot-jxl-effort=7
+screenshot_format=jxl
+screenshot_jxl_distance=0.1
+screenshot_jxl_effort=7
 ```
 
 ## Contributing
